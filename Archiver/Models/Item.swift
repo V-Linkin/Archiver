@@ -22,6 +22,7 @@ struct Item: Identifiable, Codable, Hashable {
     
     var coverAssetID: UUID?
     var folderID: UUID?
+    var customPlatformID: UUID?
     
     var remark: String?
     
@@ -51,7 +52,8 @@ struct Item: Identifiable, Codable, Hashable {
         remark: String? = nil,
         isStarred: Bool = false,
         version: Int = 1,
-        deletedAt: Date? = nil
+        deletedAt: Date? = nil,
+        customPlatformID: UUID? = nil
     ) {
         self.id = id
         self.title = title
@@ -74,6 +76,7 @@ struct Item: Identifiable, Codable, Hashable {
         self.isStarred = isStarred
         self.version = version
         self.deletedAt = deletedAt
+        self.customPlatformID = customPlatformID
     }
     
     // MARK: - Computed

@@ -9,10 +9,8 @@ struct HomeView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                // 粘贴并保存输入区
                 PasteInputView()
                 
-                // 新建内容按钮
                 HStack {
                     Button {
                         appState.showNewItem = true
@@ -31,26 +29,18 @@ struct HomeView: View {
                 
                 Divider()
                 
-                // 最近导入
                 if !appState.recentItems.isEmpty {
                     RecentItemsSection(items: appState.recentItems, selectedNav: $selectedNav, previousNav: $previousNav)
-                    
                     Divider()
                 }
                 
-                // 平台快捷入口
-                PlatformGridSection()
+                PlatformGridSection(selectedNav: $selectedNav, previousNav: $previousNav)
                 
-                Divider()
-                
-                // 最近文件夹
-                if !appState.recentFolders.isEmpty {
-                    RecentFoldersSection(folders: appState.recentFolders)
-                }
+
             }
             .padding(24)
         }
-        .navigationTitle("Archiver")
+        .navigationTitle("拾屿 · 跨平台的私人内容岛")
         .onAppear {
             appState.refreshData()
         }
@@ -100,7 +90,6 @@ struct PasteInputView: View {
                 .keyboardShortcut(.return, modifiers: [])
             }
             
-            // 识别到的平台
             if let platform = recognizedPlatform {
                 HStack(spacing: 6) {
                     Image(systemName: platform.iconName)
@@ -130,29 +119,33 @@ struct PasteInputView: View {
                 
                 switch result {
                 case .success(let item):
-                    appState.showToast("已归档到 \(item.platform.displayName) > \(item.archiveStatus.displayName)")
+                    let platformName = appState.customPlatforms.first(where: { $0.id == item.customPlatformID })?.name ?? item.platform.displayName
+                    appState.showToast("已归档到 \(platformName)")
                     appState.refreshData()
-                case .duplicate(let existing):
-                    appState.showToast("该内容已存在于 \(existing.platform.displayName) > \(existing.archiveStatus.displayName)")
+                case .duplicate(_):
+                    appState.showToast("该内容已存在")
                 case .failure(let error):
+                    appState.refreshData()
                     if let parserError = error as? ParserError {
-                        appState.showToast(parserError.errorDescription ?? "导入失败")
+                        appState.showToast(parserError.localizedDescription)
                     } else {
                         appState.showToast("导入失败: \(error.localizedDescription)")
                     }
-                    appState.refreshData() // 失败记录也需要刷新
                 }
             }
         }
     }
 }
 
-// MARK: - 最近导入区
+// MARK: - 最近导入
 
 struct RecentItemsSection: View {
     let items: [Item]
     @Binding var selectedNav: NavigationTarget?
     @Binding var previousNav: NavigationTarget?
+    
+    private let cardWidth: CGFloat = 200
+    private let cardHeight: CGFloat = 240
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -160,17 +153,20 @@ struct RecentItemsSection: View {
                 .font(.headline)
             
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
+                LazyHStack(spacing: 12) {
                     ForEach(items) { item in
-                        Button { previousNav = .home
-                        selectedNav = .item(item.id) } label: {
+                        Button {
+                            previousNav = .home
+                            selectedNav = .item(item.id)
+                        } label: {
                             ItemCardView(item: item)
-                            .frame(width: 180)
                         }
                         .buttonStyle(.plain)
+                        .frame(width: cardWidth)
                     }
                 }
             }
+            .frame(height: cardHeight)
         }
     }
 }
@@ -179,6 +175,8 @@ struct RecentItemsSection: View {
 
 struct PlatformGridSection: View {
     @Environment(AppState.self) private var appState
+    @Binding var selectedNav: NavigationTarget?
+    @Binding var previousNav: NavigationTarget?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -189,9 +187,12 @@ struct PlatformGridSection: View {
                 GridItem(.flexible()),
                 GridItem(.flexible())
             ], spacing: 12) {
-                ForEach(Platform.allCases) { platform in
-                    NavigationLink(value: NavigationTarget.platform(platform)) {
-                        PlatformCard(platform: platform, count: appState.platformCounts[platform] ?? 0)
+                ForEach(appState.customPlatforms) { cp in
+                    Button {
+                        previousNav = selectedNav
+                        selectedNav = .customPlatform(cp.id)
+                    } label: {
+                        CustomPlatformCard(platform: cp, count: appState.customPlatformCounts[cp.id] ?? 0)
                     }
                     .buttonStyle(.plain)
                 }
@@ -200,19 +201,34 @@ struct PlatformGridSection: View {
     }
 }
 
-struct PlatformCard: View {
-    let platform: Platform
+struct CustomPlatformCard: View {
+    let platform: CustomPlatform
     let count: Int
     
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: platform.iconName)
-                .font(.title2)
-                .foregroundStyle(platform.brandColor)
-                .frame(width: 36)
+            if let logoPath = platform.logoPath {
+                let url = DataDirectory.platformLogos.appendingPathComponent(logoPath)
+                if let nsImage = NSImage(contentsOf: url) {
+                    Image(nsImage: nsImage)
+                        .resizable()
+                        .frame(width: 36, height: 36)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                } else {
+                    Image(systemName: "star.fill")
+                        .font(.title2)
+                        .foregroundStyle(.purple)
+                        .frame(width: 36)
+                }
+            } else {
+                Image(systemName: "star.fill")
+                    .font(.title2)
+                    .foregroundStyle(.purple)
+                    .frame(width: 36)
+            }
             
             VStack(alignment: .leading, spacing: 2) {
-                Text(platform.displayName)
+                Text(platform.name)
                     .font(.subheadline)
                     .fontWeight(.medium)
                 Text("\(count) 条内容")

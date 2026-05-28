@@ -1,10 +1,8 @@
 import SwiftUI
 
-/// 回收站页
 struct TrashView: View {
     @Environment(AppState.self) private var appState
     @State private var trashedItems: [Item] = []
-    @State private var trashRecords: [TrashRecord] = []
     @State private var showClearAllConfirm = false
     
     var body: some View {
@@ -13,6 +11,17 @@ struct TrashView: View {
                 ContentUnavailableView("回收站是空的", systemImage: "trash")
             } else {
                 List {
+                    Section {
+                        HStack(spacing: 8) {
+                            Image(systemName: "clock.badge.exclamationmark")
+                                .foregroundStyle(.orange)
+                            Text("回收站中的内容将在30天后自动清除")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .listRowBackground(Color.orange.opacity(0.08))
+                    }
+                    
                     ForEach(trashedItems) { item in
                         TrashItemRow(item: item, onRestore: { restoreItem(item) },
                                      onPermanentDelete: { permanentDeleteItem(item) })
@@ -61,17 +70,16 @@ struct TrashView: View {
     }
     
     private func permanentDeleteItem(_ item: Item) {
+        let mediaDir = DataDirectory.media
         // 删除媒体文件
         if let record = try? appState.trashRepo.findByItemID(item.id) {
-            let mediaDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-                .appendingPathComponent("Archiver/media")
             for path in record.mediaPaths {
                 try? FileManager.default.removeItem(at: mediaDir.appendingPathComponent(path))
             }
-            // 删除整个 item 目录
-            let itemDir = mediaDir.appendingPathComponent(item.id.uuidString)
-            try? FileManager.default.removeItem(at: itemDir)
         }
+        // 删除整个 item 目录
+        let itemDir = mediaDir.appendingPathComponent(item.id.uuidString)
+        try? FileManager.default.removeItem(at: itemDir)
         
         try? appState.itemRepo.permanentDelete(id: item.id)
         try? appState.trashRepo.deleteByItemID(item.id)
@@ -93,6 +101,15 @@ struct TrashItemRow: View {
     let onPermanentDelete: () -> Void
     
     @State private var showDeleteConfirm = false
+    @State private var showRestoreConfirm = false
+    
+    private let autoDeleteDays = 30
+    
+    private var daysRemaining: Int {
+        guard let deletedAt = item.deletedAt else { return autoDeleteDays }
+        let elapsed = Calendar.current.dateComponents([.day], from: deletedAt, to: Date()).day ?? 0
+        return max(0, autoDeleteDays - elapsed)
+    }
     
     var body: some View {
         HStack(spacing: 12) {
@@ -112,7 +129,7 @@ struct TrashItemRow: View {
                     Text(item.platform.displayName)
                         .font(.caption2)
                     if let deletedAt = item.deletedAt {
-                        Text("删除于 \(deletedAt.formatted(.dateTime.month().day()))")
+                        Text("删除于 \(deletedAt.formatted(.dateTime.month().day().hour().minute()))")
                             .font(.caption2)
                     }
                 }
@@ -121,7 +138,12 @@ struct TrashItemRow: View {
             
             Spacer()
             
-            Button("恢复") { onRestore() }
+            Text("剩余 \(daysRemaining) 天")
+                .font(.caption)
+                .foregroundStyle(daysRemaining <= 7 ? .red : .secondary)
+                .fontWeight(daysRemaining <= 7 ? .medium : .regular)
+            
+            Button("恢复") { showRestoreConfirm = true }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
             
@@ -137,6 +159,12 @@ struct TrashItemRow: View {
             Button("删除", role: .destructive) { onPermanentDelete() }
         } message: {
             Text("此操作不可恢复，内容及所有媒体文件将被永久删除。")
+        }
+        .alert("恢复内容", isPresented: $showRestoreConfirm) {
+            Button("取消", role: .cancel) {}
+            Button("恢复") { onRestore() }
+        } message: {
+            Text("确定要将此内容恢复到原来的位置吗？")
         }
     }
 }

@@ -8,10 +8,12 @@ struct PlatformView: View {
     @State private var items: [Item] = []
     @State private var folders: [Folder] = []
     @State private var viewMode: ViewMode = .grid
+    @State private var sortNewestFirst = true
     @State private var showNewFolderSheet = false
     @State private var moveTargetItemID: UUID?
     @State private var showMoveOverlay = false
-        
+    @State private var showMoveToPlatform = false
+    
     enum ViewMode: String, CaseIterable {
         case grid = "网格"
         case list = "列表"
@@ -26,18 +28,27 @@ struct PlatformView: View {
     var body: some View {
         VStack(spacing: 0) {
             if !folders.isEmpty { folderSection }
-            
             if items.isEmpty { emptyState }
             else if viewMode == .grid { mediaGridView }
             else { textListView }
         }
         .navigationTitle(platform.displayName)
+        .onChange(of: viewMode) { _, newValue in
+            UserDefaults.standard.set(newValue.rawValue, forKey: "viewMode_\(platform.rawValue)")
+        }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 HStack(spacing: 8) {
+                    Button(action: { appState.newItemPlatform = platform; appState.newItemCustomPlatformID = nil; appState.showNewItem = true }) {
+                        Image(systemName: "plus.circle")
+                    }
                     Button(action: { showNewFolderSheet = true }) {
                         Image(systemName: "folder.badge.plus")
                     }
+                    Button(action: { sortNewestFirst.toggle(); loadData() }) {
+                        Image(systemName: sortNewestFirst ? "arrow.down" : "arrow.up")
+                    }
+                    .help(sortNewestFirst ? "最新优先" : "最早优先")
                     Picker("视图", selection: $viewMode) {
                         ForEach(ViewMode.allCases, id: \.self) { mode in
                             Image(systemName: mode.icon).tag(mode)
@@ -58,14 +69,28 @@ struct PlatformView: View {
                 MoveToFolderOverlay(itemID: itemID, isPresented: $showMoveOverlay)
             }
         }
-        .onAppear { loadData() }
+        .sheet(isPresented: $showMoveToPlatform) {
+            if let itemID = moveTargetItemID {
+                MoveToPlatformSheet(itemID: itemID, isPresented: $showMoveToPlatform)
+            }
+        }
+        .onAppear {
+            if let saved = UserDefaults.standard.string(forKey: "viewMode_\(platform.rawValue)"),
+               let mode = ViewMode(rawValue: saved) {
+                viewMode = mode
+            }
+            loadData()
+        }
     }
     
     private var folderSection: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
                 ForEach(folders) { folder in
-                    Button { selectedNav = .folder(folder.id) } label: {
+                    Button {
+                        previousNav = .platform(platform)
+                        selectedNav = .folder(folder.id)
+                    } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "folder.fill").foregroundStyle(.blue)
                             Text(folder.name).font(.subheadline)
@@ -88,7 +113,10 @@ struct PlatformView: View {
         ScrollView {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 180, maximum: 220), spacing: 16)], spacing: 16) {
                 ForEach(items) { item in
-                    Button { previousNav = .platform(platform); selectedNav = .item(item.id) } label: {
+                    Button {
+                        previousNav = .platform(platform)
+                        selectedNav = .item(item.id)
+                    } label: {
                         ItemCardView(item: item)
                     }
                     .buttonStyle(.plain)
@@ -101,7 +129,10 @@ struct PlatformView: View {
     
     private var textListView: some View {
         List(items) { item in
-            Button { previousNav = .platform(platform); selectedNav = .item(item.id) } label: {
+            Button {
+                previousNav = .platform(platform)
+                selectedNav = .item(item.id)
+            } label: {
                 ItemListRow(item: item)
             }
             .buttonStyle(.plain)
@@ -128,7 +159,8 @@ struct PlatformView: View {
     @ViewBuilder
     private func itemContextMenu(_ item: Item) -> some View {
         Button {
-            moveTargetItemID = item.id; showMoveOverlay = true
+            moveTargetItemID = item.id
+            showMoveOverlay = true
         } label: {
             Label(folders.isEmpty ? "暂无文件夹" : "移动到文件夹", systemImage: "folder")
         }
@@ -138,14 +170,17 @@ struct PlatformView: View {
     }
     
     private func loadData() {
-        let repo = appState.itemRepo
+        let newest = sortNewestFirst
+        let itemRepo = appState.itemRepo
         let folderRepo = appState.folderRepo
-        let platform = platform
         DispatchQueue.global(qos: .userInitiated).async {
-            let loadedItems = (try? repo.fetchAll(platform: platform)) ?? []
+            let loadedItems = (try? itemRepo.fetchAll(platform: platform)) ?? []
+            let sortedItems = loadedItems.sorted {
+                newest ? $0.importDate > $1.importDate : $0.importDate < $1.importDate
+            }
             let loadedFolders = (try? folderRepo.fetchAll(platform: platform)) ?? []
             DispatchQueue.main.async {
-                self.items = loadedItems
+                self.items = sortedItems
                 self.folders = loadedFolders
             }
         }
@@ -205,19 +240,27 @@ struct PlatformStatusView: View {
 
 struct NewFolderSheet: View {
     let platform: Platform
+    var customPlatformID: UUID? = nil
+    var parentID: UUID? = nil
     @Binding var isPresented: Bool
     var onCreate: (() -> Void)?
     @Environment(AppState.self) private var appState
     @State private var folderName = ""
+    
     var body: some View {
         VStack(spacing: 20) {
-            Text("新建文件夹").font(.headline)
+            Text(parentID != nil ? "新建子文件夹" : "新建文件夹").font(.headline)
             TextField("文件夹名称", text: $folderName).textFieldStyle(.roundedBorder)
             HStack {
                 Button("取消") { isPresented = false }.keyboardShortcut(.cancelAction)
                 Spacer()
                 Button("创建") {
-                    let folder = Folder(name: folderName, platform: platform)
+                    let folder = Folder(
+                        name: folderName,
+                        parentID: parentID,
+                        platform: platform,
+                        customPlatformID: customPlatformID
+                    )
                     try? appState.folderRepo.insert(folder)
                     isPresented = false
                     appState.refreshData()

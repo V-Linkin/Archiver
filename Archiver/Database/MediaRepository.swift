@@ -66,6 +66,12 @@ final class MediaRepository: @unchecked Sendable {
         }
     }
     
+    func deleteByID(_ id: UUID) throws {
+        try db.write { db in
+            try db.execute(sql: "DELETE FROM media_assets WHERE id=?", arguments: [id.uuidString])
+        }
+    }
+
     func deleteByItemID(_ itemID: UUID) throws {
         try db.write { db in
             try db.execute(sql: "DELETE FROM media_assets WHERE item_id=?", arguments: [itemID.uuidString])

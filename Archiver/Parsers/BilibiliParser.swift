@@ -1,6 +1,5 @@
 import Foundation
 
-/// B站解析器
 final class BilibiliParser: ContentParser, @unchecked Sendable {
     
     private let session: URLSession = {
@@ -56,47 +55,37 @@ final class BilibiliParser: ContentParser, @unchecked Sendable {
             let fileName = "cover.jpg"
             let localPath = itemDir.appendingPathComponent(fileName)
             if await downloadFile(from: url, to: localPath) {
+                let fileSize = (try? fileManager.attributesOfItem(atPath: localPath.path)[.size] as? Int64) ?? 0
                 let asset = MediaAsset(
                     itemID: itemID, type: .cover,
                     localPath: "\(itemID.uuidString)/\(fileName)",
                     remoteURL: coverURL, fileName: fileName,
-                    downloadStatus: .completed
+                    fileSize: fileSize, downloadStatus: .completed
                 )
                 try MediaRepository().insert(asset)
                 assets.append(asset)
             }
         }
         
-        for (index, imageURL) in content.imageURLs.enumerated() {
+        for (index, imageURL) in content.imageURLs.prefix(9).enumerated() {
             guard let url = URL(string: imageURL) else { continue }
             let fileName = "image_\(String(format: "%03d", index + 1)).jpg"
             let localPath = itemDir.appendingPathComponent(fileName)
             if await downloadFile(from: url, to: localPath) {
+                let fileSize = (try? fileManager.attributesOfItem(atPath: localPath.path)[.size] as? Int64) ?? 0
                 let asset = MediaAsset(
                     itemID: itemID, type: .image,
                     localPath: "\(itemID.uuidString)/\(fileName)",
                     remoteURL: imageURL, fileName: fileName,
-                    downloadStatus: .completed
+                    fileSize: fileSize, downloadStatus: .completed
                 )
                 try MediaRepository().insert(asset)
                 assets.append(asset)
             }
         }
         
-        if content.videoURL != nil {
-            let asset = MediaAsset(
-                itemID: itemID, type: .video,
-                fileName: "video.mp4",
-                downloadStatus: .skipped
-            )
-            try MediaRepository().insert(asset)
-            assets.append(asset)
-        }
-        
         return assets
     }
-    
-    // MARK: - Private
     
     private func resolveShortURL(_ url: URL) async throws -> URL {
         let host = url.host?.lowercased() ?? ""
@@ -169,9 +158,12 @@ final class BilibiliParser: ContentParser, @unchecked Sendable {
         
         guard title != nil || desc != nil else { return nil }
         
+        // 去除 HTML 标签
+        let cleanDesc = desc.map { Self.stripHTML($0) }
+        
         return ParsedContent(
             title: title,
-            body: desc,
+            body: cleanDesc,
             author: author,
             publishDate: publishDate,
             coverURL: coverURL,
@@ -188,9 +180,11 @@ final class BilibiliParser: ContentParser, @unchecked Sendable {
             ?? extractMeta(html, name: "description")
         let cover = extractMeta(html, property: "og:image")
         
+        let cleanDesc = desc.map { Self.stripHTML($0) }
+        
         return ParsedContent(
             title: title,
-            body: desc,
+            body: cleanDesc,
             coverURL: cover,
             platformContentID: extractContentID(from: url)
         )
@@ -219,5 +213,19 @@ final class BilibiliParser: ContentParser, @unchecked Sendable {
             try data.write(to: localURL)
             return true
         } catch { return false }
+    }
+    
+    /// 去除 HTML 标签，保留纯文本
+    static func stripHTML(_ html: String) -> String {
+        var result = html
+        result = result.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+        result = result.replacingOccurrences(of: "&amp;", with: "&")
+        result = result.replacingOccurrences(of: "&lt;", with: "<")
+        result = result.replacingOccurrences(of: "&gt;", with: ">")
+        result = result.replacingOccurrences(of: "&nbsp;", with: " ")
+        result = result.replacingOccurrences(of: "&quot;", with: "\"")
+        result = result.replacingOccurrences(of: "&#39;", with: "'")
+        result = result.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+        return result.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

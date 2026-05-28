@@ -1,6 +1,5 @@
 import SwiftUI
 
-/// 文件夹页
 struct FolderView: View {
     let folderID: UUID
     @Binding var selectedNav: NavigationTarget?
@@ -13,6 +12,10 @@ struct FolderView: View {
     @State private var showRenameSheet = false
     @State private var renameText = ""
     @State private var showDeleteConfirm = false
+    @State private var sortNewestFirst = true
+    @State private var moveTargetItemID: UUID?
+    @State private var showMoveOverlay = false
+    @State private var showNewSubfolderSheet = false
     
     var body: some View {
         Group {
@@ -22,7 +25,13 @@ struct FolderView: View {
                 ContentUnavailableView("文件夹未找到", systemImage: "folder.badge.questionmark")
             }
         }
-        .onAppear { loadData() }
+        .onAppear {
+            if let saved = UserDefaults.standard.string(forKey: "viewMode_folder_\(folderID.uuidString)"),
+               let mode = PlatformView.ViewMode(rawValue: saved) {
+                viewMode = mode
+            }
+            loadData()
+        }
     }
     
     private func folderContent(_ folder: Folder) -> some View {
@@ -30,36 +39,48 @@ struct FolderView: View {
             if !subfolders.isEmpty {
                 subfolderBar
             }
-            
             if items.isEmpty {
                 emptyView
             } else if viewMode == .grid {
                 ScrollView {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 180, maximum: 220), spacing: 16)], spacing: 16) {
                         ForEach(items) { item in
-                            Button { previousNav = .folder(folderID)
-                        selectedNav = .item(item.id) } label: {
+                            Button {
+                                previousNav = .folder(folderID)
+                                selectedNav = .item(item.id)
+                            } label: {
                                 ItemCardView(item: item)
                             }
                             .buttonStyle(.plain)
+                            .contextMenu { itemContextMenu(item) }
                         }
                     }
                     .padding(16)
                 }
             } else {
                 List(items) { item in
-                    Button { previousNav = .folder(folderID)
-                        selectedNav = .item(item.id) } label: {
+                    Button {
+                        previousNav = .folder(folderID)
+                        selectedNav = .item(item.id)
+                    } label: {
                         ItemListRow(item: item)
                     }
                     .buttonStyle(.plain)
+                    .contextMenu { itemContextMenu(item) }
                 }
                 .listStyle(.plain)
             }
         }
         .navigationTitle(folder.name)
+        .onChange(of: viewMode) { _, newValue in
+            UserDefaults.standard.set(newValue.rawValue, forKey: "viewMode_folder_\(folderID.uuidString)")
+        }
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
+                Button(action: { showNewSubfolderSheet = true }) {
+                    Image(systemName: "folder.badge.plus")
+                }
+                .help("新建子文件夹")
                 Menu {
                     Button("重命名", systemImage: "pencil") {
                         renameText = folder.name
@@ -71,6 +92,10 @@ struct FolderView: View {
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
+                Button(action: { sortNewestFirst.toggle(); loadData() }) {
+                    Image(systemName: sortNewestFirst ? "arrow.down" : "arrow.up")
+                }
+                .help(sortNewestFirst ? "最新优先" : "最早优先")
                 Picker("视图", selection: $viewMode) {
                     ForEach(PlatformView.ViewMode.allCases, id: \.self) { mode in
                         Image(systemName: mode.icon).tag(mode)
@@ -91,6 +116,21 @@ struct FolderView: View {
         } message: {
             Text("确定删除文件夹？内容不会被删除。")
         }
+        .sheet(isPresented: $showNewSubfolderSheet) {
+            NewFolderSheet(
+                platform: folder.platform,
+                customPlatformID: folder.customPlatformID,
+                parentID: folderID,
+                isPresented: $showNewSubfolderSheet
+            ) { loadData() }
+        }
+        .overlay {
+            if showMoveOverlay, let itemID = moveTargetItemID {
+                Color.black.opacity(0.3).ignoresSafeArea()
+                    .onTapGesture { showMoveOverlay = false }
+                MoveToFolderOverlay(itemID: itemID, isPresented: $showMoveOverlay)
+            }
+        }
     }
     
     private var emptyView: some View {
@@ -108,7 +148,10 @@ struct FolderView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
                 ForEach(subfolders) { sub in
-                    Button { selectedNav = .folder(sub.id) } label: {
+                    Button {
+                        previousNav = .folder(folderID)
+                        selectedNav = .folder(sub.id)
+                    } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "folder.fill").foregroundStyle(.blue)
                             Text(sub.name)
@@ -127,9 +170,33 @@ struct FolderView: View {
         }
     }
     
+    @ViewBuilder
+    private func itemContextMenu(_ item: Item) -> some View {
+        Button {
+            moveTargetItemID = item.id
+            showMoveOverlay = true
+        } label: {
+            Label("移动到文件夹", systemImage: "folder")
+        }
+        Divider()
+        Button("删除", role: .destructive) { deleteItem(item) }
+    }
+    
+    private func deleteItem(_ item: Item) {
+        var updated = item
+        updated.deletedAt = Date()
+        updated.contentStatus = .trashed
+        try? appState.itemRepo.update(updated)
+        let record = TrashRecord(itemID: item.id, originalFolderID: item.folderID, originalArchiveStatus: item.archiveStatus)
+        try? appState.trashRepo.insert(record)
+        loadData()
+        appState.refreshData()
+    }
+    
     private func loadData() {
         folder = try? appState.folderRepo.find(id: folderID)
-        items = (try? appState.itemRepo.fetchAll(folderID: folderID)) ?? []
+        let loaded = (try? appState.itemRepo.fetchAll(folderID: folderID)) ?? []
+        items = loaded.sorted { sortNewestFirst ? $0.importDate > $1.importDate : $0.importDate < $1.importDate }
         subfolders = (try? appState.folderRepo.fetchAll(parentID: folderID)) ?? []
     }
     
@@ -150,6 +217,8 @@ struct FolderView: View {
         }
         try? appState.folderRepo.delete(id: f.id)
         appState.refreshData()
-        selectedNav = nil
+        let target = previousNav ?? .home
+        previousNav = nil
+        selectedNav = target
     }
 }

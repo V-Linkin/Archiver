@@ -12,7 +12,7 @@ struct NewItemView: View {
     @State private var originalURL = ""
     @State private var remark = ""
 
-    @State private var selectedPlatform: Platform = .xiaohongshu
+    @State private var selectedCustomPlatformID: UUID? = nil
     @State private var selectedFolderID: UUID? = nil
 
     @State private var imageURLs: [URL] = []
@@ -20,13 +20,13 @@ struct NewItemView: View {
 
     @State private var availableFolders: [Folder] = []
     @State private var isSaving = false
+    @State private var newFolderName = ""
+    @State private var isCreatingFolder = false
 
     var body: some View {
         VStack(spacing: 0) {
             headerBar
-
             Divider()
-
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     platformSection
@@ -39,11 +39,12 @@ struct NewItemView: View {
             }
         }
         .frame(width: 620, height: 680)
-        .onAppear { loadFolders() }
-        .onChange(of: selectedPlatform) { _, _ in loadFolders() }
+        .onAppear {
+            selectedCustomPlatformID = appState.newItemCustomPlatformID
+            loadFolders()
+        }
+        .onChange(of: selectedCustomPlatformID) { _, _ in loadFolders() }
     }
-
-    // MARK: - Header
 
     private var headerBar: some View {
         HStack {
@@ -59,100 +60,117 @@ struct NewItemView: View {
         .padding()
     }
 
-    // MARK: - Platform
-
     private var platformSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("平台分类").font(.headline)
-            Picker("平台", selection: $selectedPlatform) {
-                ForEach(Platform.allCases) { p in
-                    HStack {
-                        Image(systemName: p.iconName).foregroundStyle(p.brandColor)
-                        Text(p.displayName)
-                    }
-                    .tag(p)
-                }
-            }
-            .pickerStyle(.segmented)
-        }
-    }
-
-    // MARK: - Folder
-
-    private var folderSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("文件夹（可选）").font(.headline)
-            if availableFolders.isEmpty {
+            if appState.customPlatforms.isEmpty {
                 HStack(spacing: 6) {
                     Image(systemName: "info.circle").foregroundStyle(.tertiary)
-                    Text("该平台下暂无文件夹，可在平台页面新建")
+                    Text("请先在侧边栏「新增平台」创建平台")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
             } else {
-                Picker("文件夹", selection: $selectedFolderID) {
+                Picker("平台", selection: $selectedCustomPlatformID) {
+                    Text("选择平台").tag(nil as UUID?)
+                    ForEach(appState.customPlatforms) { cp in
+                        Text(cp.name).tag(cp.id as UUID?)
+                    }
+                }
+            }
+        }
+    }
+
+    private var folderSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("文件夹（可选）").font(.headline)
+                Spacer()
+                Button {
+                    isCreatingFolder = true
+                } label: {
+                    Label("新建文件夹", systemImage: "plus")
+                        .font(.subheadline)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(selectedCustomPlatformID == nil)
+            }
+            
+            if isCreatingFolder {
+                HStack(spacing: 8) {
+                    TextField("文件夹名称", text: $newFolderName)
+                        .textFieldStyle(.roundedBorder)
+                    Button("创建") {
+                        createFolder()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(newFolderName.trimmingCharacters(in: .whitespaces).isEmpty)
+                    Button("取消") {
+                        isCreatingFolder = false
+                        newFolderName = ""
+                    }
+                    .foregroundStyle(.secondary)
+                }
+            }
+            
+            if !availableFolders.isEmpty {
+                Picker("选择文件夹", selection: $selectedFolderID) {
                     Text("无").tag(nil as UUID?)
                     ForEach(availableFolders) { folder in
                         Text(folder.name).tag(folder.id as UUID?)
                     }
                 }
+            } else if !isCreatingFolder {
+                HStack(spacing: 6) {
+                    Image(systemName: "info.circle").foregroundStyle(.tertiary)
+                    Text("该平台下暂无文件夹")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
             }
         }
     }
-
-    // MARK: - Metadata
 
     private var metadataSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("内容信息").font(.headline)
-
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("标题 *").font(.subheadline).foregroundStyle(.secondary)
-                    TextField("输入标题", text: $title)
-                        .textFieldStyle(.roundedBorder)
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("作者").font(.subheadline).foregroundStyle(.secondary)
-                    TextField("输入作者名", text: $author)
-                        .textFieldStyle(.roundedBorder)
-                }
-            }
-
+            
+            TextField("标题（必填）", text: $title)
+                .textFieldStyle(.roundedBorder)
+            
+            TextField("作者", text: $author)
+                .textFieldStyle(.roundedBorder)
+            
+            TextField("原始链接（可选）", text: $originalURL)
+                .textFieldStyle(.roundedBorder)
+            
             VStack(alignment: .leading, spacing: 4) {
                 Text("正文").font(.subheadline).foregroundStyle(.secondary)
                 TextEditor(text: $bodyText)
-                    .frame(height: 140)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(.quaternary)
-                    )
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("原始链接（可选）").font(.subheadline).foregroundStyle(.secondary)
-                TextField("https://...", text: $originalURL)
-                    .textFieldStyle(.roundedBorder)
+                    .font(.body)
+                    .scrollContentBackground(.visible)
+                    .frame(minHeight: 100, idealHeight: 150, maxHeight: 250)
+                    .padding(4)
+                    .overlay(RoundedRectangle(cornerRadius: 6).stroke(.quaternary))
             }
         }
     }
 
-    // MARK: - Media
-
     private var mediaSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("媒体文件").font(.headline)
-
+            
             HStack(spacing: 12) {
                 Button {
                     let urls = FilePicker.pickImages()
                     imageURLs.append(contentsOf: urls)
                 } label: {
-                    Label("添加图片", systemImage: "photo.on.rectangle")
+                    Label("添加图片", systemImage: "photo.badge.plus")
                 }
                 .buttonStyle(.bordered)
-
+                .controlSize(.small)
+                
                 Button {
                     let urls = FilePicker.pickVideos()
                     videoURLs.append(contentsOf: urls)
@@ -160,115 +178,90 @@ struct NewItemView: View {
                     Label("添加视频", systemImage: "video.badge.plus")
                 }
                 .buttonStyle(.bordered)
+                .controlSize(.small)
             }
-
+            
             if !imageURLs.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("已选图片（\(imageURLs.count)张）")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("已选图片 (\(imageURLs.count))").font(.caption).foregroundStyle(.secondary)
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
                             ForEach(Array(imageURLs.enumerated()), id: \.offset) { index, url in
-                                imageThumbnail(url: url, index: index)
+                                if let nsImage = NSImage(contentsOf: url) {
+                                    ZStack(alignment: .topTrailing) {
+                                        Image(nsImage: nsImage)
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fill)
+                                            .frame(width: 80, height: 80)
+                                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                                        Button { imageURLs.remove(at: index) } label: {
+                                            Image(systemName: "xmark.circle.fill").font(.caption).foregroundStyle(.red)
+                                        }.buttonStyle(.plain)
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
-
+            
             if !videoURLs.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("已选视频（\(videoURLs.count)个）")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("已选视频 (\(videoURLs.count))").font(.caption).foregroundStyle(.secondary)
                     ForEach(Array(videoURLs.enumerated()), id: \.offset) { index, url in
                         HStack(spacing: 8) {
-                            Image(systemName: "film").foregroundStyle(.secondary)
+                            Image(systemName: "video")
+                                .foregroundStyle(.blue)
                             Text(url.lastPathComponent)
                                 .font(.caption)
                                 .lineLimit(1)
                             Spacer()
-                            Button {
-                                videoURLs.remove(at: index)
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundStyle(.tertiary)
-                            }
-                            .buttonStyle(.plain)
+                            Button { videoURLs.remove(at: index) } label: {
+                                Image(systemName: "xmark.circle.fill").font(.caption).foregroundStyle(.red)
+                            }.buttonStyle(.plain)
                         }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(.quaternary.opacity(0.5))
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .padding(.horizontal, 8).padding(.vertical, 4)
+                        .background(.quaternary).clipShape(RoundedRectangle(cornerRadius: 6))
                     }
                 }
             }
-
-            if imageURLs.isEmpty && videoURLs.isEmpty {
-                HStack {
-                    Image(systemName: "photo.on.rectangle.angled")
-                        .font(.title2)
-                        .foregroundStyle(.tertiary)
-                    Text("点击上方按钮添加图片或视频")
-                        .font(.subheadline)
-                        .foregroundStyle(.tertiary)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 20)
-                .background(.quaternary.opacity(0.3))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-            }
         }
     }
-
-    private func imageThumbnail(url: URL, index: Int) -> some View {
-        Group {
-            if let nsImage = NSImage(contentsOf: url) {
-                Image(nsImage: nsImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } else {
-                Rectangle()
-                    .fill(.quaternary)
-                    .overlay {
-                        Image(systemName: "photo").foregroundStyle(.tertiary)
-                    }
-            }
-        }
-        .frame(width: 80, height: 80)
-        .clipShape(RoundedRectangle(cornerRadius: 6))
-        .overlay(alignment: .topTrailing) {
-            Button {
-                imageURLs.remove(at: index)
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .foregroundStyle(.white, .black.opacity(0.6))
-                    .font(.caption)
-            }
-            .buttonStyle(.plain)
-            .offset(x: 4, y: -4)
-        }
-    }
-
-    // MARK: - Remark
 
     private var remarkSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("备注（可选）").font(.headline)
+            Text("备注").font(.headline)
             TextEditor(text: $remark)
-                .frame(height: 60)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(.quaternary)
-                )
+                .font(.body)
+                .scrollContentBackground(.visible)
+                .frame(minHeight: 60, idealHeight: 80)
+                .padding(4)
+                .overlay(RoundedRectangle(cornerRadius: 6).stroke(.quaternary))
         }
     }
 
-    // MARK: - Actions
-
     private func loadFolders() {
-        availableFolders = (try? appState.folderRepo.fetchAll(platform: selectedPlatform)) ?? []
+        guard let cpID = selectedCustomPlatformID else {
+            availableFolders = []
+            return
+        }
+        availableFolders = (try? appState.folderRepo.fetchAll(platform: .custom, customPlatformID: cpID)) ?? []
+    }
+
+    private func createFolder() {
+        guard let cpID = selectedCustomPlatformID else { return }
+        let name = newFolderName.trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty else { return }
+        
+        let folder = Folder(name: name, platform: .custom, customPlatformID: cpID)
+        try? appState.folderRepo.insert(folder)
+        newFolderName = ""
+        isCreatingFolder = false
+        loadFolders()
+        appState.refreshData()
+        
+        // 自动选中新创建的文件夹
+        selectedFolderID = folder.id
     }
 
     private func save() {
@@ -278,22 +271,23 @@ struct NewItemView: View {
         let now = Date()
         let normalizedURL = originalURL.isEmpty
             ? "custom://\(UUID().uuidString)"
-            : URLNormalizer.normalize(originalURL, platform: selectedPlatform)
+            : URLNormalizer.normalize(originalURL, platform: .custom)
         let contentID = originalURL.isEmpty
             ? nil
-            : URLNormalizer.extractContentID(originalURL, platform: selectedPlatform)
+            : URLNormalizer.extractContentID(originalURL, platform: .custom)
 
         var item = Item(
             title: title.isEmpty ? nil : title,
             body: bodyText.isEmpty ? nil : bodyText,
             originalURL: originalURL.isEmpty ? "custom://\(UUID().uuidString)" : originalURL,
-            platform: selectedPlatform,
+            platform: .custom,
             platformContentID: contentID,
             normalizedURL: normalizedURL,
             author: author.isEmpty ? nil : author,
             publishDate: now,
             archiveStatus: .pending,
-            mediaStatus: .textOnly
+            mediaStatus: .textOnly,
+            customPlatformID: selectedCustomPlatformID
         )
         item.folderID = selectedFolderID
         item.remark = remark.isEmpty ? nil : remark
@@ -306,10 +300,7 @@ struct NewItemView: View {
             return
         }
 
-        let mediaDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-            .appendingPathComponent("Archiver/media", isDirectory: true)
-        let itemDir = mediaDir.appendingPathComponent(item.id.uuidString)
-
+        let itemDir = DataDirectory.media.appendingPathComponent(item.id.uuidString)
         do {
             try FileManager.default.createDirectory(at: itemDir, withIntermediateDirectories: true)
         } catch {
@@ -378,7 +369,6 @@ struct NewItemView: View {
             }
         }
 
-        // Update media status
         if savedImageCount > 0 && savedVideoCount > 0 {
             mediaStatus = .complete
         } else if savedImageCount > 0 || savedVideoCount > 0 {
@@ -393,6 +383,8 @@ struct NewItemView: View {
         isSaving = false
         isPresented = false
         selectedNav = .item(item.id)
-        appState.showToast("内容已保存到 \(selectedPlatform.displayName)")
+        
+        let platformName = appState.customPlatforms.first(where: { $0.id == selectedCustomPlatformID })?.name ?? "未分类"
+        appState.showToast("内容已保存到 \(platformName)")
     }
 }

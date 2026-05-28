@@ -2,7 +2,6 @@ import Foundation
 import GRDB
 import os.log
 
-/// 数据库管理器 - 负责初始化和迁移
 final class DatabaseManager: Sendable {
     static let shared = DatabaseManager()
     
@@ -11,12 +10,9 @@ final class DatabaseManager: Sendable {
     private let logger = Logger(subsystem: "com.archiver.app", category: "Database")
     
     private init() {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let dbDir = appSupport.appendingPathComponent("Archiver", isDirectory: true)
+        _ = DataDirectory.base
         
-        try? FileManager.default.createDirectory(at: dbDir, withIntermediateDirectories: true)
-        
-        let dbPath = dbDir.appendingPathComponent("archiver.db").path
+        let dbPath = DataDirectory.database.path
         logger.info("数据库路径: \(dbPath)")
         
         do {
@@ -62,7 +58,8 @@ final class DatabaseManager: Sendable {
                     remark TEXT,
                     is_starred INTEGER NOT NULL DEFAULT 0,
                     version INTEGER NOT NULL DEFAULT 1,
-                    deleted_at REAL
+                    deleted_at REAL,
+                    custom_platform_id TEXT
                 )
             """)
             
@@ -103,7 +100,8 @@ final class DatabaseManager: Sendable {
                     parent_id TEXT REFERENCES folders(id) ON DELETE CASCADE,
                     platform TEXT NOT NULL,
                     created_at REAL NOT NULL,
-                    sort_order INTEGER NOT NULL DEFAULT 0
+                    sort_order INTEGER NOT NULL DEFAULT 0,
+                    custom_platform_id TEXT
                 )
             """)
             
@@ -154,6 +152,18 @@ final class DatabaseManager: Sendable {
             """)
         }
         
+        // v3 和 v4 已经在 v1 中包含，跳过
+        // 使用 migrator.registerMigrationWithDeferredMigration 会导致问题
+        // 所以我们用 try? 来执行 ALTER TABLE（如果已存在会失败但不影响）
+        
         try migrator.migrate(db)
+        
+        // 确保 custom_platform_id 列存在
+        try? db.write { db in
+            try db.execute(sql: "ALTER TABLE items ADD COLUMN custom_platform_id TEXT")
+        }
+        try? db.write { db in
+            try db.execute(sql: "ALTER TABLE folders ADD COLUMN custom_platform_id TEXT")
+        }
     }
 }

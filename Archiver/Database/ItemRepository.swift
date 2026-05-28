@@ -19,13 +19,15 @@ final class ItemRepository: @unchecked Sendable {
     }
     
     private func insertRecord(_ item: Item, db: Database) throws {
+        // 获取当前 last_insert_rowid 用于 FTS
+        
         try db.execute(
             sql: """
             INSERT INTO items (id, title, body, original_url, platform, platform_content_id,
                 normalized_url, author, author_id, publish_date, import_date, modify_date,
                 content_status, archive_status, media_status, cover_asset_id, folder_id,
-                remark, is_starred, version, deleted_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                remark, is_starred, version, deleted_at, custom_platform_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             arguments: [
                 item.id.uuidString, item.title, item.body, item.originalURL,
@@ -38,15 +40,22 @@ final class ItemRepository: @unchecked Sendable {
                 item.mediaStatus.rawValue,
                 item.coverAssetID?.uuidString, item.folderID?.uuidString,
                 item.remark, item.isStarred, item.version,
-                item.deletedAt?.timeIntervalSince1970
+                item.deletedAt?.timeIntervalSince1970,
+                item.customPlatformID?.uuidString
             ]
         )
         
-        // 同步更新 FTS 索引
-        try db.execute(
-            sql: "INSERT INTO items_fts (rowid, title, body) VALUES (last_insert_rowid(), ?, ?)",
-            arguments: [item.title ?? "", item.body ?? ""]
-        )
+        // 使用显式 rowid 查询来同步 FTS 索引
+        if let rowid = try? Int.fetchOne(
+            db,
+            sql: "SELECT rowid FROM items WHERE id=?",
+            arguments: [item.id.uuidString]
+        ) {
+            try? db.execute(
+                sql: "INSERT INTO items_fts (rowid, title, body) VALUES (?, ?, ?)",
+                arguments: [rowid, item.title ?? "", item.body ?? ""]
+            )
+        }
     }
     
     /// 更新内容
@@ -58,7 +67,8 @@ final class ItemRepository: @unchecked Sendable {
                     platform_content_id=?, normalized_url=?, author=?, author_id=?,
                     publish_date=?, import_date=?, modify_date=?, content_status=?,
                     archive_status=?, media_status=?, cover_asset_id=?, folder_id=?,
-                    remark=?, is_starred=?, version=?, deleted_at=?
+                    remark=?, is_starred=?, version=?, deleted_at=?,
+                    custom_platform_id=?
                 WHERE id=?
                 """,
                 arguments: [
@@ -72,6 +82,7 @@ final class ItemRepository: @unchecked Sendable {
                     item.coverAssetID?.uuidString, item.folderID?.uuidString,
                     item.remark, item.isStarred, item.version,
                     item.deletedAt?.timeIntervalSince1970,
+                    item.customPlatformID?.uuidString,
                     item.id.uuidString
                 ]
             )
@@ -83,9 +94,14 @@ final class ItemRepository: @unchecked Sendable {
                 arguments: [item.id.uuidString]
             ) else { return }
             
-            try db.execute(
-                sql: "UPDATE items_fts SET title=?, body=? WHERE rowid=?",
-                arguments: [item.title ?? "", item.body ?? "", rowid]
+            // 先删除旧 FTS 记录，再插入新记录
+            try? db.execute(
+                sql: "DELETE FROM items_fts WHERE rowid=?",
+                arguments: [rowid]
+            )
+            try? db.execute(
+                sql: "INSERT INTO items_fts (rowid, title, body) VALUES (?, ?, ?)",
+                arguments: [rowid, item.title ?? "", item.body ?? ""]
             )
         }
     }
@@ -247,7 +263,8 @@ final class ItemRepository: @unchecked Sendable {
             remark: row["remark"],
             isStarred: row["is_starred"],
             version: row["version"],
-            deletedAt: (row["deleted_at"] as Double?).flatMap { Date(timeIntervalSince1970: $0) }
+            deletedAt: (row["deleted_at"] as Double?).flatMap { Date(timeIntervalSince1970: $0) },
+            customPlatformID: (row["custom_platform_id"] as String?).flatMap(UUID.init)
         )
     }
 }

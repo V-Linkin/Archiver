@@ -2,6 +2,7 @@ import Foundation
 import AppKit
 import UniformTypeIdentifiers
 
+@MainActor
 struct FilePicker {
 
     static func pickImages() -> [URL] {

@@ -13,13 +13,14 @@ final class FolderRepository: @unchecked Sendable {
         try db.write { db in
             try db.execute(
                 sql: """
-                INSERT INTO folders (id, name, parent_id, platform, created_at, sort_order)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO folders (id, name, parent_id, platform, created_at, sort_order, custom_platform_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 arguments: [
                     folder.id.uuidString, folder.name,
                     folder.parentID?.uuidString, folder.platform.rawValue,
-                    folder.createdAt.timeIntervalSince1970, folder.sortOrder
+                    folder.createdAt.timeIntervalSince1970, folder.sortOrder,
+                    folder.customPlatformID?.uuidString
                 ]
             )
         }
@@ -51,7 +52,7 @@ final class FolderRepository: @unchecked Sendable {
         }
     }
     
-    func fetchAll(platform: Platform? = nil, parentID: UUID? = nil) throws -> [Folder] {
+    func fetchAll(platform: Platform? = nil, parentID: UUID? = nil, customPlatformID: UUID? = nil) throws -> [Folder] {
         try db.read { db in
             var sql = "SELECT * FROM folders WHERE 1=1"
             var args: [DatabaseValueConvertible] = []
@@ -65,6 +66,10 @@ final class FolderRepository: @unchecked Sendable {
                 args.append(parentID.uuidString)
             } else {
                 sql += " AND parent_id IS NULL"
+            }
+            if let cpID = customPlatformID {
+                sql += " AND custom_platform_id=?"
+                args.append(cpID.uuidString)
             }
             
             sql += " ORDER BY sort_order, name"
@@ -98,6 +103,7 @@ final class FolderRepository: @unchecked Sendable {
             name: row["name"],
             parentID: (row["parent_id"] as String?).flatMap(UUID.init),
             platform: Platform(rawValue: row["platform"])!,
+            customPlatformID: (row["custom_platform_id"] as String?).flatMap(UUID.init),
             createdAt: Date(timeIntervalSince1970: row["created_at"]),
             sortOrder: row["sort_order"]
         )

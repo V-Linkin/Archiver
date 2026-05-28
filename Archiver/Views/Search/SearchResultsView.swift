@@ -1,28 +1,43 @@
 import SwiftUI
 
-/// 搜索结果页
 struct SearchResultsView: View {
     @Environment(AppState.self) private var appState
-    @State private var filterPlatform: Platform? = nil
+    @Binding var selectedNav: NavigationTarget?
+    @Binding var previousNav: NavigationTarget?
+    @State private var filterPlatform: String? = nil
     @State private var filterStatus: ArchiveStatus? = nil
     
     var body: some View {
         VStack(spacing: 0) {
-            // 筛选栏
             filterBar
             
-            // 结果
-            if appState.searchResults.isEmpty {
-                ContentUnavailableView(
-                    "没有找到相关内容",
-                    systemImage: "magnifyingglass",
-                    description: Text("尝试修改搜索关键词")
-                )
-            } else {
-                List(filteredResults) { result in
-                    SearchResultRow(result: result)
+            Divider()
+            
+            if filteredResults.isEmpty {
+                VStack {
+                    Spacer()
+                    ContentUnavailableView(
+                        "没有找到相关内容",
+                        systemImage: "magnifyingglass",
+                        description: Text("尝试修改搜索关键词")
+                    )
+                    Spacer()
                 }
-                .listStyle(.plain)
+            } else {
+                ScrollView {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 180, maximum: 220), spacing: 16)], spacing: 16) {
+                        ForEach(filteredResults) { result in
+                            Button {
+                                previousNav = .search
+                                selectedNav = .item(result.item.id)
+                            } label: {
+                                ItemCardView(item: result.item)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(16)
+                }
             }
         }
         .navigationTitle("搜索: \(appState.searchQuery)")
@@ -30,11 +45,12 @@ struct SearchResultsView: View {
     
     private var filterBar: some View {
         HStack(spacing: 12) {
-            Picker("平台", selection: $filterPlatform) {
-                Text("全部平台").tag(nil as Platform?)
-                ForEach(Platform.allCases) { p in
-                    Text(p.displayName).tag(p as Platform?)
+            Picker("分类", selection: $filterPlatform) {
+                Text("全部").tag(nil as String?)
+                ForEach(appState.customPlatforms) { cp in
+                    Text(cp.name).tag(cp.id.uuidString as String?)
                 }
+                Text("未分类").tag("__uncategorized__" as String?)
             }
             .frame(width: 120)
             
@@ -59,7 +75,13 @@ struct SearchResultsView: View {
     
     private var filteredResults: [SearchResult] {
         appState.searchResults.filter { result in
-            if let platform = filterPlatform, result.item.platform != platform { return false }
+            if let filterPlatform = filterPlatform {
+                if filterPlatform == "__uncategorized__" {
+                    if result.item.customPlatformID != nil { return false }
+                } else if result.item.customPlatformID?.uuidString != filterPlatform {
+                    return false
+                }
+            }
             if let status = filterStatus, result.item.archiveStatus != status { return false }
             return true
         }
@@ -77,25 +99,11 @@ struct SearchResultRow: View {
                 .frame(width: 32)
             
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Text(result.item.displayTitle)
+                Text(result.item.displayTitle)
                         .font(.subheadline)
                         .fontWeight(.medium)
-                    Text(result.item.platform.displayName)
-                        .font(.caption2)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(result.item.platform.brandColor.opacity(0.1))
-                        .clipShape(Capsule())
-                    Text(result.item.archiveStatus.displayName)
-                        .font(.caption2)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(.quaternary)
-                        .clipShape(Capsule())
-                }
                 
-                if let body = result.item.body {
+                if let body = result.item.body, !body.isEmpty {
                     Text(body)
                         .font(.caption)
                         .foregroundStyle(.secondary)

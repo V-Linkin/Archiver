@@ -34,6 +34,8 @@ struct URLNormalizer {
             return normalizeCoolapk(urlString)
         case .bilibili:
             return normalizeBilibili(urlString)
+        case .custom:
+            return urlString
         }
     }
     
@@ -48,6 +50,8 @@ struct URLNormalizer {
             return extractCoolapkID(urlString)
         case .bilibili:
             return extractBilibiliID(urlString)
+        case .custom:
+            return nil
         }
     }
     

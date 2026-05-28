@@ -10,12 +10,10 @@ struct ArchiverApp: App {
                 .environment(appState)
                 .frame(minWidth: 900, minHeight: 600)
         }
-        .windowStyle(.titleBar)
         .defaultSize(width: 1200, height: 800)
     }
 }
 
-/// 全局应用状态
 @MainActor
 @Observable
 final class AppState {
@@ -25,38 +23,72 @@ final class AppState {
     let trashRepo = TrashRepository()
     let searchRepo = SearchRepository()
     let importService = ImportService.shared
+    let customPlatformRepo = CustomPlatformRepository()
     
-    /// 最近导入的内容
     var recentItems: [Item] = []
-    
-    /// 各平台内容数量
-    var platformCounts: [Platform: Int] = [:]
-    
-    /// 最近使用的文件夹
+    var customPlatformCounts: [UUID: Int] = [:]
     var recentFolders: [Folder] = []
     
-    /// 搜索关键词
     var searchQuery = ""
-    
-    /// 搜索结果
     var searchResults: [SearchResult] = []
     
-    /// 新建内容弹窗
     var showNewItem = false
+    var newItemPlatform: Platform = .custom
+    var newItemCustomPlatformID: UUID? = nil
     
-    /// Toast 消息
+    var editingCustomPlatform: CustomPlatform? = nil
+    var changeLogoCustomPlatform: CustomPlatform? = nil
+    var deletingCustomPlatform: CustomPlatform? = nil
+    
+    var showNewCustomPlatform = false
+    
+    var customPlatforms: [CustomPlatform] = []
+    
     var toastMessage: String?
     var showToast = false
     
     func refreshData() {
+        customPlatforms = (try? customPlatformRepo.fetchAll()) ?? []
         recentItems = (try? itemRepo.fetchRecent(limit: 10)) ?? []
         recentFolders = (try? folderRepo.fetchRecent(limit: 5)) ?? []
+        try? searchRepo.rebuildIndex()
         
-        for platform in Platform.allCases {
-            platformCounts[platform] = (try? itemRepo.count(platform: platform)) ?? 0
+        let allItems = (try? itemRepo.fetchAll()) ?? []
+        for cp in customPlatforms {
+            customPlatformCounts[cp.id] = allItems.filter { $0.customPlatformID == cp.id }.count
         }
     }
     
+    enum MoveDirection {
+        case up, down, top
+    }
+
+    func movePlatform(_ platform: CustomPlatform, direction: MoveDirection) {
+        guard let idx = customPlatforms.firstIndex(where: { $0.id == platform.id }) else { return }
+        var platforms = customPlatforms
+        
+        switch direction {
+        case .up:
+            guard idx > 0 else { return }
+            platforms.swapAt(idx, idx - 1)
+        case .down:
+            guard idx < platforms.count - 1 else { return }
+            platforms.swapAt(idx, idx + 1)
+        case .top:
+            guard idx > 0 else { return }
+            let item = platforms.remove(at: idx)
+            platforms.insert(item, at: 0)
+        }
+        
+        // 更新 sort_order
+        for (i, var p) in platforms.enumerated() {
+            p.sortOrder = i
+            try? customPlatformRepo.update(p)
+        }
+        
+        customPlatforms = platforms
+    }
+
     func showToast(_ message: String) {
         toastMessage = message
         showToast = true
