@@ -419,7 +419,12 @@ final class DoubanParser: ContentParser, @unchecked Sendable {
 
     private func downloadFile(from url: URL, to localURL: URL) async -> Bool {
         do {
-            let (data, _) = try await session.data(from: url)
+            var request = URLRequest(url: url)
+            request.httpMethod = "GET"
+            request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36", forHTTPHeaderField: "User-Agent")
+            request.setValue("https://movie.douban.com/", forHTTPHeaderField: "Referer")
+            let (data, _) = try await URLSession.shared.data(for: request)
+            guard data.count > 100 else { return false }
             try data.write(to: localURL)
             return true
         } catch { return false }
