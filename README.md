@@ -62,9 +62,44 @@
 
 **系统要求：** macOS 14.0 (Sonoma) 或更高版本
 
-## 截图
+## 从源码构建
 
-> 留待后续补充
+```bash
+# 克隆仓库
+git clone https://github.com/V-Linkin/Archiver.git
+cd Archiver
+
+# 安装 XcodeGen（如果没有）
+brew install xcodegen
+
+# 生成 Xcode 项目
+xcodegen generate
+
+# 打开项目
+open Archiver.xcodeproj
+```
+
+Xcode 打开后会自动下载 GRDB 依赖，等右上角进度条走完，按 `Cmd+R` 运行。
+
+## 项目结构
+
+```
+App/                    应用入口 + 全局状态 + 导航
+Models/                 数据模型
+  └── Enums/            枚举定义（平台/状态/类型）
+Database/               数据库层（GRDB + FTS5）
+Parsers/                平台解析器（协议 + 4个实现）
+Services/               导入/备份/更新服务
+Utilities/              工具类（URL 标准化等）
+Views/                  UI 层
+  ├── Home/             首页
+  ├── Platform/         平台分类 + 文件夹
+  ├── Item/             内容详情 + 编辑
+  ├── Search/           搜索结果
+  ├── Trash/            回收站
+  ├── Settings/         设置
+  └── Components/       通用组件
+```
 
 ## 联系方式
 

@@ -1,10 +1,10 @@
 #!/bin/bash
 set -e
 
-echo "=== Archiver 项目设置 ==="
+echo "=== 拾屿 项目设置 ==="
 echo ""
 
-cd "$(dirname "$0")/Archiver"
+cd "$(dirname "$0")"
 
 # 检查是否安装了 xcodegen
 if ! command -v xcodegen &> /dev/null; then

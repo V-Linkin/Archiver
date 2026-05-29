@@ -23,7 +23,7 @@ build/
 Packages/
 
 # App local data
-Archiver/data/
-Archiver/media/
-Archiver/cache/
-Archiver/exports/
+data/
+media/
+cache/
+exports/
