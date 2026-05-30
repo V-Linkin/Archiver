@@ -23,6 +23,8 @@ struct ItemDetailView: View {
     @State private var bodyViewerDebounce = false
     @State private var localFileMap: [String: URL] = [:]
     @State private var bodyImageCache = ImageCache()
+    @State private var editableRemark: String = ""
+    @State private var remarkDebounce = false
     
     var body: some View {
         return Group {
@@ -67,11 +69,9 @@ struct ItemDetailView: View {
                 Divider()
                 metadataSection(item)
                 Divider()
+                remarkSection(item)
+                Divider()
                 bodySection(item)
-                if let remark = item.remark, !remark.isEmpty {
-                    Divider()
-                    remarkSection(item)
-                }
             }
             .padding(24)
         }
@@ -138,7 +138,7 @@ struct ItemDetailView: View {
                             }
                         }
                     }
-                    .padding(.horizontal, 4)
+                    .padding(.horizontal, 8)
                 }
                 .frame(height: 300)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -244,11 +244,26 @@ struct ItemDetailView: View {
     private func remarkSection(_ item: Item) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("备注").font(.headline)
-            Text(item.remark ?? "")
-                .font(.body)
-                .foregroundStyle(.primary)
-                .textSelection(.enabled)
+            PlaceholderTextEditor(text: $editableRemark, placeholder: "点击即可开始输入")
+                .frame(minHeight: 60, idealHeight: 80)
+                .padding(4)
+                .overlay(RoundedRectangle(cornerRadius: 6).stroke(.quaternary))
+                .onChange(of: editableRemark) { _, newValue in
+                    guard !remarkDebounce else { return }
+                    remarkDebounce = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        remarkDebounce = false
+                        saveRemark(item: item)
+                    }
+                }
         }
+    }
+    
+    private func saveRemark(item: Item) {
+        guard var updated = try? appState.itemRepo.find(id: item.id) else { return }
+        updated.remark = editableRemark.isEmpty ? nil : editableRemark
+        updated.modifyDate = Date()
+        try? appState.itemRepo.update(updated)
     }
     
     private func stripHTML(_ html: String) -> String {
@@ -276,6 +291,9 @@ struct ItemDetailView: View {
     
     private func loadItem() {
         item = try? appState.itemRepo.find(id: itemID)
+        if let item = item {
+            editableRemark = item.remark ?? ""
+        }
         mediaAssets = (try? appState.mediaRepo.findByItemID(itemID)) ?? []
         preloadBodyImages()
     }

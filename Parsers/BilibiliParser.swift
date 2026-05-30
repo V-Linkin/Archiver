@@ -1,7 +1,7 @@
 import Foundation
 
 /// B站解析器
-final class BilibiliParser: BaseParser {
+final class BilibiliParser: BaseParser, @unchecked Sendable {
     
     init() {
         super.init(additionalHeaders: [

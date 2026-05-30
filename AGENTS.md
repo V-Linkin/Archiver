@@ -38,7 +38,7 @@ Views/                  SwiftUI 视图层
   ├── Search/           搜索结果
   ├── Trash/            回收站
   ├── Settings/         设置
-  └── Components/       通用组件 (NavDebounce 防抖等)
+  └── Components/       通用组件 (NavDebounce 防抖, PlaceholderTextEditor 等)
 Tests/                  单元测试
 scripts/                打包/发布脚本
 docs/                   产品规格 + 设计文档
@@ -55,6 +55,7 @@ docs/                   产品规格 + 设计文档
 - **请求频率控制**: 豆瓣等有反爬的平台，`DoubanParser` 内置了 actor-based 请求间隔限制（2秒），新增平台需评估是否需要类似机制
 - **导航防抖**: `NavDebounce`（Views/Components/DebounceHelper.swift）用于防止双击重复导航，列表页点击事件需调用 `NavDebounce.shared.canNavigate()` 判断
 - **图片缓存**: `ItemDetailView` 中 `bodyImageCache` 使用 `@State` 而非 `let`，确保跨视图重建时缓存实例不变（`AsyncImageView` 网络加载的图片需与 `openBodyViewer` 共享同一缓存）
+- **占位文本框**: `PlaceholderTextEditor`（Views/Components/PlaceholderTextEditor.swift）用 `NSViewRepresentable` 包装自定义 `PlaceholderNSTextView`，通过 `draw(_:)` 原生绘制占位文字，确保与光标精确对齐。`PassthroughLabel` 子类重写 `hitTest` 返回 nil，使点击穿透到 NSTextView。
 - **豆瓣影评解析**: 服务端返回反爬挑战页（JS proof-of-work），HTTP 请求无法获取真实内容。`DoubanParser` 通过 WKWebView 解决挑战后提取内容，合并时优先使用 webview 结果（需排除模板代码 `{{=`）。封面始终从 subject 页面获取电影海报。
 
 ## 支持平台
@@ -73,4 +74,4 @@ docs/                   产品规格 + 设计文档
 
 1. **酷安网页版反爬严格** — `CoolapkParser` 通过 HTTP 请求获取的页面不包含实际内容（返回"请用酷安APP扫码"提示页），`__INITIAL_STATE__` 和 OG tags 均不存在。当前仅能提取基础 meta 信息。需要 WKWebView 或 Playwright 等方案才能获取完整内容。
 2. **微博短链解析失败** — `WeiboParser` 的 `extractWeiboID` 仅匹配 `weibo.com/status/`、`m.weibo.cn/detail/`、`m.weibo.cn/status/` 三种格式，不支持 `t.cn` 短链和 `weibo.com/u/UID/status/ID` 格式。
-3. **豆瓣影评正文图片未提取** — `DoubanParser` 影评正文的 `<img>` 标签被 `innerText` 忽略，正文只保留文字。`MarkdownView` 已支持渲染 `![alt](url)` 格式（含本地缓存优先、图片查看器），但解析器尚未将图片嵌入正文。封面已修复（review 页面始终从 subject 页面获取电影海报，兜底 `og:image`）。
+3. **豆瓣影评正文图片未提取** — `DoubanParser` 影评正文的 `<img>` 标签被 `innerText` 忽略，正文只保留文字。`MarkdownView` 已支持渲染 `![alt](url)` 格式（含本地缓存优先、图片查看器），但解析器尚未将图片嵌入正文。封面已修复（review 页面始终从 subject 页面获取电影海报，兜底 `og:image`）。正文区域已恢复为完整显示（移除了固定高度滚动框），备注框移至正文上方并支持实时编辑保存。

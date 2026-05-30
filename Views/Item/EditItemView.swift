@@ -8,7 +8,6 @@ struct EditItemView: View {
     @State private var title: String
     @State private var bodyText: String
     @State private var author: String
-    @State private var remark: String
     @State private var mediaAssets: [MediaAsset] = []
     @State private var newImageURLs: [URL] = []
     @State private var newVideoURLs: [URL] = []
@@ -24,7 +23,6 @@ struct EditItemView: View {
         _title = State(initialValue: item.title ?? "")
         _bodyText = State(initialValue: item.body ?? "")
         _author = State(initialValue: item.author ?? "")
-        _remark = State(initialValue: item.remark ?? "")
     }
     
     var body: some View {
@@ -191,15 +189,6 @@ struct EditItemView: View {
                         }
                     }
                     
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("备注").font(.subheadline).foregroundStyle(.secondary)
-                        TextEditor(text: $remark)
-                            .font(.body)
-                            .scrollContentBackground(.visible)
-                            .frame(minHeight: 60, idealHeight: 80)
-                            .padding(4)
-                            .overlay(RoundedRectangle(cornerRadius: 6).stroke(.quaternary))
-                    }
                 }
                 .padding()
             }
@@ -255,7 +244,6 @@ struct EditItemView: View {
         updated.title = title.isEmpty ? nil : title
         updated.body = bodyText.isEmpty ? nil : bodyText
         updated.author = author.isEmpty ? nil : author
-        updated.remark = remark.isEmpty ? nil : remark
         updated.modifyDate = Date()
         try? appState.itemRepo.update(updated)
         

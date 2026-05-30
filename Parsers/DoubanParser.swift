@@ -282,8 +282,6 @@ final class DoubanParser: ContentParser, @unchecked Sendable {
     private func loadReviewViaWebView(_ urlString: String) async -> WebContentResult {
         guard let url = URL(string: urlString) else { return WebContentResult() }
         let result = await ZhihuWebLoader().loadFullContent(from: url)
-        if let result = result {
-        }
         guard let result else { return WebContentResult() }
 
         if result.hasPrefix("DOUBAN_JSON:") {

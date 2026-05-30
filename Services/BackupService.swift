@@ -15,7 +15,6 @@ final class BackupService: @unchecked Sendable {
     /// 备份所有数据到用户选择的目录
     /// 返回导出的 zip 文件路径
     func backup(to destinationURL: URL) async throws -> URL {
-        let baseDir = DataDirectory.base
         let dbPath = DataDirectory.database
         let mediaDir = DataDirectory.media
         let platformLogosDir = DataDirectory.platformLogos
@@ -72,7 +71,6 @@ final class BackupService: @unchecked Sendable {
     
     /// 从备份 zip 还原数据
     func restore(from backupURL: URL) async throws {
-        let baseDir = DataDirectory.base
         
         // 1. 解压 zip 到临时目录
         let tempDir = fileManager.temporaryDirectory.appendingPathComponent("archiver_restore_\(UUID().uuidString)")

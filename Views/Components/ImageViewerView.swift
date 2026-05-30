@@ -260,8 +260,8 @@ private struct EventMonitorRepresenter: NSViewRepresentable {
 private class EventMonitorNSView: NSView {
     var keyHandler: ((NSEvent) -> Void)?
     var scrollHandler: ((NSEvent) -> Void)?
-    private var keyMonitor: Any?
-    private var scrollMonitor: Any?
+    nonisolated(unsafe) private var keyMonitor: Any?
+    nonisolated(unsafe) private var scrollMonitor: Any?
     
     override var acceptsFirstResponder: Bool { true }
     
@@ -294,7 +294,12 @@ private class EventMonitorNSView: NSView {
     }
     
     deinit {
-        removeMonitors()
+        if let keyMonitor = keyMonitor {
+            NSEvent.removeMonitor(keyMonitor)
+        }
+        if let scrollMonitor = scrollMonitor {
+            NSEvent.removeMonitor(scrollMonitor)
+        }
     }
 }
 

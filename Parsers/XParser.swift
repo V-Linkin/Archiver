@@ -1,7 +1,7 @@
 import Foundation
 
 /// X (Twitter) 解析器 - 通过 fxtwitter API 获取推文数据
-final class XParser: BaseParser {
+final class XParser: BaseParser, @unchecked Sendable {
     
     override func canParse(url: URL) -> Bool {
         let host = url.host?.lowercased() ?? ""

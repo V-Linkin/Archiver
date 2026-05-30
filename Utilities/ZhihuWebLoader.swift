@@ -35,7 +35,7 @@ final class ZhihuWebLoader: NSObject, WKNavigationDelegate {
         }
     }
 
-    nonisolated func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         Task { @MainActor in
             if !didFinishInitialLoad {
                 didFinishInitialLoad = true
@@ -53,9 +53,6 @@ final class ZhihuWebLoader: NSObject, WKNavigationDelegate {
             
             for attempt in 0..<maxAttempts {
                 try? await Task.sleep(for: .milliseconds(500))
-                
-                let bodyLen = try? await webView.evaluateJavaScript("document.body ? document.body.innerText.length : -1") as? Int ?? -1
-                let currentURL = webView.url?.absoluteString ?? "nil"
                 
                 guard let result = try? await webView.evaluateJavaScript(checkJS) as? String else {
                     continue
@@ -236,8 +233,6 @@ final class ZhihuWebLoader: NSObject, WKNavigationDelegate {
         """
 
         Task {
-            let currentURL = webView.url?.absoluteString ?? "nil"
-            let bodyLen = try? await webView.evaluateJavaScript("document.body ? document.body.innerText.length : -1") as? Int ?? -1
             do {
                 if let result = try await webView.evaluateJavaScript(js) as? String, !result.isEmpty {
                     self.finishWith(result)
@@ -250,13 +245,13 @@ final class ZhihuWebLoader: NSObject, WKNavigationDelegate {
         }
     }
 
-    nonisolated func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         Task { @MainActor in
             self.finishWith(nil)
         }
     }
 
-    nonisolated func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         decisionHandler(.allow)
     }
 

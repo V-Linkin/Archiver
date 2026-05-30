@@ -161,7 +161,7 @@ struct SettingsView: View {
                 switch updateChecker.status {
                     case .checking:
                         ProgressView().scaleEffect(0.6)
-                    case .updateAvailable(let version):
+                    case .updateAvailable(let version, _):
                         Button { resetUpdateStatus() } label: {
                             Label("v\(version) · 前往下载", systemImage: "arrow.clockwise")
                         }
