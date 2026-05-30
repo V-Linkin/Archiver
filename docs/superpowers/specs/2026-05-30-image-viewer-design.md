@@ -89,3 +89,24 @@ struct ImageViewerView: View {
 - Verify first/last image edge cases (no prev on first, no next on last)
 - Verify ESC and background tap dismiss the viewer
 - Verify zoom state resets on image switch and dismiss
+
+### EditItemView Integration
+
+The edit view (`Views/Item/EditItemView.swift`) also shows images as 80x80 thumbnails in a horizontal scroll. These should also support tap-to-view with zoom and navigation.
+
+**EditItemView changes:**
+
+- Add `@State editImages: [NSImage]`, `@State editImageIndex: Int`, `@State showEditViewer: Bool`
+- Collect all viewable images: existing `mediaAssets` filtered for `.image`/`.cover` + newly added `newImageURLs` (preloaded as NSImage)
+- On thumbnail tap: populate `editImages`, set `editImageIndex` to the tapped image's position, set `showEditViewer = true`
+- Add `ImageViewerView` instance bound to these states
+- Reuses the same `ImageViewerView` component — no new logic needed
+
+**Files Modified (updated):**
+
+| File | Change |
+|------|--------|
+| `Views/Components/ImageViewerView.swift` | New file — full viewer component |
+| `Views/Item/ItemDetailView.swift` | Add cover/body gallery state, pass to ImageViewerView |
+| `Views/Item/EditItemView.swift` | Add edit gallery state, pass to ImageViewerView |
+| `App/ContentView.swift` | Remove old overlay, add ImageViewerView instances |
