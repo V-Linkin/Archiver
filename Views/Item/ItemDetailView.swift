@@ -5,7 +5,12 @@ struct ItemDetailView: View {
     let itemID: UUID
     @Binding var selectedNav: NavigationTarget?
     @Binding var previousNav: NavigationTarget?
-    @Binding var zoomedImage: NSImage?
+    @Binding var coverImages: [NSImage]
+    @Binding var coverImageIndex: Int
+    @Binding var showCoverViewer: Bool
+    @Binding var bodyImages: [NSImage]
+    @Binding var bodyImageIndex: Int
+    @Binding var showBodyViewer: Bool
     @Environment(AppState.self) private var appState
     
     @State private var item: Item?
@@ -14,6 +19,10 @@ struct ItemDetailView: View {
     @State private var showMoveSheet = false
     @State private var showDeleteConfirm = false
     @State private var isImageTapEnabled = false
+    @State private var bodyImageURLs: [String] = []
+    @State private var bodyViewerDebounce = false
+    @State private var localFileMap: [String: URL] = [:]
+    @State private var bodyImageCache = ImageCache()
     
     var body: some View {
         return Group {
@@ -40,9 +49,13 @@ struct ItemDetailView: View {
         }
         .onAppear {
             loadItem()
-            // 延迟启用图片点击，防止双击进入详情时误触图片预览
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 isImageTapEnabled = true
+            }
+        }
+        .onChange(of: item?.body) { _, newBody in
+            if let body = newBody {
+                bodyImageURLs = Self.extractImageURLs(from: body)
             }
         }
     }
@@ -107,7 +120,7 @@ struct ItemDetailView: View {
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
-                        ForEach(Array(mediaAssets), id: \.id) { asset in
+                        ForEach(Array(mediaAssets.enumerated()), id: \.element.id) { index, asset in
                             if let path = asset.localPath {
                                 let url = DataDirectory.media.appendingPathComponent(path)
                                 if let nsImage = NSImage(contentsOf: url) {
@@ -118,7 +131,7 @@ struct ItemDetailView: View {
                                         .clipShape(RoundedRectangle(cornerRadius: 8))
                                         .onTapGesture {
                                             if isImageTapEnabled {
-                                                zoomedImage = nsImage
+                                                openCoverViewer(from: index)
                                             }
                                         }
                                 }
@@ -131,6 +144,22 @@ struct ItemDetailView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             }
         }
+    }
+    
+    private func openCoverViewer(from tappedIndex: Int) {
+        var images: [NSImage] = []
+        for asset in mediaAssets {
+            if let path = asset.localPath {
+                let url = DataDirectory.media.appendingPathComponent(path)
+                if let nsImage = NSImage(contentsOf: url) {
+                    images.append(nsImage)
+                }
+            }
+        }
+        guard !images.isEmpty else { return }
+        coverImages = images
+        coverImageIndex = tappedIndex
+        showCoverViewer = true
     }
     
     private func metadataSection(_ item: Item) -> some View {
@@ -170,15 +199,46 @@ struct ItemDetailView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("正文").font(.headline)
             if let body = item.body, !body.isEmpty {
-                MarkdownView(text: body)
-                    .font(.body)
-                    .foregroundStyle(.primary)
+                MarkdownView(text: body, imageCache: bodyImageCache, localFileMap: localFileMap, onImageTap: { imageIndex in
+                    openBodyViewer(from: imageIndex)
+                })
+                .font(.body)
+                .foregroundStyle(.primary)
+                .onAppear {
+                    if bodyImageURLs.isEmpty {
+                        bodyImageURLs = Self.extractImageURLs(from: body)
+                    }
+                }
             } else {
                 Text("暂无正文内容")
                     .font(.body)
                     .foregroundStyle(.tertiary)
             }
         }
+    }
+    
+    private func openBodyViewer(from tappedIndex: Int) {
+        guard !bodyViewerDebounce else { return }
+        bodyViewerDebounce = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            bodyViewerDebounce = false
+        }
+        
+        let urls = bodyImageURLs.isEmpty ? Self.extractImageURLs(from: item?.body ?? "") : bodyImageURLs
+        let images = urls.compactMap { bodyImageCache.get($0) }
+        guard !images.isEmpty else { return }
+        bodyImages = images
+        bodyImageIndex = min(tappedIndex, images.count - 1)
+        showBodyViewer = true
+    }
+    
+    private static func extractImageURLs(from text: String) -> [String] {
+        let pattern = #"!\[[^\]]*\]\(([^)]*)\)"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
+        let nsText = text as NSString
+        return regex.matches(in: text, range: NSRange(location: 0, length: nsText.length))
+            .map { nsText.substring(with: $0.range(at: 1)) }
+            .filter { !$0.isEmpty }
     }
     
     private func remarkSection(_ item: Item) -> some View {
@@ -193,7 +253,6 @@ struct ItemDetailView: View {
     
     private func stripHTML(_ html: String) -> String {
         var result = html
-        // 块级标签先转为换行
         result = result.replacingOccurrences(of: "<br[^>]*>", with: "\n", options: .regularExpression)
         result = result.replacingOccurrences(of: "</p>", with: "\n", options: .regularExpression)
         result = result.replacingOccurrences(of: "</div>", with: "\n", options: .regularExpression)
@@ -201,20 +260,16 @@ struct ItemDetailView: View {
         result = result.replacingOccurrences(of: "<p[^>]*>", with: "", options: .regularExpression)
         result = result.replacingOccurrences(of: "<div[^>]*>", with: "", options: .regularExpression)
         result = result.replacingOccurrences(of: "<li[^>]*>", with: "", options: .regularExpression)
-        // 去除剩余 HTML 标签
         result = result.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
-        // 解码 HTML 实体
         result = result.replacingOccurrences(of: "&amp;", with: "&")
         result = result.replacingOccurrences(of: "&lt;", with: "<")
         result = result.replacingOccurrences(of: "&gt;", with: ">")
         result = result.replacingOccurrences(of: "&nbsp;", with: " ")
         result = result.replacingOccurrences(of: "&quot;", with: "\"")
         result = result.replacingOccurrences(of: "&#39;", with: "'")
-        // 合并连续空格（但保留换行）
         result = result.replacingOccurrences(of: " +", with: " ", options: .regularExpression)
         result = result.replacingOccurrences(of: "\n +", with: "\n", options: .regularExpression)
         result = result.replacingOccurrences(of: " +\n", with: "\n", options: .regularExpression)
-        // 合并连续空行为一个
         result = result.replacingOccurrences(of: "\n{3,}", with: "\n\n", options: .regularExpression)
         return result.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -222,6 +277,22 @@ struct ItemDetailView: View {
     private func loadItem() {
         item = try? appState.itemRepo.find(id: itemID)
         mediaAssets = (try? appState.mediaRepo.findByItemID(itemID)) ?? []
+        preloadBodyImages()
+    }
+    
+    /// 从本地文件预加载正文图片到缓存，构建 remoteURL → 本地文件路径 映射
+    private func preloadBodyImages() {
+        var map: [String: URL] = [:]
+        for asset in mediaAssets {
+            guard let remoteURL = asset.remoteURL, let localPath = asset.localPath else { continue }
+            let fileURL = DataDirectory.media.appendingPathComponent(localPath)
+            map[remoteURL] = fileURL
+            // 同时预加载到内存缓存
+            if let nsImage = NSImage(contentsOf: fileURL) {
+                bodyImageCache.set(remoteURL, image: nsImage)
+            }
+        }
+        localFileMap = map
     }
     
     private func deleteItem() {
@@ -272,114 +343,6 @@ struct InfoRow: View {
 struct MoveToFolderSheet: View {
     let itemID: UUID
     var itemPlatform: UUID? = nil
-    @Binding var isPresented: Bool
-    @Environment(AppState.self) private var appState
-    @State private var folders: [Folder] = []
-    @State private var selectedID: UUID? = nil
-    @State private var item: Item?
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            Text("移动到文件夹")
-                .font(.headline)
-                .padding()
-            
-            Divider()
-            
-            if folders.isEmpty {
-                VStack(spacing: 12) {
-                    Spacer()
-                    Image(systemName: "folder").font(.largeTitle).foregroundStyle(.tertiary)
-                    Text("暂无文件夹，请先创建文件夹").foregroundStyle(.secondary)
-                        .font(.subheadline)
-                    Spacer()
-                }
-            } else {
-                ScrollView {
-                    VStack(spacing: 0) {
-                        ForEach(Array(folders), id: \.id) { folder in
-                            Button {
-                                selectedID = folder.id
-                            } label: {
-                                HStack {
-                                    Image(systemName: selectedID == folder.id ? "folder.fill" : "folder")
-                                        .foregroundStyle(.blue)
-                                    Text(folderPlatformName(folder))
-                                    Spacer()
-                                    if selectedID == folder.id {
-                                        Image(systemName: "checkmark").foregroundStyle(.blue)
-                                    }
-                                }
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 10)
-                            }
-                            .buttonStyle(.plain)
-                            
-                            if folder.id != folders.last?.id {
-                                Divider().padding(.leading, 40)
-                            }
-                        }
-                    }
-                }
-            }
-            
-            Divider()
-            
-            HStack {
-                Button("取消") { isPresented = false }
-                Spacer()
-                if item?.folderID != nil {
-                    Button("移出文件夹") { moveItem(folderID: nil) }
-                        .foregroundStyle(.secondary)
-                }
-                Button("移动") { moveItem(folderID: selectedID) }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(selectedID == nil)
-            }
-            .padding()
-        }
-        .frame(width: 360, height: 320)
-        .onAppear {
-            if let cpID = itemPlatform {
-                folders = (try? appState.folderRepo.fetchAll(platform: .custom, customPlatformID: cpID)) ?? []
-            } else {
-                folders = (try? appState.folderRepo.fetchAll(platform: .custom)) ?? []
-            }
-            item = try? appState.itemRepo.find(id: itemID)
-            if let fid = item?.folderID { selectedID = fid }
-        }
-    }
-    
-    private func folderPlatformName(_ folder: Folder) -> String {
-        if let cpID = folder.customPlatformID,
-           let cp = try? appState.customPlatformRepo.find(id: cpID) {
-            return "\(cp.name) - \(folder.name)"
-        }
-        return folder.name
-    }
-    
-    private func moveItem(folderID: UUID?) {
-        guard var item = try? appState.itemRepo.find(id: itemID) else { return }
-        item.folderID = folderID
-        // 自动移动到文件夹所属平台
-        if let folderID = folderID,
-           let folder = folders.first(where: { $0.id == folderID }),
-           let cpID = folder.customPlatformID {
-            item.customPlatformID = cpID
-            item.platform = .custom
-        } else if folderID == nil {
-            item.customPlatformID = nil
-        }
-        try? appState.itemRepo.update(item)
-        isPresented = false
-        appState.refreshData()
-    }
-}
-
-// MARK: - MoveToFolderOverlay
-
-struct MoveToFolderOverlay: View {
-    let itemID: UUID
     @Binding var isPresented: Bool
     @Environment(AppState.self) private var appState
     @State private var folders: [Folder] = []
@@ -436,7 +399,6 @@ struct MoveToFolderOverlay: View {
                     guard let folderID = selectedFolderID else { return }
                     guard var item = try? appState.itemRepo.find(id: itemID) else { return }
                     item.folderID = folderID
-                    // 自动移动到文件夹所属平台
                     if let folder = folders.first(where: { $0.id == folderID }),
                        let cpID = folder.customPlatformID {
                         item.customPlatformID = cpID
@@ -551,5 +513,100 @@ struct MoveToPlatformSheet: View {
             item = try? appState.itemRepo.find(id: itemID)
             selectedPlatformID = item?.customPlatformID
         }
+    }
+}
+
+// MARK: - MoveToFolderOverlay
+
+struct MoveToFolderOverlay: View {
+    let itemID: UUID
+    @Binding var isPresented: Bool
+    @Environment(AppState.self) private var appState
+    @State private var folders: [Folder] = []
+    @State private var selectedFolderID: UUID? = nil
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            Text("移动到文件夹")
+                .font(.headline)
+                .padding()
+            
+            Divider()
+            
+            if folders.isEmpty {
+                VStack(spacing: 12) {
+                    Spacer()
+                    Image(systemName: "folder").font(.largeTitle).foregroundStyle(.tertiary)
+                    Text("暂无文件夹").foregroundStyle(.secondary)
+                        .font(.subheadline)
+                    Spacer()
+                }
+            } else {
+                ScrollView {
+                    VStack(spacing: 0) {
+                        ForEach(Array(folders), id: \.id) { folder in
+                            Button {
+                                selectedFolderID = folder.id
+                            } label: {
+                                HStack {
+                                    Image(systemName: selectedFolderID == folder.id ? "folder.fill" : "folder")
+                                        .foregroundStyle(.blue)
+                                    Text(folderPlatformName(folder))
+                                    Spacer()
+                                    if selectedFolderID == folder.id {
+                                        Image(systemName: "checkmark").foregroundStyle(.blue)
+                                    }
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                            }
+                            .buttonStyle(.plain)
+                            Divider().padding(.leading, 40)
+                        }
+                    }
+                }
+            }
+            
+            Divider()
+            
+            HStack {
+                Button("取消") { isPresented = false }
+                Spacer()
+                Button("移动") {
+                    guard let folderID = selectedFolderID else { return }
+                    guard var item = try? appState.itemRepo.find(id: itemID) else { return }
+                    item.folderID = folderID
+                    if let folder = folders.first(where: { $0.id == folderID }),
+                       let cpID = folder.customPlatformID {
+                        item.customPlatformID = cpID
+                        item.platform = .custom
+                    }
+                    try? appState.itemRepo.update(item)
+                    isPresented = false
+                    appState.refreshData()
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(selectedFolderID == nil)
+            }
+            .padding()
+        }
+        .frame(width: 320, height: 300)
+        .background(.background)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .shadow(radius: 20)
+        .onAppear {
+            folders = (try? appState.folderRepo.fetchAll(platform: .custom)) ?? []
+            if let item = try? appState.itemRepo.find(id: itemID) {
+                selectedFolderID = item.folderID
+            }
+        }
+    }
+    
+    private func folderPlatformName(_ folder: Folder) -> String {
+        if let cpID = folder.customPlatformID,
+           let cp = try? appState.customPlatformRepo.find(id: cpID) {
+            return "\(cp.name) - \(folder.name)"
+        }
+        return folder.name
     }
 }

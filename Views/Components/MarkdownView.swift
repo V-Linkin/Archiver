@@ -1,17 +1,50 @@
 import SwiftUI
 
+// MARK: - ImageCache
+
+class ImageCache: ObservableObject {
+    private var cache: [String: NSImage] = [:]
+    
+    func get(_ url: String) -> NSImage? {
+        cache[url]
+    }
+    
+    func set(_ url: String, image: NSImage) {
+        cache[url] = image
+    }
+    
+    func allImages() -> [NSImage] {
+        Array(cache.values)
+    }
+    
+    func imageURLs() -> [String] {
+        Array(cache.keys)
+    }
+}
+
+// MARK: - MarkdownView
+
 struct MarkdownView: View {
     let text: String
+    var imageCache = ImageCache()
+    var localFileMap: [String: URL] = [:]
+    var onImageTap: ((Int) -> Void)? = nil
     
     var body: some View {
         let blocks = parseBlocks()
         return VStack(alignment: .leading, spacing: 12) {
-            ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
+            let imageIndices = blocks.enumerated().filter { $0.element.isImage }.map { $0.offset }
+            ForEach(Array(blocks.enumerated()), id: \.offset) { index, block in
                 switch block {
                 case .text(let content):
                     ParagraphText(content: content)
                 case .image(let url, let alt):
-                    AsyncImageView(url: url, alt: alt)
+                    AsyncImageView(url: url, alt: alt, imageCache: imageCache, localFileMap: localFileMap)
+                        .onTapGesture {
+                            if let imageIdx = imageIndices.firstIndex(of: index) {
+                                onImageTap?(imageIdx)
+                            }
+                        }
                 }
             }
         }
@@ -20,6 +53,23 @@ struct MarkdownView: View {
     private enum Block {
         case text(String)
         case image(url: String, alt: String)
+        
+        var isImage: Bool {
+            if case .image = self { return true }
+            return false
+        }
+    }
+    
+    func imageURLs() -> [String] {
+        let blocks = parseBlocks()
+        return blocks.compactMap { block in
+            if case .image(let url, _) = block { return url }
+            return nil
+        }
+    }
+    
+    func cachedImages() -> [NSImage] {
+        imageURLs().compactMap { imageCache.get($0) }
     }
     
     private func parseBlocks() -> [Block] {
@@ -78,14 +128,11 @@ struct MarkdownView: View {
     }
 }
 
-// MARK: - ParagraphText（通用长文本拆分渲染组件）
+// MARK: - ParagraphText
 
-/// 自动将长文本拆分为多个小段落渲染，避免 SwiftUI 单个 Text 视图过大导致布局卡顿。
-/// 可复用于任何需要渲染长文本的场景。
 struct ParagraphText: View {
     let content: String
     
-    /// 单个 Text 视图的最大安全字符数
     private static let maxChunkSize = 500
     
     var body: some View {
@@ -106,27 +153,19 @@ struct ParagraphText: View {
         }
     }
     
-    /// 智能拆分：先按段落，再按句子，最后按固定长度兜底
     private func smartSplit(_ text: String) -> [String] {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return [] }
-        
-        // 如果文本很短，直接返回
         if trimmed.count <= Self.maxChunkSize {
             return [trimmed]
         }
         
-        // 第一级：按双换行拆段落
         let paragraphs = trimmed.components(separatedBy: "\n\n")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-        
         var result: [String] = []
+        
         for para in paragraphs {
             if para.count <= Self.maxChunkSize {
                 result.append(para)
             } else {
-                // 第二级：段落太长，按句子拆分
                 result.append(contentsOf: splitBySentences(para))
             }
         }
@@ -134,9 +173,7 @@ struct ParagraphText: View {
         return result.isEmpty ? [trimmed] : result
     }
     
-    /// 按句子拆分，保持句子完整性
     private func splitBySentences(_ text: String) -> [String] {
-        // 中英文句子结束符
         let pattern = "(?<=[。！？.!?])\\s*"
         guard let regex = try? NSRegularExpression(pattern: pattern) else {
             return splitByLength(text)
@@ -166,11 +203,9 @@ struct ParagraphText: View {
             sentences.append(remaining)
         }
         
-        // 合并短句子，避免碎片化
         return mergeSmallChunks(sentences)
     }
     
-    /// 按固定长度兜底拆分
     private func splitByLength(_ text: String) -> [String] {
         var result: [String] = []
         var start = text.startIndex
@@ -182,7 +217,6 @@ struct ParagraphText: View {
         return result
     }
     
-    /// 合并过短的块，减少视图数量
     private func mergeSmallChunks(_ chunks: [String]) -> [String] {
         var result: [String] = []
         var buffer = ""
@@ -210,6 +244,8 @@ struct ParagraphText: View {
 struct AsyncImageView: View {
     let url: String
     let alt: String
+    var imageCache: ImageCache? = nil
+    var localFileMap: [String: URL] = [:]
     
     @State private var image: NSImage?
     @State private var isLoading = true
@@ -238,10 +274,24 @@ struct AsyncImageView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8))
             }
         }
+        .contentShape(Rectangle())
         .onAppear { loadImage() }
     }
     
     private func loadImage() {
+        if let cached = imageCache?.get(url) {
+            self.image = cached
+            self.isLoading = false
+            return
+        }
+        
+        if let localURL = localFileMap[url], let nsImage = NSImage(contentsOf: localURL) {
+            self.image = nsImage
+            self.isLoading = false
+            imageCache?.set(url, image: nsImage)
+            return
+        }
+        
         guard let imageURL = URL(string: url) else {
             isLoading = false
             return
@@ -257,6 +307,7 @@ struct AsyncImageView: View {
             }
             self.image = nsImage
             self.isLoading = false
+            imageCache?.set(url, image: nsImage)
         }
     }
 }

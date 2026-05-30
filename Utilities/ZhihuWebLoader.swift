@@ -236,6 +236,8 @@ final class ZhihuWebLoader: NSObject, WKNavigationDelegate {
         """
 
         Task {
+            let currentURL = webView.url?.absoluteString ?? "nil"
+            let bodyLen = try? await webView.evaluateJavaScript("document.body ? document.body.innerText.length : -1") as? Int ?? -1
             do {
                 if let result = try await webView.evaluateJavaScript(js) as? String, !result.isEmpty {
                     self.finishWith(result)

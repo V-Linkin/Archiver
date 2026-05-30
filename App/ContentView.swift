@@ -32,7 +32,14 @@ struct ContentView: View {
     @Environment(AppState.self) private var appState
     @State private var selectedNav: NavigationTarget? = .home
     @State private var previousNav: NavigationTarget? = .home
-    @State private var zoomedImage: NSImage?
+    
+    // Image viewer state (lifted to cover entire window including sidebar)
+    @State private var coverImages: [NSImage] = []
+    @State private var coverImageIndex: Int = 0
+    @State private var showCoverViewer: Bool = false
+    @State private var bodyImages: [NSImage] = []
+    @State private var bodyImageIndex: Int = 0
+    @State private var showBodyViewer: Bool = false
     
     var body: some View {
         @Bindable var state = appState
@@ -65,7 +72,6 @@ struct ContentView: View {
             }
         }
         .onChange(of: selectedNav) { oldValue, newValue in
-            // 从搜索页离开时清空搜索框
             if oldValue == .search && newValue != .search {
                 appState.searchQuery = ""
                 appState.searchResults = []
@@ -77,7 +83,25 @@ struct ContentView: View {
             }
         }
         .overlay {
-            imageZoomOverlay
+            // Image viewer overlays at top level to cover sidebar
+            if showCoverViewer && !coverImages.isEmpty {
+                ImageViewerView(
+                    images: coverImages,
+                    currentIndex: $coverImageIndex,
+                    isPresented: $showCoverViewer
+                )
+                .transition(.opacity)
+                .animation(.easeInOut(duration: 0.2), value: showCoverViewer)
+            }
+            if showBodyViewer && !bodyImages.isEmpty {
+                ImageViewerView(
+                    images: bodyImages,
+                    currentIndex: $bodyImageIndex,
+                    isPresented: $showBodyViewer
+                )
+                .transition(.opacity)
+                .animation(.easeInOut(duration: 0.2), value: showBodyViewer)
+            }
         }
         .overlay(alignment: .top) {
             if appState.showToast, let message = appState.toastMessage {
@@ -108,14 +132,12 @@ struct ContentView: View {
             Button("删除", role: .destructive) {
                 if let cp = state.deletingCustomPlatform {
                     try? state.customPlatformRepo.delete(id: cp.id)
-                    // Move items to uncategorized
                     let items = (try? state.itemRepo.fetchAll()) ?? []
                     for var item in items where item.customPlatformID == cp.id {
                         item.customPlatformID = nil
                         item.platform = .custom
                         try? state.itemRepo.update(item)
                     }
-                    // Move folders to uncategorized
                     let folders = (try? state.folderRepo.fetchAll(platform: .custom)) ?? []
                     for var folder in folders where folder.customPlatformID == cp.id {
                         folder.customPlatformID = nil
@@ -165,7 +187,17 @@ struct ContentView: View {
         case .folder(let id):
             FolderView(folderID: id, selectedNav: $selectedNav, previousNav: $previousNav)
         case .item(let id):
-            ItemDetailView(itemID: id, selectedNav: $selectedNav, previousNav: $previousNav, zoomedImage: $zoomedImage)
+            ItemDetailView(
+                itemID: id,
+                selectedNav: $selectedNav,
+                previousNav: $previousNav,
+                coverImages: $coverImages,
+                coverImageIndex: $coverImageIndex,
+                showCoverViewer: $showCoverViewer,
+                bodyImages: $bodyImages,
+                bodyImageIndex: $bodyImageIndex,
+                showBodyViewer: $showBodyViewer
+            )
         case .search:
             SearchResultsView(selectedNav: $selectedNav, previousNav: $previousNav)
         case .trash:
@@ -178,22 +210,6 @@ struct ContentView: View {
             UncategorizedContentView(selectedNav: $selectedNav, previousNav: $previousNav)
         case .none:
             HomeView(selectedNav: $selectedNav, previousNav: $previousNav)
-        }
-    }
-    
-    @ViewBuilder
-    private var imageZoomOverlay: some View {
-        if let nsImage = zoomedImage {
-            ZStack {
-                Color.black.opacity(0.9).ignoresSafeArea()
-                    .onTapGesture { zoomedImage = nil }
-                Image(nsImage: nsImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .ignoresSafeArea()
-            }
-            .transition(.opacity)
-            .animation(.easeInOut(duration: 0.2), value: zoomedImage != nil)
         }
     }
     

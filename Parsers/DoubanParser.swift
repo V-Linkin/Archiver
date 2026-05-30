@@ -216,7 +216,13 @@ final class DoubanParser: ContentParser, @unchecked Sendable {
         
         // 合并结果：webview 优先（如果成功获取到内容）
         let finalTitle = webResult.title ?? title
-        let finalBody = (webResult.text != nil && webResult.text!.count > (body?.count ?? 0)) ? webResult.text : body
+        // 优先使用 webview 结果（如果包含真实内容而非模板代码）
+        let finalBody: String?
+        if let webText = webResult.text, !webText.isEmpty, !webText.contains("{{=") {
+            finalBody = webText
+        } else {
+            finalBody = body
+        }
         let finalAuthor = webResult.author ?? author
         let finalCover = webResult.cover ?? cover
         
@@ -276,6 +282,8 @@ final class DoubanParser: ContentParser, @unchecked Sendable {
     private func loadReviewViaWebView(_ urlString: String) async -> WebContentResult {
         guard let url = URL(string: urlString) else { return WebContentResult() }
         let result = await ZhihuWebLoader().loadFullContent(from: url)
+        if let result = result {
+        }
         guard let result else { return WebContentResult() }
 
         if result.hasPrefix("DOUBAN_JSON:") {
