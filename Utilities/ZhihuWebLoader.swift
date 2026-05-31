@@ -228,67 +228,20 @@ final class ZhihuWebLoader: NSObject, WKNavigationDelegate {
                         debug: 'bodyLen:' + bodyLen
                     };
                     
-                    // 1. 尝试提取文章标题（优化选择器顺序）
-                    var titleSelectors = [
-                        '.detail-title',
-                        '.feed-title',
-                        '.post-title',
-                        'h1.title',
-                        'title'
-                    ];
-                    
-                    var foundTitle = false;
-                    for (var i = 0; i < titleSelectors.length; i++) {
-                        var titleEl = document.querySelector(titleSelectors[i]);
-                        if (titleEl && titleEl.innerText && titleEl.innerText.trim().length > 0) {
-                            var titleText = titleEl.innerText.trim();
-                            // 过滤掉页面标题"酷安APP"
-                            if (titleText !== '酷安APP' && titleText.length > 5) {
-                                coolapkResult.title = titleText;
-                                foundTitle = true;
-                                break;
-                            }
-                        }
+                    // 1. 尝试从页面标题提取实际文章标题
+                    var pageTitle = document.title || '';
+                    if (pageTitle && pageTitle !== '酷安APP' && pageTitle.length > 5) {
+                        coolapkResult.title = pageTitle;
                     }
                     
-                    // 如果还没找到，尝试包含title的选择器（但排除酷安APP）
-                    if (!foundTitle) {
-                        var titleEls = document.querySelectorAll('[class*="title"]');
-                        for (var i = 0; i < titleEls.length; i++) {
-                            var titleEl = titleEls[i];
-                            if (titleEl && titleEl.innerText && titleEl.innerText.trim().length > 0) {
-                                var titleText = titleEl.innerText.trim();
-                                if (titleText !== '酷安APP' && titleText.length > 5) {
-                                    coolapkResult.title = titleText;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    
-                    // 如果还是没找到好标题，尝试从内容中提取第一行作为标题
-                    if (!coolapkResult.title || coolapkResult.title.length < 5) {
-                        var contentEl = document.querySelector('.detail-content, .feed-content, article, [class*="content"]');
-                        if (contentEl) {
-                            var lines = contentEl.innerText.split('\n');
-                            for (var j = 0; j < lines.length; j++) {
-                                var line = lines[j].trim();
-                                if (line.length > 5 && line.length < 50) {
-                                    coolapkResult.title = line;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    
-                    // 2. 提取正文内容
-                    var contentEl = document.querySelector('.detail-content, .feed-content, article, [class*="content"]');
+                    // 2. 提取正文内容（使用正确的选择器）
+                    var contentEl = document.querySelector('.content');
                     if (contentEl) {
                         coolapkResult.text = contentEl.innerText.trim();
                     }
                     
-                    // 3. 提取图片（过滤非内容图片）
-                    var imgEls = document.querySelectorAll('.detail-content img, .feed-content img, article img, [class*="content"] img');
+                    // 3. 提取图片（使用正确的选择器）
+                    var imgEls = document.querySelectorAll('.content img, .message-image img');
                     var allImages = Array.from(imgEls).map(function(img) {
                         return img.src;
                     }).filter(function(src) {
@@ -297,7 +250,6 @@ final class ZhihuWebLoader: NSObject, WKNavigationDelegate {
                     
                     // 过滤掉常见非内容图片
                     var contentImages = allImages.filter(function(src) {
-                        // 过滤掉logo、图标、表情包等
                         return !src.includes('static.coolapk.com/static/web') &&
                                !src.includes('avatar.coolapk.com') &&
                                !src.includes('emoticons') &&
@@ -308,26 +260,10 @@ final class ZhihuWebLoader: NSObject, WKNavigationDelegate {
                     
                     coolapkResult.images = contentImages;
                     
-                    // 4. 提取作者信息
-                    var authorSelectors = [
-                        '.user-name',
-                        '.author-name',
-                        '.feed-user',
-                        '[class*="user"]',
-                        '[class*="author"]'
-                    ];
-                    
-                    for (var i = 0; i < authorSelectors.length; i++) {
-                        var authorEl = document.querySelector(authorSelectors[i]);
-                        if (authorEl && authorEl.innerText) {
-                            var authorText = authorEl.innerText.trim();
-                            // 清洗作者信息（去掉换行和设备信息）
-                            authorText = authorText.replace(/\\n/g, ' ').replace(/\\s+/g, ' ');
-                            if (authorText.length > 0) {
-                                coolapkResult.author = authorText;
-                                break;
-                            }
-                        }
+                    // 4. 提取作者信息（使用正确的选择器）
+                    var authorEl = document.querySelector('.common-userinfo-group, .userinfo-item, .username-item');
+                    if (authorEl && authorEl.innerText) {
+                        coolapkResult.author = authorEl.innerText.trim().replace(/\\n/g, ' ').replace(/\\s+/g, ' ');
                     }
                     
                     // 5. 设置封面（取第一张内容图片）
