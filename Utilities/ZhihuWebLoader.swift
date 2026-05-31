@@ -228,16 +228,16 @@ final class ZhihuWebLoader: NSObject, WKNavigationDelegate {
                         debug: 'bodyLen:' + bodyLen
                     };
                     
-                    // 1. 尝试提取文章标题（更精确的选择器）
+                    // 1. 尝试提取文章标题（优化选择器顺序）
                     var titleSelectors = [
                         '.detail-title',
                         '.feed-title',
                         '.post-title',
                         'h1.title',
-                        '[class*="title"]',
                         'title'
                     ];
                     
+                    // 先尝试精确的选择器
                     for (var i = 0; i < titleSelectors.length; i++) {
                         var titleEl = document.querySelector(titleSelectors[i]);
                         if (titleEl && titleEl.innerText && titleEl.innerText.trim().length > 0) {
@@ -246,6 +246,21 @@ final class ZhihuWebLoader: NSObject, WKNavigationDelegate {
                             if (titleText !== '酷安APP' && titleText.length > 5) {
                                 coolapkResult.title = titleText;
                                 break;
+                            }
+                        }
+                    }
+                    
+                    // 如果还没找到，尝试包含title的选择器（但排除酷安APP）
+                    if (!coolapkResult.title) {
+                        var titleEls = document.querySelectorAll('[class*="title"]');
+                        for (var i = 0; i < titleEls.length; i++) {
+                            var titleEl = titleEls[i];
+                            if (titleEl && titleEl.innerText && titleEl.innerText.trim().length > 0) {
+                                var titleText = titleEl.innerText.trim();
+                                if (titleText !== '酷安APP' && titleText.length > 5) {
+                                    coolapkResult.title = titleText;
+                                    break;
+                                }
                             }
                         }
                     }

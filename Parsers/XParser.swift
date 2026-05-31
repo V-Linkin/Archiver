@@ -49,12 +49,13 @@ final class XParser: BaseParser, @unchecked Sendable {
         let itemDir = mediaDir.appendingPathComponent(itemID.uuidString)
         try fileManager.createDirectory(at: itemDir, withIntermediateDirectories: true)
         
+        
         // 下载封面图
         if let coverURL = content.coverURL, let url = URL(string: coverURL) {
             let ext = url.pathExtension.isEmpty ? "jpg" : url.pathExtension
             let fileName = "cover.\(ext)"
             let localPath = itemDir.appendingPathComponent(fileName)
-            if await downloadFile(from: url, to: localPath) {
+                if await downloadFile(from: url, to: localPath) {
                 let fileSize = (try? fileManager.attributesOfItem(atPath: localPath.path)[.size] as? Int64) ?? 0
                 let asset = MediaAsset(
                     itemID: itemID, type: .cover,
@@ -73,7 +74,7 @@ final class XParser: BaseParser, @unchecked Sendable {
             let ext = url.pathExtension.isEmpty ? "jpg" : url.pathExtension
             let fileName = "image_\(String(format: "%03d", index + 1)).\(ext)"
             let localPath = itemDir.appendingPathComponent(fileName)
-            if await downloadFile(from: url, to: localPath) {
+                if await downloadFile(from: url, to: localPath) {
                 let fileSize = (try? fileManager.attributesOfItem(atPath: localPath.path)[.size] as? Int64) ?? 0
                 let asset = MediaAsset(
                     itemID: itemID, type: .image,
@@ -192,6 +193,14 @@ final class XParser: BaseParser, @unchecked Sendable {
             }
         }
         
+        print("[DEBUG:XParser] photos count: \(imageURLs.count)")
+        print("[DEBUG:XParser] videoURL: \(videoURL ?? "nil")")
+        if let videos = (tweet["media"] as? [String: Any])?["videos"] as? [[String: Any]],
+           let first = videos.first {
+            print("[DEBUG:XParser] video keys: \(Array(first.keys))")
+            print("[DEBUG:XParser] video thumbnail: \(first["thumbnail_url"] ?? first["preview"] ?? "nil")")
+        }
+        
         // 如果没有图片，检查 quote 中的媒体
         if imageURLs.isEmpty, let quote = tweet["quote"] as? [String: Any],
            let quoteMedia = quote["media"] as? [String: Any],
@@ -226,10 +235,13 @@ final class XParser: BaseParser, @unchecked Sendable {
             metadata["screenName"] = authorID
         }
         
+        
         // 封面去重：如果封面等于首张图片，从图片列表中移除首张
         if let cover = coverURL, cover == imageURLs.first {
-            imageURLs.removeFirst()
-        }
+                imageURLs.removeFirst()
+        } else {
+            }
+        
         
         // 标题取正文前 50 字
         let title = fullText.map { String($0.prefix(50)) }
