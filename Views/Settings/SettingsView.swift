@@ -23,6 +23,7 @@ struct SettingsView: View {
             backupSection
             browserSection
             aboutSection
+            disclaimerSection
         }
         .formStyle(.grouped)
         .navigationTitle("设置")
@@ -187,6 +188,21 @@ struct SettingsView: View {
                     Spacer()
                     Image(systemName: "arrow.up.right.square").foregroundStyle(.secondary)
                 }
+            }
+        }
+    }
+    
+    // MARK: - Disclaimer
+    
+    private var disclaimerSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 8) {
+                Label("免责声明", systemImage: "exclamationmark.shield")
+                    .font(.headline)
+                Text("本应用仅供个人学习和研究使用。保存的内容版权归原作者或平台所有，请遵守各平台的服务条款和相关法律法规。请勿将保存的内容用于商业用途或未经授权的重新分发。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
