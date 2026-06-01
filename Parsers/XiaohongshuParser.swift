@@ -6,8 +6,9 @@ final class XiaohongshuParser: ContentParser, @unchecked Sendable {
     private let session: URLSession = {
         let config = URLSessionConfiguration.default
         config.httpAdditionalHeaders = [
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Referer": "https://www.xiaohongshu.com/"
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8"
         ]
         return URLSession(configuration: config)
     }()
@@ -38,10 +39,16 @@ final class XiaohongshuParser: ContentParser, @unchecked Sendable {
     // MARK: - HTTP 模式（登录状态，快速）
     
     private func parseViaHTTP(url: URL) async throws -> ParsedContent? {
+        NSLog("[DEBUG:XHS] parseViaHTTP URL: \(url)")
         let (data, response) = try await session.data(from: url)
         
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            NSLog("[DEBUG:XHS] no HTTP response")
+            return nil
+        }
+        NSLog("[DEBUG:XHS] HTTP status: \(httpResponse.statusCode)")
+        
+        guard httpResponse.statusCode == 200 else {
             return nil
         }
         
@@ -49,8 +56,10 @@ final class XiaohongshuParser: ContentParser, @unchecked Sendable {
             return nil
         }
         
-        // 检查是否有 SSR 数据（登录状态的标志）
-        guard html.contains("window.__INITIAL_STATE__=") else {
+        let hasSSR = html.contains("__INITIAL_STATE__=")
+        NSLog("[DEBUG:XHS] html len=\(html.count) hasSSR=\(hasSSR)")
+        
+        guard hasSSR else {
             return nil
         }
         
@@ -61,12 +70,16 @@ final class XiaohongshuParser: ContentParser, @unchecked Sendable {
     
     @MainActor
     private func parseViaWebView(url: URL) async throws -> ParsedContent {
-        let loader = ZhihuWebLoader()
+        let loader = JSWebLoader()
         guard let result = await loader.loadFullContent(from: url) else {
             throw ParserError.parseFailed(reason: "无法加载小红书页面")
         }
         
         // 解析 XIAOHONGSHU_JSON: 前缀的结果
+        if result == "XHS_LOGIN_REQUIRED" {
+            throw ParserError.parseFailed(reason: "小红书需要登录才能访问此内容")
+        }
+        
         guard result.hasPrefix("XIAOHONGSHU_JSON:") else {
             throw ParserError.parseFailed(reason: "页面解析失败")
         }
@@ -82,8 +95,9 @@ final class XiaohongshuParser: ContentParser, @unchecked Sendable {
         let text = json["text"] as? String
         let images = json["images"] as? [String] ?? []
         let cover = json["cover"] as? String
+        let videoURL = json["video"] as? String
         
-        guard title != nil || text != nil || !images.isEmpty else {
+        guard title != nil || text != nil else {
             throw ParserError.parseFailed(reason: "未获取到内容")
         }
         
@@ -99,14 +113,15 @@ final class XiaohongshuParser: ContentParser, @unchecked Sendable {
             author: author,
             coverURL: cover,
             imageURLs: uniqueImages,
+            videoURL: videoURL,
             platformContentID: extractContentID(from: url)
         )
     }
     
-    // MARK: - SSR 数据解析（复用原有逻辑）
+    // MARK: - SSR 数据解析
     
     private func extractFromSSRData(_ html: String, url: URL) -> ParsedContent? {
-        guard let startRange = html.range(of: "window.__INITIAL_STATE__=") else {
+        guard let startRange = html.range(of: "__INITIAL_STATE__=") else {
             return nil
         }
         
@@ -122,61 +137,112 @@ final class XiaohongshuParser: ContentParser, @unchecked Sendable {
             return nil
         }
         
-        var title: String?
-        var desc: String?
-        var author: String?
-        var authorID: String?
+        // 小红书页面有两种数据结构：
+        // 1. note.noteDetailMap (explore 页面)
+        // 2. noteData.data.noteData (discovery/item 页面)
+        var note: [String: Any]?
+        
+        if let noteMap = json["note"] as? [String: Any],
+           let detailMap = noteMap["noteDetailMap"] as? [String: Any],
+           let firstKey = detailMap.keys.first,
+           let detail = detailMap[firstKey] as? [String: Any] {
+            note = detail["note"] as? [String: Any]
+        } else if let noteData = json["noteData"] as? [String: Any],
+                  let data = noteData["data"] as? [String: Any],
+                  let noteDetail = data["noteData"] as? [String: Any] {
+            note = noteDetail
+        }
+        
+        NSLog("[DEBUG:XHS] SSR note found: \(note?["title"] ?? "nil")")
+        guard let note = note else { return nil }
+        
+        let title = note["title"] as? String
+        let desc = note["desc"] as? String
+        let user = note["user"] as? [String: Any]
+        let author = user?["nickName"] as? String ?? user?["nickname"] as? String
+        
         var imageURLs: [String] = []
         var coverURL: String?
-        var publishDate: Date?
+        var videoURL: String?
         
-        if let noteDetailMap = json["note"] as? [String: Any],
-           let noteDetail = noteDetailMap["noteDetailMap"] as? [String: Any],
-           let firstNote = noteDetail.values.first as? [String: Any],
-           let note = firstNote["note"] as? [String: Any] {
-            
-            title = note["title"] as? String
-            desc = note["desc"] as? String
-            
-            if let user = note["user"] as? [String: Any] {
-                author = user["nickname"] as? String
-                authorID = user["userId"] as? String
-            }
-            
-            if let imageList = note["imageList"] as? [[String: Any]] {
-                for image in imageList {
-                    if let urlDefault = image["urlDefault"] as? String {
-                        imageURLs.append(urlDefault)
-                    } else if let url = image["url"] as? String {
+        // 提取所有图片 - 转换为无水印 URL
+        if let imageList = note["imageList"] as? [[String: Any]] {
+            for img in imageList {
+                var rawUrl: String?
+                if let url = img["urlDefault"] as? String {
+                    rawUrl = url
+                } else if let url = img["url"] as? String {
+                    rawUrl = url
+                }
+                if let url = rawUrl {
+                    // 将水印 URL 转换为无水印格式
+                    if url.contains("sns-webpic") && url.contains("!") {
+                        // 提取 fileId: URL 最后一段在 ! 之前
+                        // 例: .../1040g2sg3xxx!h5_1080jpg -> fileId = 1040g2sg3xxx
+                        let baseUrl = url.components(separatedBy: "!").first ?? url
+                        let pathParts = baseUrl.components(separatedBy: "/")
+                        if let fileId = pathParts.last, !fileId.isEmpty {
+                            imageURLs.append("http://sns-na-i1.xhscdn.com/\(fileId)?imageView2/2/w/1080/format/jpg")
+                        } else {
+                            imageURLs.append(url)
+                        }
+                    } else {
                         imageURLs.append(url)
                     }
                 }
-                coverURL = imageURLs.first
-                // 去重：移除第一张图片，避免封面重复
-                if imageURLs.count > 0 {
-                    imageURLs.removeFirst()
-                }
-            }
-            
-            if let time = note["time"] as? Double {
-                publishDate = Date(timeIntervalSince1970: time / 1000)
             }
         }
         
+        // 提取封面 - 优先用 normalNotePreloadData（无水印），兜底用 imageList 第一张
+        if let preloadData = json["noteData"] as? [String: Any],
+           let normalPreload = preloadData["normalNotePreloadData"] as? [String: Any],
+           let imagesList = normalPreload["imagesList"] as? [[String: Any]],
+           let firstImg = imagesList.first {
+            if let urlLarge = firstImg["urlSizeLarge"] as? String, !urlLarge.isEmpty {
+                coverURL = urlLarge
+            } else if let url = firstImg["url"] as? String, !url.isEmpty {
+                coverURL = url
+            }
+        }
+        if coverURL == nil && !imageURLs.isEmpty {
+            coverURL = imageURLs.first
+        }
+        // 封面和首图一定重复，直接移除首图
+        if coverURL != nil && !imageURLs.isEmpty {
+            imageURLs.removeFirst()
+        }
+        
+        // 提取视频（优先 h264，兼容性最好）
+        if let video = note["video"] as? [String: Any],
+           let media = video["media"] as? [String: Any],
+           let stream = media["stream"] as? [String: Any] {
+            for codec in ["h264", "h265", "av1"] {
+                if let streams = stream[codec] as? [[String: Any]] {
+                    // 选择最高质量
+                    let sorted = streams.sorted { ($0["width"] as? Int ?? 0) > ($1["width"] as? Int ?? 0) }
+                    if let first = sorted.first,
+                       let masterUrl = first["masterUrl"] as? String, !masterUrl.isEmpty {
+                        videoURL = masterUrl
+                        break
+                    }
+                }
+            }
+        }
+        
+        NSLog("[DEBUG:XHS] FINAL title=\(title ?? "nil") author=\(author ?? "nil") video=\(videoURL != nil ? "yes" : "nil") images=\(imageURLs.count)")
         guard title != nil || desc != nil else { return nil }
         
         return ParsedContent(
             title: title,
             body: desc,
             author: author,
-            authorID: authorID,
-            publishDate: publishDate,
             coverURL: coverURL,
             imageURLs: imageURLs,
+            videoURL: videoURL,
             platformContentID: extractContentID(from: url)
         )
     }
-    
+
     // MARK: - Media Download
     
     func downloadMedia(content: ParsedContent, itemID: UUID, mediaDir: URL) async throws -> [MediaAsset] {

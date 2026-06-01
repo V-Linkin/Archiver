@@ -40,7 +40,7 @@ var coverEl = document.querySelector('.subject-cover img')
 
 ## 修复方案（已实施）
 
-### JS 选择器（ZhihuWebLoader.swift）
+### JS 选择器（JSWebLoader.swift）
 
 优先级：`.subject-img img` → `.subject-poster img` → `.poster img` → `[data-image]` → `og:image`
 
@@ -73,7 +73,7 @@ if needSubjectCover, let subjectID = extractSubjectID(from: url) {
 
 ## 实施步骤（已完成）
 
-1. ✅ 修改 `ZhihuWebLoader.swift` JS 选择器
+1. ✅ 修改 `JSWebLoader.swift` JS 选择器
 2. ✅ 修改 `DoubanParser.swift` 增加 subject 页面兜底
 3. ✅ 测试验证封面提取
 
@@ -86,5 +86,5 @@ if needSubjectCover, let subjectID = extractSubjectID(from: url) {
 
 ## 影响范围
 
-- `Utilities/ZhihuWebLoader.swift`：JS 封面选择器
+- `Utilities/JSWebLoader.swift`：JS 封面选择器
 - `Parsers/DoubanParser.swift`：Swift 层 subject 页面兜底

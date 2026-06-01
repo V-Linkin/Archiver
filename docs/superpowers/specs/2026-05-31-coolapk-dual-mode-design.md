@@ -24,7 +24,7 @@ CoolapkParser.parse(url)
     │   ├─ 提取 Meta 标签
     │   └─ 返回基础信息
     └─ 3. WKWebView 降级（最终）
-        ├─ 通过 ZhihuWebLoader 加载
+        ├─ 通过 JSWebLoader 加载
         └─ JS 提取内容
 ```
 

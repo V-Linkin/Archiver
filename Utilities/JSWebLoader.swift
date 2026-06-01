@@ -1,9 +1,7 @@
 import Foundation
 import WebKit
 
-/// 通过 WKWebView 加载页面，获取完整内容
-/// 支持知乎、豆瓣、酷安等多个平台
-final class ZhihuWebLoader: NSObject, WKNavigationDelegate {
+final class JSWebLoader: NSObject, WKNavigationDelegate {
 
     private var webView: WKWebView?
     private var continuation: CheckedContinuation<String?, Never>?
@@ -83,6 +81,11 @@ final class ZhihuWebLoader: NSObject, WKNavigationDelegate {
             try {
                 var url = document.location.href;
                 var bodyLen = document.body ? document.body.innerText.length : 0;
+                
+                // 检测登录重定向
+                if (url.indexOf('xiaohongshu.com/login') !== -1) {
+                    return 'XHS_LOGIN_REQUIRED';
+                }
 
                 // === 知乎 ===
                 var initEl = document.getElementById('js-initialData');
@@ -151,10 +154,15 @@ final class ZhihuWebLoader: NSObject, WKNavigationDelegate {
 
                 // === 小红书 ===
                 if (url.indexOf('xiaohongshu.com') !== -1 || url.indexOf('xhslink.com') !== -1) {
-                    var xhsResult = {title: '', text: '', author: '', images: [], cover: '', debug: ''};
+                    // 检测是否被重定向到登录页
+                    if (url.indexOf('/login') !== -1 || url.indexOf('login?redirectPath') !== -1) {
+                        return 'XHS_LOGIN_REQUIRED';
+                    }
+                    var xhsResult = {title: '', text: '', author: '', images: [], cover: '', video: '', debug: ''};
                     
-                    // 尝试 SSR 数据提取
+                    // 1. 尝试 SSR 数据提取（#pageData）
                     var initScript = document.querySelector('script[type="application/json"]#pageData');
+                    xhsResult.debug = 'pageData:' + (initScript ? 'found' : 'NOT_FOUND') + ' | bodyLen:' + bodyLen;
                     if (initScript) {
                         try {
                             var data = JSON.parse(initScript.textContent);
@@ -167,19 +175,50 @@ final class ZhihuWebLoader: NSObject, WKNavigationDelegate {
                                     xhsResult.images = note.imageList.map(function(img) { return img.url || img.urlDefault || ''; });
                                 }
                                 xhsResult.cover = xhsResult.images.length > 0 ? xhsResult.images[0] : '';
+                                // 提取视频 URL
+                                xhsResult.debug += ' | noteKeys:' + Object.keys(note).join(',');
+                                if (note.video) {
+                                    xhsResult.debug += ' | videoKeys:' + Object.keys(note.video).join(',');
+                                    xhsResult.debug += ' | videoType:' + (typeof note.video) + ' | videoStr:' + JSON.stringify(note.video).substring(0, 200);
+                                    if (note.video.media && note.video.media.stream) {
+                                        var stream = note.video.media.stream;
+                                        var h264 = stream.h264 || [];
+                                        var h265 = stream.h265 || [];
+                                        var av1 = stream.av1 || [];
+                                        var allCodecs = h264.concat(h265).concat(av1);
+                                        xhsResult.debug += ' | codecs:' + allCodecs.length;
+                                        if (allCodecs.length > 0) {
+                                            allCodecs.sort(function(a, b) { return (b.width || 0) - (a.width || 0); });
+                                            xhsResult.video = allCodecs[0].masterUrl || '';
+                                        }
+                                    } else if (note.video.url) {
+                                        xhsResult.video = note.video.url;
+                                    } else {
+                                        xhsResult.debug += ' | videoNoStream:yes';
+                                    }
+                                    xhsResult.debug += ' | videoURL:' + (xhsResult.video ? 'yes(' + xhsResult.video.substring(0, 80) + ')' : 'no');
+                                } else {
+                                    xhsResult.debug += ' | note.video:UNDEFINED';
+                                }
                             }
-                        } catch(e) {}
+                        } catch(e) {
+                            xhsResult.debug += ' | ssrError:' + e.toString();
+                        }
                     }
                     
-                    // DOM 提取备用
+                    // 2. DOM 提取备用 - 扩展选择器
                     if (!xhsResult.text) {
-                        var _xhsContentEl = document.querySelector('#detail-desc, .note-text, [class*="content"]');
-                        if (_xhsContentEl) {
-                            var _xhsPs = _xhsContentEl.querySelectorAll('p');
-                            if (_xhsPs.length > 0) {
-                                xhsResult.text = Array.from(_xhsPs).map(function(p) { return p.innerText.trim(); }).filter(function(t) { return t.length > 0; }).join('\n\n');
-                            } else {
-                                xhsResult.text = _xhsContentEl.innerText.trim();
+                        var _xhsSelectors = ['#detail-desc', '.note-text', '.note-content', '.content', '[class*="desc"]', '[class*="detail"]', '#detail-desc .note-text', '.note-scroller'];
+                        for (var _si = 0; _si < _xhsSelectors.length; _si++) {
+                            var _xhsContentEl = document.querySelector(_xhsSelectors[_si]);
+                            if (_xhsContentEl && _xhsContentEl.innerText && _xhsContentEl.innerText.trim().length > 10) {
+                                var _xhsPs = _xhsContentEl.querySelectorAll('p');
+                                if (_xhsPs.length > 0) {
+                                    xhsResult.text = Array.from(_xhsPs).map(function(p) { return p.innerText.trim(); }).filter(function(t) { return t.length > 0; }).join('\n\n');
+                                } else {
+                                    xhsResult.text = _xhsContentEl.innerText.trim();
+                                }
+                                break;
                             }
                         }
                     }
@@ -204,9 +243,9 @@ final class ZhihuWebLoader: NSObject, WKNavigationDelegate {
                         }
                     }
                     
-                    // 提取图片
-                    var _xhsImageEls = document.querySelectorAll('.image-container img, [class*="image"] img, .swiper-slide img');
-                    xhsResult.images = Array.from(_xhsImageEls).map(function(img) { return img.src; }).filter(function(src) { return src && src.indexOf('http') === 0; });
+                    // 3. DOM 兜底提取图片
+                    var _xhsImageEls = document.querySelectorAll('.image-container img, [class*="image"] img, .swiper-slide img, .note-image img, [class*="carousel"] img, [class*="slider"] img, [class*="gallery"] img');
+                    xhsResult.images = Array.from(_xhsImageEls).map(function(img) { return img.src || img.getAttribute('data-src') || ''; }).filter(function(src) { return src && src.indexOf('http') === 0; });
                     if (xhsResult.images.length === 0) {
                         var _xhsOgImage = document.querySelector('meta[property="og:image"]');
                         if (_xhsOgImage && _xhsOgImage.content) {
@@ -214,13 +253,42 @@ final class ZhihuWebLoader: NSObject, WKNavigationDelegate {
                         }
                     }
                     xhsResult.cover = xhsResult.images.length > 0 ? xhsResult.images[0] : '';
+                    // 兜底封面
+                    if (!xhsResult.cover) {
+                        var _xhsOgCover = document.querySelector('meta[property="og:image"]');
+                        if (_xhsOgCover && _xhsOgCover.content) {
+                            xhsResult.cover = _xhsOgCover.content;
+                        }
+                    }
+                    
+                    // 4. DOM 兜底提取视频
+                    if (!xhsResult.video) {
+                        var _videoEl = document.querySelector('video source, video');
+                        if (_videoEl) {
+                            xhsResult.video = _videoEl.src || _videoEl.getAttribute('src') || '';
+                            xhsResult.debug += ' | domVideo:' + (xhsResult.video ? 'yes' : 'no');
+                        }
+                    }
+                    
+                    // 5. 补充标题和作者
+                    if (!xhsResult.title) {
+                        var _pageTitle = document.title || '';
+                        if (_pageTitle && _pageTitle.length > 2 && _pageTitle.indexOf('小红书') === -1) {
+                            xhsResult.title = _pageTitle.replace(/ - 小红书$/, '').replace(/ \\| 小红书$/, '').trim();
+                        }
+                    }
+                    if (!xhsResult.author) {
+                        var _ogAuthor = document.querySelector('meta[name="author"], meta[property="og:novel:author"]');
+                        if (_ogAuthor && _ogAuthor.content) {
+                            xhsResult.author = _ogAuthor.content;
+                        }
+                    }
                     
                     // 调试信息
-                    xhsResult.debug = 'bodyLen:' + bodyLen + ' | title:' + (xhsResult.title ? 'yes' : 'no') + ' | author:' + (xhsResult.author ? 'yes' : 'no') + ' | text:' + xhsResult.text.length + ' | images:' + xhsResult.images.length;
+                    xhsResult.debug += ' | bodyLen:' + bodyLen + ' | title:' + (xhsResult.title ? 'yes' : 'no') + ' | author:' + (xhsResult.author ? 'yes' : 'no') + ' | text:' + xhsResult.text.length + ' | images:' + xhsResult.images.length;
                     
-                    if (xhsResult.text.length > 20 || xhsResult.images.length > 0) {
-                        return 'XIAOHONGSHU_JSON:' + JSON.stringify(xhsResult);
-                    }
+                    // 始终返回结果
+                    return 'XIAOHONGSHU_JSON:' + JSON.stringify(xhsResult);
                 }
 
                 // === 酷安 ===
@@ -316,7 +384,7 @@ final class ZhihuWebLoader: NSObject, WKNavigationDelegate {
             do {
                 if let result = try await webView.evaluateJavaScript(js) as? String, !result.isEmpty {
                     // Debug: print JS result to help diagnose
-                    print("[ZhihuWebLoader] JS result: \(result)")
+                    print("[JSWebLoader] JS result: \(result)")
                     Task { @MainActor in
                         if !self.isCompleted {
                             self.isCompleted = true
@@ -324,7 +392,7 @@ final class ZhihuWebLoader: NSObject, WKNavigationDelegate {
                         }
                     }
                 } else {
-                    print("[ZhihuWebLoader] JS returned empty or non-string")
+                    print("[JSWebLoader] JS returned empty or non-string")
                     Task { @MainActor in
                         if !self.isCompleted {
                             self.isCompleted = true
@@ -333,7 +401,7 @@ final class ZhihuWebLoader: NSObject, WKNavigationDelegate {
                     }
                 }
             } catch {
-                print("[ZhihuWebLoader] JS evaluation error: \(error)")
+                print("[JSWebLoader] JS evaluation error: \(error)")
                 Task { @MainActor in
                     if !self.isCompleted {
                         self.isCompleted = true

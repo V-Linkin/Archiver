@@ -190,7 +190,7 @@ final class CoolapkParser: ContentParser, @unchecked Sendable {
     
     @MainActor
     private func parseViaWebView(url: URL) async throws -> ParsedContent {
-        let loader = ZhihuWebLoader()
+        let loader = JSWebLoader()
         guard let result = await loader.loadFullContent(from: url) else {
             throw ParserError.parseFailed(reason: "无法加载酷安页面（WebView 返回 nil）")
         }

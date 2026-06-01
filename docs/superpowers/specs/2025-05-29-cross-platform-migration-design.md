@@ -586,7 +586,7 @@ Archiver/
 │   ├── MediaExporter      媒体另存为导出
 │   ├── PlatformCustomization 平台自定义配置
 │   ├── URLNormalizer      URL 标准化
-│   └── ZhihuWebLoader     知乎 WebView 加载器
+│   └── JSWebLoader     知乎 WebView 加载器
 ├── Views/                  SwiftUI 视图层（19个）
 │   ├── Home/              首页
 │   ├── Platform/          平台分类 + 文件夹（7个）

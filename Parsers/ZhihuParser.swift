@@ -255,7 +255,7 @@ final class ZhihuParser: ContentParser, @unchecked Sendable {
     /// 通过 WKWebView 获取内容，返回 (html: String?, questionTitle: String?, author: String?)
     private func loadViaWebView(_ urlString: String) async -> (html: String?, questionTitle: String?, author: String?) {
         guard let url = URL(string: urlString) else { return (nil, nil, nil) }
-        let result = await ZhihuWebLoader().loadFullContent(from: url)
+        let result = await JSWebLoader().loadFullContent(from: url)
         guard let result else { return (nil, nil, nil) }
 
         if result.hasPrefix("ANSWER:") {

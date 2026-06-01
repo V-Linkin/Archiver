@@ -313,7 +313,7 @@ final class DoubanParser: ContentParser, @unchecked Sendable {
     /// 通过 WKWebView 获取影评内容，返回结构化结果
     private func loadReviewViaWebView(_ urlString: String) async -> WebContentResult {
         guard let url = URL(string: urlString) else { return WebContentResult() }
-        let result = await ZhihuWebLoader().loadFullContent(from: url)
+        let result = await JSWebLoader().loadFullContent(from: url)
         guard let result else { return WebContentResult() }
 
         if result.hasPrefix("DOUBAN_JSON:") {
