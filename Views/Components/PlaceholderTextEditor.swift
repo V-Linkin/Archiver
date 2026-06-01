@@ -31,31 +31,40 @@ struct PlaceholderTextEditor: NSViewRepresentable {
     }
 }
 
-
-
-// MARK: - 可穿透的 NSScrollView（内容滚到底后传递事件给父级）
+// MARK: - 可穿透的 NSScrollView
 
 class PassthroughScrollView: NSScrollView {
     override func scrollWheel(with event: NSEvent) {
         let canScrollVertically = documentView.map { $0.bounds.height > frame.height } ?? false
         guard canScrollVertically else {
-            // 内容不需要滚动，直接传递给父级
             nextResponder?.scrollWheel(with: event)
             return
         }
-        
         let atBottom = (documentView!.bounds.height - (documentVisibleRect.origin.y + documentVisibleRect.height)) < 1.0
         let atTop = documentVisibleRect.origin.y < 1.0
-        
         let scrollingDown = event.scrollingDeltaY > 0
-        
         if (scrollingDown && atBottom) || (!scrollingDown && atTop) {
-            // 已经到底/到顶，传递给父级
             nextResponder?.scrollWheel(with: event)
         } else {
-            // 还能滚动，正常处理
             super.scrollWheel(with: event)
         }
+    }
+}
+
+// MARK: - 支持输入法的 NSTextView 子类
+
+class PlaceholderTextView: NSTextView {
+    var onMarkedTextChange: ((Bool) -> Void)?
+    
+    override func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
+        super.setMarkedText(string, selectedRange: selectedRange, replacementRange: replacementRange)
+        let hasMarked = (string as? String)?.isEmpty == false
+        onMarkedTextChange?(hasMarked)
+    }
+    
+    override func unmarkText() {
+        super.unmarkText()
+        onMarkedTextChange?(false)
     }
 }
 
@@ -63,7 +72,7 @@ class PlaceholderTextEditorNSView: NSView, NSTextViewDelegate {
     var text: String = ""
     var onTextChange: ((String) -> Void)?
     
-    let textView = NSTextView()
+    let textView = PlaceholderTextView()
     var placeholderLabel: PassthroughLabel!
     var scrollView: NSScrollView!
     
@@ -86,6 +95,16 @@ class PlaceholderTextEditorNSView: NSView, NSTextViewDelegate {
         textView.backgroundColor = .clear
         textView.drawsBackground = false
         textView.delegate = self
+        
+        // 输入法组合文字变化时立即隐藏/显示占位符
+        textView.onMarkedTextChange = { [weak self] hasMarked in
+            guard let self = self else { return }
+            if hasMarked {
+                self.placeholderLabel.isHidden = true
+            } else {
+                self.updatePlaceholder()
+            }
+        }
         
         scrollView = PassthroughScrollView()
         scrollView.documentView = textView
@@ -110,11 +129,6 @@ class PlaceholderTextEditorNSView: NSView, NSTextViewDelegate {
         placeholderLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(placeholderLabel)
         
-        // 从 debug 数据推算:
-        // textContainerInset.height=8, bounds.height=80
-        // NSTextView 光标顶部在 y=72 (80-8)
-        // NSTextField 内部文字顶部约在 label.top - 1.5
-        // 所以 label.top = 72 + 1.5 = 73.5, topOffset = 80 - 73.5 ≈ 6.5
         NSLayoutConstraint.activate([
             placeholderLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 11),
             placeholderLabel.topAnchor.constraint(equalTo: topAnchor, constant: 7)

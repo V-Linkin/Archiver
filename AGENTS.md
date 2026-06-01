@@ -52,11 +52,13 @@ docs/                   产品规格 + 设计文档
 - **XcodeGen**: 不要直接编辑 `.xcodeproj`，修改 `project.yml` 后运行 `xcodegen generate`
 - **UserDefaults**: 浏览器选择存储在 `selectedBrowserBundleIdentifier` 键
 - **自定义平台匹配**: `ImportService.findMatchingCustomPlatform` 和 `NewCustomPlatformSheet.autoAssignUncategorized` 均使用大小写不敏感比较（`caseInsensitiveCompare`），用户创建 "youtube" 平台可自动匹配 "YouTube" 检测结果
+- **多选批量操作**: `PlatformView` 和 `CustomPlatformContentView` 支持右键菜单"多选"进入批量模式，工具栏显示已选数量 + 移动/删除/取消。`MoveToPlatformSheet` 新增 `itemIDs: [UUID]` 参数支持批量移动。首页最近导入卡片右键支持"不显示"（UserDefaults 存储隐藏 ID）和"删除"（移入回收站）
 - **DMG 命名**: 使用 `build_release.sh` 脚本打包，文件名固定为 `Archiver_v{version}.dmg`（英文名，避免中文丢失）
 - **请求频率控制**: 豆瓣等有反爬的平台，`DoubanParser` 内置了 actor-based 请求间隔限制（2秒），新增平台需评估是否需要类似机制
 - **导航防抖**: `NavDebounce`（Views/Components/DebounceHelper.swift）用于防止双击重复导航，列表页点击事件需调用 `NavDebounce.shared.canNavigate()` 判断
 - **图片缓存**: `ItemDetailView` 中 `bodyImageCache` 使用 `@State` 而非 `let`，确保跨视图重建时缓存实例不变（`AsyncImageView` 网络加载的图片需与 `openBodyViewer` 共享同一缓存）
-- **占位文本框**: `PlaceholderTextEditor`（Views/Components/PlaceholderTextEditor.swift）用 `NSViewRepresentable` 包装自定义 `PlaceholderNSTextView`，通过 `draw(_:)` 原生绘制占位文字，确保与光标精确对齐。`PassthroughLabel` 重写 `hitTest` 返回 nil（点击穿透），`PassthroughScrollView` 在内容到达边界时将滚轮事件传递给父视图（解决备注框滚轮被拦截的问题）。首页粘贴框使用 `NoScrollTextEditor`（隐藏滚动条）。
+- **编辑退出确认**: `EditItemView` 记录打开时的初始值（标题/正文/作者/备注）+ 追踪新增/删除的媒体文件，通过 `hasChanges` 计算属性检测变更。点"取消"时有变化弹确认框（"放弃修改？"），无变化直接退出。`removedAssetIDs` 延迟在保存时统一处理文件删除。
+- **占位文本框**: `PlaceholderTextEditor`（Views/Components/PlaceholderTextEditor.swift）用 `NSViewRepresentable` 包装自定义 `PlaceholderTextView`（NSTextView 子类），通过重写 `setMarkedText`/`unmarkText` 支持中文输入法组合输入时立即隐藏占位符（避免拼音候选文字与占位符重叠）。占位符使用 `PassthroughLabel`（NSTextField 覆盖层，`hitTest` 返回 nil 实现点击穿透）。`PassthroughScrollView` 在内容到达边界时将滚轮事件传递给父视图。首页粘贴框使用 `NoScrollTextEditor`（隐藏滚动条）。
 - **豆瓣影评解析**: 服务端返回反爬挑战页（JS proof-of-work），HTTP 请求无法获取真实内容。`DoubanParser` 通过 WKWebView 解决挑战后提取内容，合并时优先使用 webview 结果（需排除模板代码 `{{=`）。作者提取：JSON-LD `author.name` → `data-author` 属性 → `<header class="main-hd">` 区域匹配 → 全页 people 链接扫描。封面：从 JSON-LD `itemReviewed.image` 直接获取电影海报，不依赖 subject 页面。正文：`extractNestedDivContent` 追踪 `<div>` 嵌套深度提取完整内容（解决正则截断），正文图片通过 `extractReviewImageURLs` 提取并下载。
 - **媒体另存为**: `MediaExporter` 工具类负责命名生成和文件导出，支持右键单个导出和工具栏批量导出。单个导出命名：`{平台名}_{文件夹}_{作者}_{序号}_{日期}.{扩展名}`，无文件夹时跳过该段。批量导出时自动创建子文件夹 `{自定义平台名}_{作者}_{日期}`，媒体文件放入其中。`ExportPickerSheet` 用于批量导出时的媒体类型选择（媒体区域/正文图片/全部）。
 - **微博 AJAX API**: 微博移动页面和桌面页面均有严格反爬验证（Sina Visitor System），WKWebView 无法通过。`WeiboParser` 优先使用 `m.weibo.cn/statuses/show?id=` AJAX 接口（需 `X-Requested-With: XMLHttpRequest` 请求头），直接返回 JSON 数据，包含正文、作者、图片列表。兜底使用 HTML `render_data` 解析。
@@ -65,6 +67,7 @@ docs/                   产品规格 + 设计文档
 
 - **X 解析器封面去重**: `XParser` 封面逻辑：视频推文优先用 `thumbnail_url` 作为封面，图片推文用首图（首图与封面相同时从 `imageURLs` 移除避免重复），纯文字兜底用头像。
 - **视频播放**: `VideoPlayerView`（Views/Components/VideoPlayerView.swift）使用 `AVPlayerView` 播放本地视频，支持播放/暂停/进度条/全屏。`ItemDetailView` 通过全局 `NSEvent` 监听器实现视频区域的 Shift+滚轮横向滚动（AVPlayerView 内部会拦截滚轮事件，需在 App 层面转发给外层 ScrollView）。
+- **Sheet 状态传递**: `.sheet(isPresented:)` 闭包中无法可靠读取同一 action 设置的 `@State` 变量（SwiftUI 重新渲染时状态丢失，sheet 内容为空）。需要传递 item ID 时，改用 `.sheet(item:)` 并定义 `Identifiable` 包装结构。多选移动使用 `showMoveToPlatform` + `isPresented` binding（多选路径不依赖单 item 状态）。
 
 ## 支持平台
 

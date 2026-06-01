@@ -13,20 +13,46 @@ struct EditItemView: View {
     @State private var newImageURLs: [URL] = []
     @State private var newVideoURLs: [URL] = []
     
+    // 初始值，用于检测是否有变更
+    @State private var initialTitle: String
+    @State private var initialBodyText: String
+    @State private var initialAuthor: String
+    @State private var initialRemark: String
+    @State private var removedAssetIDs: Set<UUID> = []
+    
+    // 退出确认
+    @State private var showDiscardConfirm = false
+    
     // Image viewer
     @State private var editImages: [NSImage] = []
     @State private var editImageIndex: Int = 0
-    @State private var showEditViewer: Bool = false
+    @State private var showEditViewer = false
     
     init(item: Item, isPresented: Binding<Bool>) {
         self.item = item
         self._isPresented = isPresented
-        _title = State(initialValue: item.title ?? "")
-        _bodyText = State(initialValue: item.body ?? "")
-        _author = State(initialValue: item.author ?? "")
-        _remark = State(initialValue: item.remark ?? "")
-        _remark = State(initialValue: item.remark ?? "")
-        _remark = State(initialValue: item.remark ?? "")
+        let t = item.title ?? ""
+        let b = item.body ?? ""
+        let a = item.author ?? ""
+        let r = item.remark ?? ""
+        _title = State(initialValue: t)
+        _bodyText = State(initialValue: b)
+        _author = State(initialValue: a)
+        _remark = State(initialValue: r)
+        _initialTitle = State(initialValue: t)
+        _initialBodyText = State(initialValue: b)
+        _initialAuthor = State(initialValue: a)
+        _initialRemark = State(initialValue: r)
+    }
+    
+    private var hasChanges: Bool {
+        title != initialTitle ||
+        bodyText != initialBodyText ||
+        author != initialAuthor ||
+        remark != initialRemark ||
+        !newImageURLs.isEmpty ||
+        !newVideoURLs.isEmpty ||
+        !removedAssetIDs.isEmpty
     }
     
     var body: some View {
@@ -34,7 +60,14 @@ struct EditItemView: View {
             HStack {
                 Text("编辑内容").font(.headline)
                 Spacer()
-                Button("取消") { isPresented = false }.keyboardShortcut(.cancelAction)
+                Button("取消") {
+                    if hasChanges {
+                        showDiscardConfirm = true
+                    } else {
+                        isPresented = false
+                    }
+                }
+                .keyboardShortcut(.cancelAction)
                 Button("保存") { save() }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
@@ -78,7 +111,7 @@ struct EditItemView: View {
                             .controlSize(.small)
                         }
                         
-                        let images = mediaAssets.filter { $0.type == .image || $0.type == .cover }
+                        let images = mediaAssets.filter { ($0.type == .image || $0.type == .cover) && !removedAssetIDs.contains($0.id) }
                         if images.isEmpty && newImageURLs.isEmpty {
                             Text("暂无图片").font(.caption).foregroundStyle(.tertiary)
                                 .frame(maxWidth: .infinity, minHeight: 40)
@@ -89,43 +122,47 @@ struct EditItemView: View {
                                         if let path = asset.localPath {
                                             let url = DataDirectory.media.appendingPathComponent(path)
                                             if let nsImage = NSImage(contentsOf: url) {
-                                                ZStack(alignment: .topTrailing) {
-                                                    Image(nsImage: nsImage)
-                                                        .resizable()
-                                                        .aspectRatio(contentMode: .fill)
-                                                        .frame(width: 80, height: 80)
-                                                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                                                    Button { removeAsset(asset) } label: {
-                                                        Image(systemName: "xmark.circle.fill").font(.caption).foregroundStyle(.red)
-                                                    }.buttonStyle(.plain)
-                                                }
-                                                .onTapGesture {
-                                                    openEditViewer(from: index, isExisting: true)
-                                                }
+                                                Image(nsImage: nsImage)
+                                                    .resizable()
+                                                    .scaledToFill()
+                                                    .frame(width: 100, height: 100)
+                                                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                                                    .onTapGesture { openImageViewer(images: images, tappedIndex: index) }
+                                                    .overlay(alignment: .topTrailing) {
+                                                        Button {
+                                                            removedAssetIDs.insert(asset.id)
+                                                        } label: {
+                                                            Image(systemName: "xmark.circle.fill")
+                                                                .foregroundStyle(.white, .red)
+                                                                .font(.caption)
+                                                        }
+                                                        .offset(x: 4, y: -4)
+                                                    }
                                             }
                                         }
                                     }
                                     ForEach(Array(newImageURLs.enumerated()), id: \.offset) { index, url in
                                         if let nsImage = NSImage(contentsOf: url) {
-                                            let existingCount = mediaAssets.filter { $0.type == .image || $0.type == .cover }.count
-                                            ZStack(alignment: .topTrailing) {
-                                                Image(nsImage: nsImage)
-                                                    .resizable()
-                                                    .aspectRatio(contentMode: .fill)
-                                                    .frame(width: 80, height: 80)
-                                                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                                                Button { newImageURLs.remove(at: index) } label: {
-                                                    Image(systemName: "xmark.circle.fill").font(.caption).foregroundStyle(.red)
-                                                }.buttonStyle(.plain)
-                                            }
-                                            .onTapGesture {
-                                                openEditViewer(from: existingCount + index, isExisting: false)
-                                            }
+                                            Image(nsImage: nsImage)
+                                                .resizable()
+                                                .scaledToFill()
+                                                .frame(width: 100, height: 100)
+                                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                                                .overlay(alignment: .topTrailing) {
+                                                    Button {
+                                                        newImageURLs.remove(at: index)
+                                                    } label: {
+                                                        Image(systemName: "xmark.circle.fill")
+                                                            .foregroundStyle(.white, .red)
+                                                            .font(.caption)
+                                                    }
+                                                    .offset(x: 4, y: -4)
+                                                }
                                         }
                                     }
                                 }
+                                .padding(.vertical, 4)
                             }
-                            .frame(height: 96)
                         }
                     }
                     
@@ -144,92 +181,102 @@ struct EditItemView: View {
                             .controlSize(.small)
                         }
                         
-                        let videos = mediaAssets.filter { $0.type == .video }
+                        let videos = mediaAssets.filter { $0.type == .video && !removedAssetIDs.contains($0.id) }
                         if videos.isEmpty && newVideoURLs.isEmpty {
                             Text("暂无视频").font(.caption).foregroundStyle(.tertiary)
                                 .frame(maxWidth: .infinity, minHeight: 40)
                         } else {
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 8) {
-                                    ForEach(videos) { asset in
-                                        if let path = asset.localPath {
-                                            let url = DataDirectory.media.appendingPathComponent(path)
-                                            ZStack(alignment: .topTrailing) {
-                                                RoundedRectangle(cornerRadius: 6)
-                                                    .fill(.quaternary)
-                                                    .frame(width: 120, height: 80)
-                                                    .overlay {
-                                                        Image(systemName: "play.fill")
-                                                            .foregroundStyle(.secondary)
-                                                    }
-                                                Button { removeAsset(asset) } label: {
-                                                    Image(systemName: "xmark.circle.fill").font(.caption).foregroundStyle(.red)
-                                                }.buttonStyle(.plain)
-                                            }
+                            VStack(spacing: 6) {
+                                ForEach(videos, id: \.id) { asset in
+                                    HStack {
+                                        Image(systemName: "film")
+                                            .foregroundStyle(.secondary)
+                                        Text(asset.fileName ?? "视频")
+                                            .font(.subheadline)
+                                        Spacer()
+                                        Button {
+                                            removedAssetIDs.insert(asset.id)
+                                        } label: {
+                                            Image(systemName: "xmark.circle.fill")
+                                                .foregroundStyle(.red)
                                         }
+                                        .buttonStyle(.plain)
                                     }
-                                    ForEach(Array(newVideoURLs.enumerated()), id: \.offset) { index, url in
-                                        ZStack(alignment: .topTrailing) {
-                                            RoundedRectangle(cornerRadius: 6)
-                                                .fill(.quaternary)
-                                                .frame(width: 120, height: 80)
-                                                .overlay {
-                                                    Image(systemName: "play.fill")
-                                                        .foregroundStyle(.secondary)
-                                                }
-                                            Button { newVideoURLs.remove(at: index) } label: {
-                                                Image(systemName: "xmark.circle.fill").font(.caption).foregroundStyle(.red)
-                                            }.buttonStyle(.plain)
+                                    .padding(8)
+                                    .background(Color.secondary.opacity(0.05))
+                                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                                }
+                                ForEach(Array(newVideoURLs.enumerated()), id: \.offset) { index, url in
+                                    HStack {
+                                        Image(systemName: "film")
+                                            .foregroundStyle(.secondary)
+                                        Text(url.lastPathComponent)
+                                            .font(.subheadline)
+                                        Spacer()
+                                        Button {
+                                            newVideoURLs.remove(at: index)
+                                        } label: {
+                                            Image(systemName: "xmark.circle.fill")
+                                                .foregroundStyle(.red)
                                         }
+                                        .buttonStyle(.plain)
                                     }
+                                    .padding(8)
+                                    .background(Color.secondary.opacity(0.05))
+                                    .clipShape(RoundedRectangle(cornerRadius: 6))
                                 }
                             }
-                            .frame(height: 96)
                         }
                     }
                     
+                    // Remark
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("备注").font(.subheadline).foregroundStyle(.secondary)
+                        PlaceholderTextEditor(text: $remark, placeholder: "点击即可开始输入")
+                            .frame(minHeight: 80)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .stroke(Color.secondary.opacity(0.2))
+                            )
+                    }
                 }
                 .padding()
             }
         }
-        .frame(width: 620, height: 680)
-        .overlay {
-            if showEditViewer && !editImages.isEmpty {
-                ImageViewerView(
-                    images: editImages,
-                    currentIndex: $editImageIndex,
-                    isPresented: $showEditViewer
-                )
-                .transition(.opacity)
-                .animation(.easeInOut(duration: 0.2), value: showEditViewer)
-            }
-        }
+        .frame(width: 600, height: 500)
         .onAppear { loadMedia() }
+        .sheet(isPresented: $showEditViewer) {
+            ImageViewerView(images: editImages, currentIndex: $editImageIndex, isPresented: $showEditViewer)
+        }
+        .alert("放弃修改？", isPresented: $showDiscardConfirm) {
+            Button("继续编辑", role: .cancel) {}
+            Button("放弃修改", role: .destructive) {
+                isPresented = false
+            }
+        } message: {
+            Text("当前内容有未保存的修改，放弃后将丢失这些更改。")
+        }
     }
     
-    private func openEditViewer(from tappedIndex: Int, isExisting: Bool) {
-        var images: [NSImage] = []
-        
-        // Existing images from media assets
-        let existingImages = mediaAssets.filter { $0.type == .image || $0.type == .cover }
-        for asset in existingImages {
+    private func openImageViewer(images: [MediaAsset], tappedIndex: Int) {
+        var loadedImages: [NSImage] = []
+        for asset in images {
             if let path = asset.localPath {
                 let url = DataDirectory.media.appendingPathComponent(path)
                 if let nsImage = NSImage(contentsOf: url) {
-                    images.append(nsImage)
+                    loadedImages.append(nsImage)
                 }
             }
         }
         
-        // New images from file picker
         for url in newImageURLs {
             if let nsImage = NSImage(contentsOf: url) {
-                images.append(nsImage)
+                loadedImages.append(nsImage)
             }
         }
         
-        guard !images.isEmpty else { return }
-        editImages = images
+        guard !loadedImages.isEmpty else { return }
+        editImages = loadedImages
         editImageIndex = tappedIndex
         showEditViewer = true
     }
@@ -244,15 +291,13 @@ struct EditItemView: View {
         updated.body = bodyText.isEmpty ? nil : bodyText
         updated.author = author.isEmpty ? nil : author
         updated.remark = remark.isEmpty ? nil : remark
-        updated.remark = remark.isEmpty ? nil : remark
-        updated.remark = remark.isEmpty ? nil : remark
         updated.modifyDate = Date()
         try? appState.itemRepo.update(updated)
         
         let itemDir = DataDirectory.media.appendingPathComponent(item.id.uuidString)
         try? FileManager.default.createDirectory(at: itemDir, withIntermediateDirectories: true)
         
-        let existingImageCount = mediaAssets.filter { $0.type == .image || $0.type == .cover }.count
+        let existingImageCount = mediaAssets.filter { ($0.type == .image || $0.type == .cover) && !removedAssetIDs.contains($0.id) }.count
         for (index, url) in newImageURLs.enumerated() {
             let fileName = "image_\(String(format: "%03d", existingImageCount + index + 1)).jpg"
             let dest = itemDir.appendingPathComponent(fileName)
@@ -274,7 +319,7 @@ struct EditItemView: View {
             }
         }
         
-        let existingVideoCount = mediaAssets.filter { $0.type == .video }.count
+        let existingVideoCount = mediaAssets.filter { $0.type == .video && !removedAssetIDs.contains($0.id) }.count
         for (index, url) in newVideoURLs.enumerated() {
             let ext = url.pathExtension.isEmpty ? "mp4" : url.pathExtension
             let fileName = "video_\(existingVideoCount + index + 1).\(ext)"
@@ -294,6 +339,16 @@ struct EditItemView: View {
                 try appState.mediaRepo.insert(asset)
             } catch {
                 print("视频保存失败: \(error)")
+            }
+        }
+        
+        // 处理删除的媒体文件
+        for assetID in removedAssetIDs {
+            if let asset = mediaAssets.first(where: { $0.id == assetID }) {
+                if let path = asset.localPath {
+                    try? FileManager.default.removeItem(at: DataDirectory.media.appendingPathComponent(path))
+                }
+                try? appState.mediaRepo.deleteByID(assetID)
             }
         }
         

@@ -68,6 +68,8 @@ struct SettingsView: View {
                 HStack(spacing: 8) {
                     Button { chooseDirectory() } label: { Label("修改目录", systemImage: "folder") }
                         .buttonStyle(.bordered).controlSize(.small)
+                    Button { openCurrentDirectory() } label: { Label("打开目录", systemImage: "folder") }
+                        .buttonStyle(.bordered).controlSize(.small)
                     if DataDirectory.isCustom {
                         Button { showResetConfirm = true } label: { Label("恢复默认", systemImage: "arrow.counterclockwise") }
                             .buttonStyle(.bordered).controlSize(.small)
@@ -301,6 +303,10 @@ struct SettingsView: View {
         }
     }
     
+    private func openCurrentDirectory() {
+        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: DataDirectory.base.path)
+    }
+
     private func chooseDirectory() {
         let panel = NSOpenPanel()
         panel.title = "选择数据存储目录"
