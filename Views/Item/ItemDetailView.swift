@@ -202,6 +202,17 @@ struct ItemDetailView: View {
                                         .clipShape(RoundedRectangle(cornerRadius: 8))
                                         .contextMenu {
                                             Button {
+                                                if let url = URL(string: asset.remoteURL ?? ""), let nsImage = NSImage(contentsOf: DataDirectory.media.appendingPathComponent(asset.localPath ?? "")) {
+                                                    let pasteboard = NSPasteboard.general
+                                                    pasteboard.clearContents()
+                                                    pasteboard.writeObjects([nsImage])
+                                                    appState.showToast("已复制到剪贴板")
+                                                }
+                                            } label: {
+                                                Label("复制", systemImage: "doc.on.doc")
+                                            }
+                                            .disabled(asset.localPath == nil)
+                                            Button {
                                                 let success = MediaExporter.exportSingle(asset: asset, item: item, from: appState)
                                                 if success {
                                                     appState.showToast("导出成功")
@@ -223,6 +234,16 @@ struct ItemDetailView: View {
                                             }
                                         }
                                         .contextMenu {
+                                            Button {
+                                                if let nsImage = NSImage(contentsOf: url) {
+                                                    let pasteboard = NSPasteboard.general
+                                                    pasteboard.clearContents()
+                                                    pasteboard.writeObjects([nsImage])
+                                                    appState.showToast("已复制到剪贴板")
+                                                }
+                                            } label: {
+                                                Label("复制", systemImage: "doc.on.doc")
+                                            }
                                             Button {
                                                 let success = MediaExporter.exportSingle(asset: asset, item: item, from: appState)
                                                 if success {

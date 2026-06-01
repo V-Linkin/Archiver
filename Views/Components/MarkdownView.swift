@@ -258,6 +258,27 @@ struct AsyncImageView: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(maxHeight: 300)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .contextMenu {
+                        Button {
+                            let pasteboard = NSPasteboard.general
+                            pasteboard.clearContents()
+                            pasteboard.writeObjects([image])
+                        } label: {
+                            Label("复制", systemImage: "doc.on.doc")
+                        }
+                        if let imageURL = URL(string: url) {
+                            Button {
+                                let panel = NSSavePanel()
+                                panel.nameFieldStringValue = imageURL.lastPathComponent
+                                panel.allowedContentTypes = [.image]
+                                if panel.runModal() == .OK, let dest = panel.url {
+                                    try? Data(contentsOf: imageURL).write(to: dest)
+                                }
+                            } label: {
+                                Label("另存为", systemImage: "square.and.arrow.down")
+                            }
+                        }
+                    }
             } else if isLoading {
                 ProgressView()
                     .frame(height: 100)

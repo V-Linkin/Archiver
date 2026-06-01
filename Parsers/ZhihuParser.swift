@@ -60,7 +60,7 @@ final class ZhihuParser: ContentParser, @unchecked Sendable {
             }
         }
 
-        for (index, imageURL) in content.imageURLs.prefix(9).enumerated() {
+        for (index, imageURL) in content.imageURLs.enumerated() {
             guard let url = URL(string: imageURL) else { continue }
             let fileName = "image_\(String(format: "%03d", index + 1)).jpg"
             let localPath = itemDir.appendingPathComponent(fileName)
@@ -500,7 +500,7 @@ final class ZhihuParser: ContentParser, @unchecked Sendable {
                 }
             }
         }
-        return Array(urls.prefix(9))
+        return Array(urls)
     }
 
     // MARK: - Meta Helpers
