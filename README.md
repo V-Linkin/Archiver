@@ -8,8 +8,7 @@
 
 <p align="center">
   <a href="https://github.com/V-Linkin/Archiver/releases/latest">
-    <img src="https://img.shields.io/badge/下载-v1.1.5-blue?style=flat-square" alt="Release"> <a href="https://github.com/V-Linkin/Archiver/releases/latest">下载</a>
-  </a>
+    </a>
   <img src="https://img.shields.io/badge/macOS-14.0+-blue?style=flat-square" alt="macOS">
   <img src="https://img.shields.io/badge/Swift-6.0-orange?style=flat-square" alt="Swift">
 </p>
