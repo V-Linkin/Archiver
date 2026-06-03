@@ -1,5 +1,6 @@
 import Foundation
 import OSLog
+import SQLite3
 
 /// 备份服务 - 支持导出和导入数据
 final class BackupService: @unchecked Sendable {
@@ -69,7 +70,7 @@ final class BackupService: @unchecked Sendable {
     
     // MARK: - 还原
     
-    /// 从备份 zip 还原数据
+    /// 从备份 zip 还原数据（合并模式：不删除原有数据，在原有基础上新增）
     func restore(from backupURL: URL) async throws {
         
         // 1. 解压 zip 到临时目录
@@ -88,34 +89,25 @@ final class BackupService: @unchecked Sendable {
             throw BackupError.invalidBackup("备份中缺少数据库文件")
         }
         
-        // 3. 替换数据库
+        // 3. 合并数据库（使用 ATTACH + INSERT OR IGNORE）
         let currentDB = DataDirectory.database
-        if fileManager.fileExists(atPath: currentDB.path) {
-            // 备份当前数据库
-            let safetyBackup = currentDB.deletingLastPathComponent().appendingPathComponent("archiver_backup_before_restore_\(formatDateForFilename(Date())).db")
-            try? fileManager.copyItem(at: currentDB, to: safetyBackup)
-            try fileManager.removeItem(at: currentDB)
-        }
-        try fileManager.copyItem(at: dbFile, to: currentDB)
+        let backupDBPath = dbFile.path
+        let currentDBPath = currentDB.path
         
-        // 4. 替换媒体文件
+        try await mergeDatabase(backupPath: backupDBPath, currentPath: currentDBPath)
+        
+        // 4. 合并媒体文件（只复制不存在的文件）
         let mediaBackup = tempDir.appendingPathComponent("media")
         if fileManager.fileExists(atPath: mediaBackup.path) {
             let currentMedia = DataDirectory.media
-            if fileManager.fileExists(atPath: currentMedia.path) {
-                try fileManager.removeItem(at: currentMedia)
-            }
-            try fileManager.copyItem(at: mediaBackup, to: currentMedia)
+            try copyFilesIfNotExists(from: mediaBackup, to: currentMedia)
         }
         
-        // 5. 替换平台 Logo
+        // 5. 合并平台 Logo（只复制不存在的文件）
         let logosBackup = tempDir.appendingPathComponent("platform_logos")
         if fileManager.fileExists(atPath: logosBackup.path) {
             let currentLogos = DataDirectory.platformLogos
-            if fileManager.fileExists(atPath: currentLogos.path) {
-                try fileManager.removeItem(at: currentLogos)
-            }
-            try fileManager.copyItem(at: logosBackup, to: currentLogos)
+            try copyFilesIfNotExists(from: logosBackup, to: currentLogos)
         }
         
         logger.info("还原完成")
@@ -151,7 +143,7 @@ final class BackupService: @unchecked Sendable {
     
     private func createZip(from sourceDir: URL, to destination: URL) async throws {
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin ditto")
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
         process.arguments = ["-c", "-k", "--sequesterRsrc", "--keepParent", sourceDir.path, destination.path]
         process.standardOutput = nil
         process.standardError = nil
@@ -165,7 +157,7 @@ final class BackupService: @unchecked Sendable {
     
     private func extractZip(from zipURL: URL, to destination: URL) async throws {
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin ditto")
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
         process.arguments = ["-x", "-k", zipURL.path, destination.path]
         process.standardOutput = nil
         process.standardError = nil
@@ -174,6 +166,78 @@ final class BackupService: @unchecked Sendable {
         
         guard process.terminationStatus == 0 else {
             throw BackupError.zipFailed("解压失败，错误码 \(process.terminationStatus)")
+        }
+    }
+    
+    private func mergeDatabase(backupPath: String, currentPath: String) throws {
+        // 打开当前数据库，附加备份数据库，合并数据
+        var db: OpaquePointer?
+        guard sqlite3_open(currentPath, &db) == SQLITE_OK else {
+            throw BackupError.invalidBackup("无法打开当前数据库")
+        }
+        defer { sqlite3_close(db) }
+        
+        // 附加备份数据库
+        let attachSQL = "ATTACH DATABASE '\(backupPath)' AS backup_db"
+        guard sqlite3_exec(db, attachSQL, nil, nil, nil) == SQLITE_OK else {
+            // 如果附加失败，可能是因为表已存在，尝试直接复制
+            try? fileManager.removeItem(atPath: currentPath)
+            try fileManager.copyItem(atPath: backupPath, toPath: currentPath)
+            return
+        }
+        defer { sqlite3_exec(db, "DETACH DATABASE backup_db", nil, nil, nil) }
+        
+        // 获取备份数据库中的所有表名
+        var tableQuery: OpaquePointer?
+        let tablesSQL = "SELECT name FROM backup_db.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+        guard sqlite3_prepare_v2(db, tablesSQL, -1, &tableQuery, nil) == SQLITE_OK else {
+            try? fileManager.removeItem(atPath: currentPath)
+            try fileManager.copyItem(atPath: backupPath, toPath: currentPath)
+            return
+        }
+        defer { sqlite3_finalize(tableQuery) }
+        
+        var tables: [String] = []
+        while sqlite3_step(tableQuery) == SQLITE_ROW {
+            if let cString = sqlite3_column_text(tableQuery, 0) {
+                tables.append(String(cString: cString))
+            }
+        }
+        
+        // 对每个表执行 INSERT OR IGNORE
+        for table in tables {
+            let insertSQL = "INSERT OR IGNORE INTO \(table) SELECT * FROM backup_db.\(table)"
+            sqlite3_exec(db, insertSQL, nil, nil, nil)
+        }
+        
+        // VACUUM 优化数据库
+        sqlite3_exec(db, "VACUUM", nil, nil, nil)
+        
+        logger.info("数据库合并完成，合并了 \(tables.count) 个表")
+    }
+    
+    private func copyFilesIfNotExists(from source: URL, to destination: URL) throws {
+        guard fileManager.fileExists(atPath: source.path) else { return }
+        
+        // 创建目标目录（如果不存在）
+        if !fileManager.fileExists(atPath: destination.path) {
+            try fileManager.createDirectory(at: destination, withIntermediateDirectories: true)
+        }
+        
+        // 遍历源目录中的文件
+        let contents = try fileManager.contentsOfDirectory(at: source, includingPropertiesForKeys: nil)
+        for item in contents {
+            let fileName = item.lastPathComponent
+            let destFile = destination.appendingPathComponent(fileName)
+            
+            if !fileManager.fileExists(atPath: destFile.path) {
+                // 文件不存在，复制过去
+                if item.hasDirectoryPath {
+                    try copyFilesIfNotExists(from: item, to: destFile)
+                } else {
+                    try fileManager.copyItem(at: item, to: destFile)
+                }
+            }
         }
     }
     
