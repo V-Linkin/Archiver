@@ -156,8 +156,30 @@ final class UpdateChecker: NSObject {
     func checkForDownloadedUpdate() {
         let dmgPath = FileManager.default.temporaryDirectory.appendingPathComponent("Archiver_update.dmg")
         guard FileManager.default.fileExists(atPath: dmgPath.path) else { return }
-        let version = UserDefaults.standard.string(forKey: "pendingUpdateVersion") ?? "新版本"
+        let version = UserDefaults.standard.string(forKey: "pendingUpdateVersion") ?? ""
+        
+        // 如果下载的版本为空、与当前版本相同、或低于当前版本，清理 DMG
+        if version.isEmpty || compareVersions(version, currentVersion) != .orderedDescending {
+            try? FileManager.default.removeItem(at: dmgPath)
+            UserDefaults.standard.removeObject(forKey: "pendingUpdateVersion")
+            return
+        }
+        
         status = .downloaded(dmgPath: dmgPath, version: version)
+    }
+    
+    // MARK: - Version Compare
+    
+    private func compareVersions(_ a: String, _ b: String) -> ComparisonResult {
+        let partsA = a.split(separator: ".").compactMap { Int($0) }
+        let partsB = b.split(separator: ".").compactMap { Int($0) }
+        let count = max(partsA.count, partsB.count)
+        for i in 0..<count {
+            let valA = i < partsA.count ? partsA[i] : 0
+            let valB = i < partsB.count ? partsB[i] : 0
+            if valA != valB { return valA > valB ? .orderedDescending : .orderedAscending }
+        }
+        return .orderedSame
     }
     
     // MARK: - Release Page (fallback)
