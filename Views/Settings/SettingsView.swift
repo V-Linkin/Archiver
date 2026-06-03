@@ -402,6 +402,32 @@ struct SettingsView: View {
         panel.canCreateDirectories = true
         if let u = URL(string: "file://" + currentPath) { panel.directoryURL = u }
         guard panel.runModal() == .OK, let url = panel.urls.first else { return }
+        
+        let oldBase = DataDirectory.base
+        let newBase = url
+        let fm = FileManager.default
+        
+        // 迁移数据库
+        let oldDB = oldBase.appendingPathComponent("archiver.db")
+        let newDB = newBase.appendingPathComponent("archiver.db")
+        if fm.fileExists(atPath: oldDB.path) && !fm.fileExists(atPath: newDB.path) {
+            try? fm.copyItem(at: oldDB, to: newDB)
+        }
+        
+        // 迁移媒体文件
+        let oldMedia = oldBase.appendingPathComponent("media")
+        let newMedia = newBase.appendingPathComponent("media")
+        if fm.fileExists(atPath: oldMedia.path) && !fm.fileExists(atPath: newMedia.path) {
+            try? fm.copyItem(at: oldMedia, to: newMedia)
+        }
+        
+        // 迁移平台 Logo
+        let oldLogos = oldBase.appendingPathComponent("platform_logos")
+        let newLogos = newBase.appendingPathComponent("platform_logos")
+        if fm.fileExists(atPath: oldLogos.path) && !fm.fileExists(atPath: newLogos.path) {
+            try? fm.copyItem(at: oldLogos, to: newLogos)
+        }
+        
         DataDirectory.setCustom(url.path)
         currentPath = DataDirectory.currentPath
         loadStats()
