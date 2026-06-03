@@ -13,6 +13,8 @@ struct SettingsView: View {
     @State private var showRestoreConfirm = false
     @State private var showRestoreComplete = false
     @State private var backupStatus: String?
+    @State private var totalStorage: String = "计算中..."
+    @State private var mediaSize: String = "计算中..." 
     @State private var restoreMetadata: BackupMetadata?
     @State private var selectedBackupURL: URL?
     @State private var selectedBrowserID: String = BrowserDetector.shared.getSelectedBrowserBundleIdentifier()
@@ -73,6 +75,8 @@ struct SettingsView: View {
         Section("存储管理") {
             HStack { Text("总内容数"); Spacer(); Text("\(totalItems) 条").foregroundStyle(.secondary) }
             HStack { Text("数据库大小"); Spacer(); Text(dbSize).foregroundStyle(.secondary) }
+            HStack { Text("媒体文件"); Spacer(); Text(mediaSize).foregroundStyle(.secondary) }
+            HStack { Text("总存储空间"); Spacer(); Text(totalStorage).foregroundStyle(.secondary).fontWeight(.medium) }
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
                     Text("数据目录")
@@ -355,13 +359,34 @@ struct SettingsView: View {
     private func loadStats() {
         totalItems = (try? appState.itemRepo.count()) ?? 0
         currentPath = DataDirectory.currentPath
+        
+        // 数据库大小
         let dbPath = DataDirectory.database.path
+        let dbSizeBytes: Int64
         if let attrs = try? FileManager.default.attributesOfItem(atPath: dbPath),
            let size = attrs[.size] as? Int64 {
+            dbSizeBytes = size
             dbSize = ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
         } else {
+            dbSizeBytes = 0
             dbSize = "未知"
         }
+        
+        // 媒体文件大小
+        let mediaDir = DataDirectory.media
+        var mediaTotal: Int64 = 0
+        if let enumerator = FileManager.default.enumerator(at: mediaDir, includingPropertiesForKeys: [.fileSizeKey]) {
+            for case let fileURL as URL in enumerator {
+                if let fileSize = try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize {
+                    mediaTotal += Int64(fileSize)
+                }
+            }
+        }
+        mediaSize = ByteCountFormatter.string(fromByteCount: mediaTotal, countStyle: .file)
+        
+        // 总存储
+        let total = dbSizeBytes + mediaTotal
+        totalStorage = ByteCountFormatter.string(fromByteCount: total, countStyle: .file)
     }
     
     private func openCurrentDirectory() {
