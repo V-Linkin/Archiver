@@ -305,6 +305,27 @@ Views/Platform/FolderView.swift — loadData() 从主线程同步查询改为 Di
 * UI 行为不变
 
 
+
+### Phase 4F-2：ItemDetailView.deleteItem() 接入 ItemService ✅
+
+状态：已完成并验收通过。
+
+改动：
+
+```text
+Services/ItemService.swift — trashItem() 新增 mediaPaths 参数（默认空数组）
+Views/Item/ItemDetailView.swift — deleteItem() 改为调用 ItemService.trashItem(item:mediaPaths:)
+```
+
+结论：
+
+* ItemService.trashItem() 支持 mediaPaths 参数，默认值 [] 保持旧调用方兼容
+* ItemDetailView.deleteItem() 不再手动操作 itemRepo + trashRepo
+* 7 处旧调用方（HomeView / PlatformView / FolderView / CustomPlatformContentView / UncategorizedContentView）无需修改
+* 回收站行为不变：mediaPaths 会被正确记录到 TrashRecord
+* UI 行为不变
+
+
 ---
 
 ## 4. 总体执行原则
@@ -354,6 +375,7 @@ Phase 4D-4: Phase 4D-4: FolderService.renameFolder()
 Phase 4D-6: Phase 4D-6: FolderService.createFolder()
 Phase 4D-7: Phase 4D-7: 拆分 NewFolderSheet 到独立文件
 Phase 4E-2: Phase 4E-2: FolderView.loadData() 后台化
+Phase 4F-2: Phase 4F-2: ItemDetailView.deleteItem() 接入 ItemService
 ```
 
 ---

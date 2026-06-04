@@ -10,6 +10,7 @@ struct ItemDetailView: View {
     @Binding var coverImageIndex: Int
     @Binding var showCoverViewer: Bool
     @Environment(AppState.self) private var appState
+    private let itemService = ItemService()
     
     @State private var item: Item?
     @State private var mediaAssets: [MediaAsset] = []
@@ -482,19 +483,8 @@ struct ItemDetailView: View {
     
     private func deleteItem() {
         guard let item = item else { return }
-        var updated = item
-        updated.deletedAt = Date()
-        updated.contentStatus = .trashed
-        try? appState.itemRepo.update(updated)
-        
         let mediaPaths = mediaAssets.compactMap { $0.localPath }
-        let record = TrashRecord(
-            itemID: item.id,
-            originalFolderID: item.folderID,
-            originalArchiveStatus: item.archiveStatus,
-            mediaPaths: mediaPaths
-        )
-        try? appState.trashRepo.insert(record)
+        try? itemService.trashItem(item, mediaPaths: mediaPaths)
         
         appState.refreshData()
         let target = previousNav ?? .home

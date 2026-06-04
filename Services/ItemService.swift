@@ -16,7 +16,8 @@ final class ItemService: @unchecked Sendable {
     /// 将内容移入回收站
     /// 设置 deletedAt、contentStatus = .trashed，创建 TrashRecord
     /// 保留原 folderID 和 archiveStatus
-    func trashItem(_ item: Item) throws {
+    /// mediaPaths: 关联的媒体文件本地路径，用于恢复时重建文件映射
+    func trashItem(_ item: Item, mediaPaths: [String] = []) throws {
         var updated = item
         updated.deletedAt = Date()
         updated.contentStatus = .trashed
@@ -25,7 +26,8 @@ final class ItemService: @unchecked Sendable {
         let record = TrashRecord(
             itemID: item.id,
             originalFolderID: item.folderID,
-            originalArchiveStatus: item.archiveStatus
+            originalArchiveStatus: item.archiveStatus,
+            mediaPaths: mediaPaths
         )
         try trashRepo.insert(record)
     }
