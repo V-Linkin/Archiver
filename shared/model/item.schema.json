@@ -1,0 +1,140 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Item",
+  "description": "内容主体 — 对应 SQLite 表 items",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "主键，UUID v4"
+    },
+    "title": {
+      "type": ["string", "null"],
+      "description": "标题"
+    },
+    "body": {
+      "type": ["string", "null"],
+      "description": "正文内容"
+    },
+    "originalURL": {
+      "type": "string",
+      "description": "原始链接"
+    },
+    "platform": {
+      "type": "string",
+      "description": "来源平台，引用 enums.json Platform",
+      "$ref": "#/definitions/PlatformEnum"
+    },
+    "platformContentID": {
+      "type": ["string", "null"],
+      "description": "平台内容 ID（如 B站 BV 号、抖音视频 ID）"
+    },
+    "normalizedURL": {
+      "type": "string",
+      "description": "标准化 URL（去重用）"
+    },
+    "author": {
+      "type": ["string", "null"],
+      "description": "作者名"
+    },
+    "authorID": {
+      "type": ["string", "null"],
+      "description": "平台作者 ID"
+    },
+    "publishDate": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "发布时间，ISO 8601。SQLite 存储为 REAL (Unix timestamp seconds)"
+    },
+    "importDate": {
+      "type": "string",
+      "format": "date-time",
+      "description": "导入时间，ISO 8601。SQLite 存储为 REAL (Unix timestamp seconds)"
+    },
+    "modifyDate": {
+      "type": "string",
+      "format": "date-time",
+      "description": "修改时间，ISO 8601。SQLite 存储为 REAL (Unix timestamp seconds)"
+    },
+    "contentStatus": {
+      "type": "string",
+      "description": "内容状态，引用 enums.json ContentStatus",
+      "$ref": "#/definitions/ContentStatusEnum"
+    },
+    "archiveStatus": {
+      "type": "string",
+      "description": "归档状态，引用 enums.json ArchiveStatus",
+      "$ref": "#/definitions/ArchiveStatusEnum"
+    },
+    "mediaStatus": {
+      "type": "string",
+      "description": "媒体保存状态，引用 enums.json MediaStatus",
+      "$ref": "#/definitions/MediaStatusEnum"
+    },
+    "coverAssetID": {
+      "type": ["string", "null"],
+      "format": "uuid",
+      "description": "封面媒体资产 ID，关联 media_assets.id"
+    },
+    "folderID": {
+      "type": ["string", "null"],
+      "format": "uuid",
+      "description": "所属文件夹 ID，关联 folders.id"
+    },
+    "customPlatformID": {
+      "type": ["string", "null"],
+      "format": "uuid",
+      "description": "自定义平台 ID，关联 custom_platforms.id"
+    },
+    "remark": {
+      "type": ["string", "null"],
+      "description": "用户备注"
+    },
+    "isStarred": {
+      "type": "boolean",
+      "description": "是否收藏。SQLite 存储为 INTEGER 0/1"
+    },
+    "version": {
+      "type": "integer",
+      "description": "版本号，用于乐观锁",
+      "default": 1
+    },
+    "deletedAt": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "删除时间（回收站），NULL 表示未删除。SQLite 存储为 REAL (Unix timestamp seconds)"
+    }
+  },
+  "required": [
+    "id",
+    "originalURL",
+    "platform",
+    "normalizedURL",
+    "importDate",
+    "modifyDate",
+    "contentStatus",
+    "archiveStatus",
+    "mediaStatus",
+    "isStarred",
+    "version"
+  ],
+  "definitions": {
+    "PlatformEnum": {
+      "type": "string",
+      "enum": ["douyin", "xiaohongshu", "coolapk", "bilibili", "github", "youtube", "x", "weibo", "zhihu", "douban", "custom"]
+    },
+    "ContentStatusEnum": {
+      "type": "string",
+      "enum": ["normal", "parseFailed", "mediaIncomplete", "sourceDeleted", "trashed"]
+    },
+    "ArchiveStatusEnum": {
+      "type": "string",
+      "enum": ["favorite", "inspiration", "pending", "archived"]
+    },
+    "MediaStatusEnum": {
+      "type": "string",
+      "enum": ["complete", "partial", "failed", "textOnly"]
+    }
+  }
+}

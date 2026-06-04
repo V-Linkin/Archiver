@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CustomPlatform",
+  "description": "自定义平台 — 对应 SQLite 表 custom_platforms（由 CustomPlatformRepository 独立创建）",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "主键，UUID v4"
+    },
+    "name": {
+      "type": "string",
+      "description": "平台名称"
+    },
+    "logoPath": {
+      "type": ["string", "null"],
+      "description": "Logo 文件名（相对于 platform_logos 目录）"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "创建时间，ISO 8601。SQLite 存储为 REAL (Unix timestamp seconds)"
+    },
+    "sortOrder": {
+      "type": "integer",
+      "description": "排序序号",
+      "default": 0
+    }
+  },
+  "required": ["id", "name", "createdAt", "sortOrder"]
+}

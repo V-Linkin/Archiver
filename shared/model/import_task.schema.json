@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ImportTask",
+  "description": "导入任务 — 对应 SQLite 表 import_tasks",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "主键，UUID v4"
+    },
+    "originalURL": {
+      "type": "string",
+      "description": "用户输入的原始链接"
+    },
+    "normalizedURL": {
+      "type": "string",
+      "description": "标准化后的 URL（用于去重）"
+    },
+    "platform": {
+      "type": ["string", "null"],
+      "description": "识别到的平台，引用 enums.json Platform。NULL 表示未识别",
+      "enum": ["douyin", "xiaohongshu", "coolapk", "bilibili", "github", "youtube", "x", "weibo", "zhihu", "douban", "custom", null]
+    },
+    "status": {
+      "type": "string",
+      "description": "任务状态，引用 enums.json TaskStatus",
+      "enum": ["pending", "recognizing", "parsing", "downloading", "completed", "failed"]
+    },
+    "progress": {
+      "type": "number",
+      "description": "进度 0.0-1.0",
+      "default": 0
+    },
+    "errorMessage": {
+      "type": ["string", "null"],
+      "description": "错误信息"
+    },
+    "itemID": {
+      "type": ["string", "null"],
+      "format": "uuid",
+      "description": "关联的 Item ID，关联 items.id"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "创建时间，ISO 8601。SQLite 存储为 REAL (Unix timestamp seconds)"
+    },
+    "completedAt": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "完成时间，ISO 8601。SQLite 存储为 REAL (Unix timestamp seconds)"
+    },
+    "retryCount": {
+      "type": "integer",
+      "description": "重试次数",
+      "default": 0
+    }
+  },
+  "required": ["id", "originalURL", "normalizedURL", "status", "progress", "createdAt", "retryCount"]
+}

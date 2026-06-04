@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Folder",
+  "description": "文件夹 — 对应 SQLite 表 folders",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "主键，UUID v4"
+    },
+    "name": {
+      "type": "string",
+      "description": "文件夹名称"
+    },
+    "parentID": {
+      "type": ["string", "null"],
+      "format": "uuid",
+      "description": "父文件夹 ID，NULL 表示顶级文件夹。关联 folders.id (自引用)"
+    },
+    "platform": {
+      "type": "string",
+      "description": "所属平台，引用 enums.json Platform",
+      "enum": ["douyin", "xiaohongshu", "coolapk", "bilibili", "github", "youtube", "x", "weibo", "zhihu", "douban", "custom"]
+    },
+    "customPlatformID": {
+      "type": ["string", "null"],
+      "format": "uuid",
+      "description": "自定义平台 ID，关联 custom_platforms.id"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "创建时间，ISO 8601。SQLite 存储为 REAL (Unix timestamp seconds)"
+    },
+    "sortOrder": {
+      "type": "integer",
+      "description": "排序序号",
+      "default": 0
+    }
+  },
+  "required": ["id", "name", "platform", "createdAt", "sortOrder"]
+}

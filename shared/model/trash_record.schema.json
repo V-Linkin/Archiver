@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TrashRecord",
+  "description": "回收站记录 — 对应 SQLite 表 trash_records",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "主键，UUID v4"
+    },
+    "itemID": {
+      "type": "string",
+      "format": "uuid",
+      "description": "关联的 Item ID，关联 items.id (ON DELETE CASCADE)"
+    },
+    "deletedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "删除时间，ISO 8601。SQLite 存储为 REAL (Unix timestamp seconds)"
+    },
+    "autoDeleteAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "自动永久删除时间，默认删除后 30 天。SQLite 存储为 REAL (Unix timestamp seconds)"
+    },
+    "originalFolderID": {
+      "type": ["string", "null"],
+      "format": "uuid",
+      "description": "删除前所属文件夹 ID，用于恢复"
+    },
+    "originalArchiveStatus": {
+      "type": "string",
+      "description": "删除前的归档状态，引用 enums.json ArchiveStatus",
+      "enum": ["favorite", "inspiration", "pending", "archived"]
+    },
+    "mediaPaths": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "关联的媒体文件路径列表。SQLite 存储为 JSON 序列化 TEXT 字符串"
+    }
+  },
+  "required": ["id", "itemID", "deletedAt", "autoDeleteAt", "originalArchiveStatus", "mediaPaths"]
+}

@@ -1,0 +1,83 @@
+{
+  "Platform": {
+    "description": "内容来源平台",
+    "storage": "TEXT (rawValue string)",
+    "cases": {
+      "douyin": { "defaultDisplayName": "抖音" },
+      "xiaohongshu": { "defaultDisplayName": "小红书" },
+      "coolapk": { "defaultDisplayName": "酷安" },
+      "bilibili": { "defaultDisplayName": "B站" },
+      "github": { "defaultDisplayName": "GitHub" },
+      "youtube": { "defaultDisplayName": "YouTube" },
+      "x": { "defaultDisplayName": "X" },
+      "weibo": { "defaultDisplayName": "微博" },
+      "zhihu": { "defaultDisplayName": "知乎" },
+      "douban": { "defaultDisplayName": "豆瓣" },
+      "custom": { "defaultDisplayName": "自定义" }
+    }
+  },
+  "ArchiveStatus": {
+    "description": "归档状态（内容分类）",
+    "storage": "TEXT (rawValue string)",
+    "cases": {
+      "favorite": { "defaultDisplayName": "收藏" },
+      "inspiration": { "defaultDisplayName": "灵感" },
+      "pending": { "defaultDisplayName": "待整理" },
+      "archived": { "defaultDisplayName": "已归档" }
+    }
+  },
+  "ContentStatus": {
+    "description": "内容状态",
+    "storage": "TEXT (rawValue string)",
+    "cases": {
+      "normal": { "defaultDisplayName": "正常" },
+      "parseFailed": { "defaultDisplayName": "解析失败" },
+      "mediaIncomplete": { "defaultDisplayName": "媒体未完整保存" },
+      "sourceDeleted": { "defaultDisplayName": "原始内容已删除" },
+      "trashed": { "defaultDisplayName": "回收站中" }
+    }
+  },
+  "DownloadStatus": {
+    "description": "媒体下载状态",
+    "storage": "TEXT (rawValue string)",
+    "cases": {
+      "pending": { "defaultDisplayName": "等待下载" },
+      "downloading": { "defaultDisplayName": "下载中" },
+      "completed": { "defaultDisplayName": "下载完成" },
+      "failed": { "defaultDisplayName": "下载失败" },
+      "skipped": { "defaultDisplayName": "已跳过" }
+    }
+  },
+  "MediaStatus": {
+    "description": "媒体保存状态",
+    "storage": "TEXT (rawValue string)",
+    "cases": {
+      "complete": { "defaultDisplayName": "完整" },
+      "partial": { "defaultDisplayName": "部分保存" },
+      "failed": { "defaultDisplayName": "保存失败" },
+      "textOnly": { "defaultDisplayName": "纯文本" }
+    }
+  },
+  "MediaType": {
+    "description": "媒体类型",
+    "storage": "TEXT (rawValue string)",
+    "cases": {
+      "image": { "defaultDisplayName": "内容图片" },
+      "cover": { "defaultDisplayName": "封面图" },
+      "video": { "defaultDisplayName": "视频" },
+      "thumbnail": { "defaultDisplayName": "缩略图" }
+    }
+  },
+  "TaskStatus": {
+    "description": "导入任务状态",
+    "storage": "TEXT (rawValue string)",
+    "cases": {
+      "pending": { "defaultDisplayName": "等待处理" },
+      "recognizing": { "defaultDisplayName": "识别平台中" },
+      "parsing": { "defaultDisplayName": "解析内容中" },
+      "downloading": { "defaultDisplayName": "下载媒体中" },
+      "completed": { "defaultDisplayName": "完成" },
+      "failed": { "defaultDisplayName": "失败" }
+    }
+  }
+}

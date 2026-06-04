@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MediaAsset",
+  "description": "媒体资产 — 对应 SQLite 表 media_assets",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "主键，UUID v4"
+    },
+    "itemID": {
+      "type": "string",
+      "format": "uuid",
+      "description": "所属内容 ID，关联 items.id (ON DELETE CASCADE)"
+    },
+    "type": {
+      "type": "string",
+      "description": "媒体类型，引用 enums.json MediaType",
+      "enum": ["image", "cover", "video", "thumbnail"]
+    },
+    "localPath": {
+      "type": ["string", "null"],
+      "description": "本地文件路径（相对于 media 目录），如 '{itemUUID}/image_001.jpg'"
+    },
+    "remoteURL": {
+      "type": ["string", "null"],
+      "description": "远程原始 URL"
+    },
+    "fileName": {
+      "type": "string",
+      "description": "文件名"
+    },
+    "fileSize": {
+      "type": "integer",
+      "description": "文件大小（字节）",
+      "default": 0
+    },
+    "mimeType": {
+      "type": ["string", "null"],
+      "description": "MIME 类型"
+    },
+    "width": {
+      "type": ["integer", "null"],
+      "description": "图片/视频宽度（像素）"
+    },
+    "height": {
+      "type": ["integer", "null"],
+      "description": "图片/视频高度（像素）"
+    },
+    "duration": {
+      "type": ["number", "null"],
+      "description": "视频时长（秒）"
+    },
+    "checksum": {
+      "type": ["string", "null"],
+      "description": "文件校验和"
+    },
+    "downloadStatus": {
+      "type": "string",
+      "description": "下载状态，引用 enums.json DownloadStatus",
+      "enum": ["pending", "downloading", "completed", "failed", "skipped"]
+    },
+    "thumbnailPath": {
+      "type": ["string", "null"],
+      "description": "缩略图本地路径"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "创建时间，ISO 8601。SQLite 存储为 REAL (Unix timestamp seconds)"
+    }
+  },
+  "required": ["id", "itemID", "type", "fileName", "fileSize", "downloadStatus", "createdAt"]
+}
