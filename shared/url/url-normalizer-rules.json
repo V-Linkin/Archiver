@@ -1,0 +1,149 @@
+{
+  "version": 1,
+  "description": "URLNormalizer 跨平台规则定义。Windows 端实现必须保持完全一致的行为。",
+  "platforms": {
+    "douyin": {
+      "description": "抖音",
+      "domains": ["douyin.com", "iesdouyin.com"],
+      "domainMatchType": "contains",
+      "contentIdPatterns": [
+        "douyin\\.com/video/(\\d+)",
+        "iesdouyin\\.com/share/video/(\\d+)"
+      ],
+      "idType": "numeric",
+      "canonicalUrlTemplate": "douyin://video/{id}"
+    },
+    "xiaohongshu": {
+      "description": "小红书",
+      "domains": ["xiaohongshu.com", "xhslink.com"],
+      "domainMatchType": "contains",
+      "contentIdPatterns": [
+        "xiaohongshu\\.com/explore/([a-f0-9]+)",
+        "xiaohongshu\\.com/discovery/item/([a-f0-9]+)"
+      ],
+      "idType": "hex_string",
+      "canonicalUrlTemplate": "xiaohongshu://explore/{id}",
+      "notes": "xhslink.com 短链可识别平台，但需 HTTP 展开后才能提取 content ID，展开属于 Parser 层"
+    },
+    "coolapk": {
+      "description": "酷安",
+      "domains": ["coolapk.com", "coolapk1s.com"],
+      "domainMatchType": "contains",
+      "contentIdPatterns": [
+        "coolapk\\.com/feed/(\\d+)",
+        "coolapk1s\\.com/feed/(\\d+)"
+      ],
+      "idType": "numeric",
+      "canonicalUrlTemplate": "coolapk://feed/{id}"
+    },
+    "bilibili": {
+      "description": "B站",
+      "domains": ["bilibili.com", "b23.tv"],
+      "domainMatchType": "contains",
+      "contentIdPatterns": [
+        "bilibili\\.com/video/(BV[a-zA-Z0-9]+)",
+        "bilibili\\.com/video/(av\\d+)"
+      ],
+      "idType": "bv_or_av",
+      "canonicalUrlTemplate": "bilibili://video/{id}",
+      "notes": "b23.tv 短链可识别平台，但需 HTTP 展开后才能提取 content ID，展开属于 Parser 层"
+    },
+    "github": {
+      "description": "GitHub",
+      "domains": ["github.com"],
+      "domainMatchType": "contains",
+      "contentIdPatterns": [
+        "github\\.com/([a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+)"
+      ],
+      "idType": "owner_name",
+      "canonicalUrlTemplate": "github://repo/{id}"
+    },
+    "youtube": {
+      "description": "YouTube",
+      "domains": ["youtube.com", "youtu.be"],
+      "domainMatchType": "contains",
+      "contentIdPatterns": [
+        "youtube\\.com/watch\\?v=([a-zA-Z0-9_-]{11})",
+        "youtu\\.be/([a-zA-Z0-9_-]{11})",
+        "youtube\\.com/embed/([a-zA-Z0-9_-]{11})",
+        "youtube\\.com/shorts/([a-zA-Z0-9_-]{11})",
+        "youtube\\.com/channel/([a-zA-Z0-9_-]+)",
+        "youtube\\.com/@([a-zA-Z0-9._-]+)"
+      ],
+      "idType": "video_id_or_channel",
+      "canonicalUrlTemplate": "youtube://video/{id}",
+      "notes": "channel 和 @handle ID 也使用 youtube://video/ 前缀，这是当前 macOS 实现的行为"
+    },
+    "x": {
+      "description": "X (Twitter)",
+      "domains": ["x.com", "twitter.com"],
+      "domainMatchType": "contains",
+      "contentIdPatterns": [
+        "(?:x|twitter)\\.com/[^/]+/status/(\\d+)",
+        "(?:x|twitter)\\.com/i/status/(\\d+)"
+      ],
+      "usernamePatterns": [
+        "(?:x|twitter)\\.com/([a-zA-Z0-9_]+)/status/",
+        "(?:x|twitter)\\.com/([a-zA-Z0-9_]+)$"
+      ],
+      "idType": "numeric",
+      "canonicalUrlTemplate": "x://tweet/{id}"
+    },
+    "weibo": {
+      "description": "微博",
+      "domains": ["weibo.com", "m.weibo.cn"],
+      "domainMatchType": "contains",
+      "contentIdPatterns": [
+        "weibo\\.com/status/(\\d+)",
+        "weibo\\.com/\\d+/([a-zA-Z0-9]+)",
+        "m\\.weibo\\.cn/detail/(\\d+)",
+        "m\\.weibo\\.cn/status/(\\d+)"
+      ],
+      "idType": "alphanumeric",
+      "canonicalUrlTemplate": "weibo://status/{id}"
+    },
+    "zhihu": {
+      "description": "知乎",
+      "domains": ["zhihu.com"],
+      "domainMatchType": "contains",
+      "contentIdPatterns": [
+        "zhihu\\.com/question/\\d+/answer/(\\d+)",
+        "zhihu\\.com/p/(\\d+)",
+        "zhihu\\.com/column/([a-zA-Z0-9_-]+)"
+      ],
+      "idType": "numeric_or_handle",
+      "canonicalUrlTemplate": "zhihu://content/{id}"
+    },
+    "douban": {
+      "description": "豆瓣",
+      "domains": ["douban.com"],
+      "domainMatchType": "contains",
+      "contentIdPatterns": [
+        "douban\\.com/subject/(\\d+)"
+      ],
+      "idType": "numeric",
+      "canonicalUrlTemplate": "douban://subject/{id}"
+    }
+  },
+  "globalRules": {
+    "domainMatchType": "case-insensitive contains",
+    "regexFlags": "case-insensitive",
+    "urlValidation": {
+      "requiredSchemes": ["http", "https"],
+      "implementation": "Foundation URL(string:) parse + scheme check"
+    },
+    "normalizedUrlFallback": "如果无法提取 content ID，返回原始 URL",
+    "customPlatformBehavior": "custom 平台不做 URL 标准化，返回原始 URL"
+  },
+  "knownLimitations": {
+    "unsupportedShortLinks": ["t.cn", "dwz.cn", "suo.im"],
+    "trackingParameterCleanup": "当前未实现。对能提取 ID 的平台无影响（自定义 scheme 只含 ID）。对无法提取 ID 的 URL，tracking 参数可能影响去重。",
+    "shortLinkExpansion": "URLNormalizer 不负责 HTTP 展开短链。b23.tv 和 xhslink.com 可识别平台但无法直接提取 content ID，需 Parser 层展开后获取。"
+  },
+  "crossPlatformNotes": {
+    "cSharpImplementation": "使用 System.Text.RegularExpressions 实现相同正则",
+    "domainMatching": "使用 string.Contains(StringComparison.OrdinalIgnoreCase)",
+    "regexGroupIndex": "提取第一个捕获组 (group 1)，等价于 Swift NSRegularExpression match.range(at: 1)",
+    "mustPassTestCases": "url-normalizer-test-cases.json 中的所有测试用例"
+  }
+}

@@ -1,0 +1,281 @@
+{
+  "version": 1,
+  "description": "URLNormalizer 跨平台测试用例。Windows 端实现必须全部通过。",
+  "testCases": [
+    {
+      "name": "douyin desktop share URL",
+      "input": "https://www.douyin.com/video/7301234567890",
+      "expectedPlatform": "douyin",
+      "expectedNormalizedURL": "douyin://video/7301234567890",
+      "expectedContentID": "7301234567890",
+      "notes": "桌面端标准链接"
+    },
+    {
+      "name": "douyin mobile share URL",
+      "input": "https://www.iesdouyin.com/share/video/7301234567890",
+      "expectedPlatform": "douyin",
+      "expectedNormalizedURL": "douyin://video/7301234567890",
+      "expectedContentID": "7301234567890",
+      "notes": "移动端分享链接"
+    },
+    {
+      "name": "douyin URL with tracking params",
+      "input": "https://www.douyin.com/video/7301234567890?from_share=single&share_type=copy",
+      "expectedPlatform": "douyin",
+      "expectedNormalizedURL": "douyin://video/7301234567890",
+      "expectedContentID": "7301234567890",
+      "notes": "带 tracking 参数，但不影响 normalizedURL"
+    },
+    {
+      "name": "xiaohongshu explore URL",
+      "input": "https://www.xiaohongshu.com/explore/65a1b2c3d4e5f6789012345",
+      "expectedPlatform": "xiaohongshu",
+      "expectedNormalizedURL": "xiaohongshu://explore/65a1b2c3d4e5f6789012345",
+      "expectedContentID": "65a1b2c3d4e5f6789012345",
+      "notes": "标准 explore 链接"
+    },
+    {
+      "name": "xiaohongshu discovery URL",
+      "input": "https://www.xiaohongshu.com/discovery/item/65a1b2c3d4e5f6789012345",
+      "expectedPlatform": "xiaohongshu",
+      "expectedNormalizedURL": "xiaohongshu://explore/65a1b2c3d4e5f6789012345",
+      "expectedContentID": "65a1b2c3d4e5f6789012345",
+      "notes": "discovery 格式也能提取 ID"
+    },
+    {
+      "name": "xiaohongshu short link (cannot extract ID)",
+      "input": "https://xhslink.com/abc123",
+      "expectedPlatform": "xiaohongshu",
+      "expectedNormalizedURL": "https://xhslink.com/abc123",
+      "expectedContentID": null,
+      "notes": "短链可识别平台但无法提取 ID，需 Parser 层 HTTP 展开"
+    },
+    {
+      "name": "coolapk feed URL",
+      "input": "https://www.coolapk.com/feed/12345678",
+      "expectedPlatform": "coolapk",
+      "expectedNormalizedURL": "coolapk://feed/12345678",
+      "expectedContentID": "12345678",
+      "notes": "标准 feed 链接"
+    },
+    {
+      "name": "coolapk1s feed URL",
+      "input": "https://www.coolapk1s.com/feed/12345678",
+      "expectedPlatform": "coolapk",
+      "expectedNormalizedURL": "coolapk://feed/12345678",
+      "expectedContentID": "12345678",
+      "notes": "coolapk1s 域名也能识别"
+    },
+    {
+      "name": "bilibili BV URL",
+      "input": "https://www.bilibili.com/video/BV1xx411c7mD",
+      "expectedPlatform": "bilibili",
+      "expectedNormalizedURL": "bilibili://video/BV1xx411c7mD",
+      "expectedContentID": "BV1xx411c7mD",
+      "notes": "BV 号格式"
+    },
+    {
+      "name": "bilibili av URL",
+      "input": "https://www.bilibili.com/video/av170001",
+      "expectedPlatform": "bilibili",
+      "expectedNormalizedURL": "bilibili://video/av170001",
+      "expectedContentID": "av170001",
+      "notes": "av 号格式"
+    },
+    {
+      "name": "bilibili short link (cannot extract ID)",
+      "input": "https://b23.tv/abc123",
+      "expectedPlatform": "bilibili",
+      "expectedNormalizedURL": "https://b23.tv/abc123",
+      "expectedContentID": null,
+      "notes": "b23.tv 短链可识别平台但无法提取 ID，需 Parser 层 HTTP 展开"
+    },
+    {
+      "name": "github repo URL",
+      "input": "https://github.com/octocat/Hello-World",
+      "expectedPlatform": "github",
+      "expectedNormalizedURL": "github://repo/octocat/Hello-World",
+      "expectedContentID": "octocat/Hello-World",
+      "notes": "owner/name 格式"
+    },
+    {
+      "name": "youtube watch URL",
+      "input": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "expectedPlatform": "youtube",
+      "expectedNormalizedURL": "youtube://video/dQw4w9WgXcQ",
+      "expectedContentID": "dQw4w9WgXcQ",
+      "notes": "标准 watch 链接"
+    },
+    {
+      "name": "youtube short URL",
+      "input": "https://youtu.be/dQw4w9WgXcQ",
+      "expectedPlatform": "youtube",
+      "expectedNormalizedURL": "youtube://video/dQw4w9WgXcQ",
+      "expectedContentID": "dQw4w9WgXcQ",
+      "notes": "youtu.be 短链接"
+    },
+    {
+      "name": "youtube shorts URL",
+      "input": "https://www.youtube.com/shorts/dQw4w9WgXcQ",
+      "expectedPlatform": "youtube",
+      "expectedNormalizedURL": "youtube://video/dQw4w9WgXcQ",
+      "expectedContentID": "dQw4w9WgXcQ",
+      "notes": "Shorts 链接"
+    },
+    {
+      "name": "youtube embed URL",
+      "input": "https://www.youtube.com/embed/dQw4w9WgXcQ",
+      "expectedPlatform": "youtube",
+      "expectedNormalizedURL": "youtube://video/dQw4w9WgXcQ",
+      "expectedContentID": "dQw4w9WgXcQ",
+      "notes": "嵌入链接"
+    },
+    {
+      "name": "youtube channel URL",
+      "input": "https://www.youtube.com/@mkbhd",
+      "expectedPlatform": "youtube",
+      "expectedNormalizedURL": "youtube://video/@mkbhd",
+      "expectedContentID": "@mkbhd",
+      "notes": "channel handle，注意 canonicalUrl 使用 video 前缀"
+    },
+    {
+      "name": "x tweet URL",
+      "input": "https://x.com/user/status/1234567890",
+      "expectedPlatform": "x",
+      "expectedNormalizedURL": "x://tweet/1234567890",
+      "expectedContentID": "1234567890",
+      "notes": "x.com 域名"
+    },
+    {
+      "name": "twitter tweet URL",
+      "input": "https://twitter.com/user/status/1234567890",
+      "expectedPlatform": "x",
+      "expectedNormalizedURL": "x://tweet/1234567890",
+      "expectedContentID": "1234567890",
+      "notes": "twitter.com 域名，与 x.com 同平台"
+    },
+    {
+      "name": "x i/status URL",
+      "input": "https://x.com/i/status/1234567890",
+      "expectedPlatform": "x",
+      "expectedNormalizedURL": "x://tweet/1234567890",
+      "expectedContentID": "1234567890",
+      "notes": "/i/status/ 格式"
+    },
+    {
+      "name": "weibo desktop URL",
+      "input": "https://weibo.com/status/4892046789012",
+      "expectedPlatform": "weibo",
+      "expectedNormalizedURL": "weibo://status/4892046789012",
+      "expectedContentID": "4892046789012",
+      "notes": "桌面端链接"
+    },
+    {
+      "name": "weibo mobile detail URL",
+      "input": "https://m.weibo.cn/detail/4892046789012",
+      "expectedPlatform": "weibo",
+      "expectedNormalizedURL": "weibo://status/4892046789012",
+      "expectedContentID": "4892046789012",
+      "notes": "移动端 detail 链接"
+    },
+    {
+      "name": "weibo mobile status URL",
+      "input": "https://m.weibo.cn/status/4892046789012",
+      "expectedPlatform": "weibo",
+      "expectedNormalizedURL": "weibo://status/4892046789012",
+      "expectedContentID": "4892046789012",
+      "notes": "移动端 status 链接"
+    },
+    {
+      "name": "zhihu answer URL",
+      "input": "https://www.zhihu.com/question/12345678/answer/87654321",
+      "expectedPlatform": "zhihu",
+      "expectedNormalizedURL": "zhihu://content/87654321",
+      "expectedContentID": "87654321",
+      "notes": "回答链接，提取 answer ID"
+    },
+    {
+      "name": "zhihu post URL",
+      "input": "https://zhuanlan.zhihu.com/p/12345678",
+      "expectedPlatform": "zhihu",
+      "expectedNormalizedURL": "zhihu://content/12345678",
+      "expectedContentID": "12345678",
+      "notes": "专栏文章链接"
+    },
+    {
+      "name": "zhihu column URL",
+      "input": "https://www.zhihu.com/column/c_12345678",
+      "expectedPlatform": "zhihu",
+      "expectedNormalizedURL": "zhihu://content/c_12345678",
+      "expectedContentID": "c_12345678",
+      "notes": "专栏页面，提取 column handle"
+    },
+    {
+      "name": "douban subject URL",
+      "input": "https://movie.douban.com/subject/35517853/",
+      "expectedPlatform": "douban",
+      "expectedNormalizedURL": "douban://subject/35517853",
+      "expectedContentID": "35517853",
+      "notes": "电影条目，末尾斜杠不影响匹配"
+    },
+    {
+      "name": "unknown platform URL",
+      "input": "https://www.example.com/article/123",
+      "expectedPlatform": null,
+      "expectedNormalizedURL": "https://www.example.com/article/123",
+      "expectedContentID": null,
+      "notes": "无法识别的平台，返回原始 URL"
+    },
+    {
+      "name": "malformed URL - no scheme",
+      "input": "not-a-url",
+      "expectedPlatform": null,
+      "expectedNormalizedURL": null,
+      "expectedContentID": null,
+      "notes": "非法 URL，recognizePlatform 可能返回 nil"
+    },
+    {
+      "name": "empty string",
+      "input": "",
+      "expectedPlatform": null,
+      "expectedNormalizedURL": null,
+      "expectedContentID": null,
+      "notes": "空字符串"
+    },
+    {
+      "name": "douyin URL with utm params",
+      "input": "https://www.douyin.com/video/7301234567890?utm_source=copy&utm_medium=share",
+      "expectedPlatform": "douyin",
+      "expectedNormalizedURL": "douyin://video/7301234567890",
+      "expectedContentID": "7301234567890",
+      "notes": "带 utm 参数，不影响 normalizedURL（自定义 scheme 只含 ID）"
+    },
+    {
+      "name": "multiple same content different URLs should normalize to same",
+      "name_zh": "同一内容不同链接归一化",
+      "testGroup": "dedup-consistency",
+      "inputs": [
+        "https://www.douyin.com/video/7301234567890",
+        "https://www.douyin.com/video/7301234567890?from_share=single",
+        "https://www.iesdouyin.com/share/video/7301234567890"
+      ],
+      "expectedPlatform": "douyin",
+      "expectedNormalizedURL": "douyin://video/7301234567890",
+      "expectedContentID": "7301234567890",
+      "notes": "三种不同链接应归一到相同 normalizedURL"
+    },
+    {
+      "name": "same bilibili content different URLs",
+      "name_zh": "同一B站视频不同链接归一化",
+      "testGroup": "dedup-consistency",
+      "inputs": [
+        "https://www.bilibili.com/video/BV1xx411c7mD",
+        "https://bilibili.com/video/BV1xx411c7mD?spm_id_from=333.337.0.0"
+      ],
+      "expectedPlatform": "bilibili",
+      "expectedNormalizedURL": "bilibili://video/BV1xx411c7mD",
+      "expectedContentID": "BV1xx411c7mD",
+      "notes": "带和不带 spm 参数的链接应归一到相同 normalizedURL"
+    }
+  ]
+}

@@ -234,13 +234,11 @@ archiver-export-YYYYMMDD-HHmm.zip
 
 ---
 
-## 3. 当前进行中阶段
-
 ### Phase 3A：URLNormalizer 契约
 
-状态：分析完成，待执行。
+状态：已完成并验收通过。
 
-目标：
+新增：
 
 ```text
 shared/url/
@@ -254,22 +252,22 @@ URLNormalizer 公开方法：
 
 | 方法 | 输入 | 输出 | 用途 |
 |------|------|------|------|
-| `extractURLs(from:)` | String (混合文本) | [String] | 提取所有支持平台的 URL |
-| `extractFirstURL(from:)` | String | String? | 提取第一个 URL |
-| `recognizePlatform(_:)` | String (URL) | Platform? | 识别平台 |
-| `normalize(_:platform:)` | String + Platform | String | 标准化 URL（去重） |
-| `extractContentID(_:platform:)` | String + Platform | String? | 提取内容 ID |
-| `isValidURL(_:)` | String | Bool | 验证 URL 合法性 |
+| extractURLs(from:) | 混合文本 | [String] | 提取所有支持平台的 URL |
+| extractFirstURL(from:) | 混合文本 | String? | 提取第一个支持平台的 URL |
+| recognizePlatform(_:) | URL 字符串 | Platform? | 识别 URL 所属平台 |
+| normalize(_:platform:) | URL + Platform | String | 标准化 URL |
+| extractContentID(_:platform:) | URL + Platform | String? | 提取平台内容 ID |
+| isValidURL(_:) | URL 字符串 | Bool | 验证 URL 合法性 |
 
-支持的平台（10 个）：
+支持平台：
 
-| 平台 | 域名 | normalizedURL 格式 |
-|------|------|-------------------|
+| 平台 | 识别域名 | normalizedURL |
+|------|---------|---------------|
 | douyin | douyin.com, iesdouyin.com | douyin://video/{id} |
 | xiaohongshu | xiaohongshu.com, xhslink.com | xiaohongshu://explore/{id} |
 | coolapk | coolapk.com, coolapk1s.com | coolapk://feed/{id} |
 | bilibili | bilibili.com, b23.tv | bilibili://video/{id} |
-| github | github.com | github://repo/{owner}/{repo} |
+| github | github.com | github://repo/{id} |
 | youtube | youtube.com, youtu.be | youtube://video/{id} |
 | x | x.com, twitter.com | x://tweet/{id} |
 | weibo | weibo.com, m.weibo.cn | weibo://status/{id} |
@@ -283,6 +281,7 @@ URLNormalizer 公开方法：
 * `normalizedURL` 影响数据库去重
 * `platformContentID` 影响导入重复判断
 * 未显式清理 tracking 参数（`utm_*`、`spm` 等），因为自定义 scheme URL 只含 ID
+* 短链展开属于 Parser 层，不属于 URLNormalizer
 
 重要限制：
 
@@ -293,6 +292,22 @@ URLNormalizer 公开方法：
 * 不改变去重规则
 * 不改变 normalizedURL 规则
 * 不改变 platformContentID 规则
+
+---
+
+## 3. 当前进行中阶段
+
+### Phase 3B：Parser Contract
+
+状态：待开始。
+
+目标：
+
+```text
+shared/parsers/
+  parser-contract.md
+  platform-parser-rules.json
+```
 
 ---
 
@@ -399,20 +414,6 @@ BUILD SUCCEEDED
 ---
 
 ## 8. 后续阶段计划
-
-### Phase 3A：URLNormalizer 契约
-
-创建：
-
-```text
-shared/url/
-```
-
-只记录现有 URL 识别、标准化、content ID 提取规则。
-
-不修改 `URLNormalizer.swift`。
-
----
 
 ### Phase 3B：Parser Contract
 
