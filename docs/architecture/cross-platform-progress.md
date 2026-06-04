@@ -417,6 +417,28 @@ Views/Item/ItemDetailView.swift — 删除 4 个嵌入 struct（788→494 行）
 * 数据库和 Repository 不变
 
 
+
+### Phase 5A：Windows MVP 范围定义与技术方案 ✅
+
+状态：已完成。
+
+新增：
+
+```text
+docs/windows/windows-mvp-scope.md
+docs/windows/avalonia-tech-plan.md
+docs/windows/windows-project-structure.md
+```
+
+结论：
+
+* 定义了 Windows MVP 必须包含的功能（数据库兼容、核心列表、搜索、详情、回收站）
+* 定义了 MVP 暂不包含的功能（Parser、WebView2、自动更新等）
+* 推荐技术栈：Avalonia + C# + .NET 8 + SQLite
+* 规划了 Windows 项目结构和 shared 契约引用方式
+* 尚未创建 Windows 项目，尚未编写 C# 代码
+
+
 ---
 
 ## 4. 总体执行原则
@@ -471,6 +493,7 @@ Phase 4F-3: Phase 4F-3: ItemDetailView.saveRemark() 接入 ItemService
 Phase 4F-4: Phase 4F-4: ItemDetailView 移动文件夹接入 ItemService
 Phase 4F-5: Phase 4F-5: ItemDetailView 移动平台接入 ItemService
 Phase 4F-6: Phase 4F-6: 拆分 ItemDetailView 子组件到独立文件
+Phase 5A: Phase 5A: Windows MVP 范围定义与技术方案
 ```
 
 ---
