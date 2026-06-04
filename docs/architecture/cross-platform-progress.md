@@ -326,6 +326,27 @@ Views/Item/ItemDetailView.swift — deleteItem() 改为调用 ItemService.trashI
 * UI 行为不变
 
 
+
+### Phase 4F-3：ItemDetailView.saveRemark() 接入 ItemService ✅
+
+状态：已完成并验收通过。
+
+改动：
+
+```text
+Services/ItemService.swift — 新增 updateRemark(_:remark:) -> Item
+Views/Item/ItemDetailView.swift — saveRemark() 改为调用 ItemService.updateRemark()
+```
+
+结论：
+
+* ItemService 新增 updateRemark()，负责 find → set remark → set modifyDate → update → return
+* ItemDetailView.saveRemark() 不再直接操作 itemRepo
+* 备注保存后本地 item 状态同步更新
+* UI 行为不变
+* 数据库行为不变
+
+
 ---
 
 ## 4. 总体执行原则
@@ -376,6 +397,7 @@ Phase 4D-6: Phase 4D-6: FolderService.createFolder()
 Phase 4D-7: Phase 4D-7: 拆分 NewFolderSheet 到独立文件
 Phase 4E-2: Phase 4E-2: FolderView.loadData() 后台化
 Phase 4F-2: Phase 4F-2: ItemDetailView.deleteItem() 接入 ItemService
+Phase 4F-3: Phase 4F-3: ItemDetailView.saveRemark() 接入 ItemService
 ```
 
 ---

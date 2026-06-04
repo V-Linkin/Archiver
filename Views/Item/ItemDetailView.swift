@@ -428,10 +428,10 @@ struct ItemDetailView: View {
     }
     
     private func saveRemark(item: Item) {
-        guard var updated = try? appState.itemRepo.find(id: item.id) else { return }
-        updated.remark = editableRemark.isEmpty ? nil : editableRemark
-        updated.modifyDate = Date()
-        try? appState.itemRepo.update(updated)
+        let remark = editableRemark.isEmpty ? nil : editableRemark
+        if let updated = try? itemService.updateRemark(item, remark: remark) {
+            self.item = updated
+        }
     }
     
     private func stripHTML(_ html: String) -> String {

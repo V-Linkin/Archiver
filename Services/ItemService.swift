@@ -13,6 +13,17 @@ final class ItemService: @unchecked Sendable {
         self.trashRepo = trashRepo
     }
 
+    /// 更新备注
+    func updateRemark(_ item: Item, remark: String?) throws -> Item {
+        guard var updated = try itemRepo.find(id: item.id) else {
+            throw NSError(domain: "ItemService", code: 1, userInfo: [NSLocalizedDescriptionKey: "Item not found"])
+        }
+        updated.remark = remark
+        updated.modifyDate = Date()
+        try itemRepo.update(updated)
+        return updated
+    }
+    
     /// 将内容移入回收站
     /// 设置 deletedAt、contentStatus = .trashed，创建 TrashRecord
     /// 保留原 folderID 和 archiveStatus
