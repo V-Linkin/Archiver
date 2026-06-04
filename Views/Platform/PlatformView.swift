@@ -5,6 +5,7 @@ struct PlatformView: View {
     @Binding var selectedNav: NavigationTarget?
     @Binding var previousNav: NavigationTarget?
     @Environment(AppState.self) private var appState
+    private let itemService = ItemService()
     @State private var items: [Item] = []
     @State private var folders: [Folder] = []
     @State private var viewMode: ViewMode = .grid
@@ -242,12 +243,7 @@ struct PlatformView: View {
     private func batchDeleteItems() {
         for id in selectedItemIDs {
             if let item = items.first(where: { $0.id == id }) {
-                var updated = item
-                updated.deletedAt = Date()
-                updated.contentStatus = .trashed
-                try? appState.itemRepo.update(updated)
-                let record = TrashRecord(itemID: item.id, originalFolderID: item.folderID, originalArchiveStatus: item.archiveStatus)
-                try? appState.trashRepo.insert(record)
+                try? itemService.trashItem(item)
             }
         }
         selectedItemIDs.removeAll()
@@ -273,12 +269,7 @@ struct PlatformView: View {
     }
     
     private func deleteItem(_ item: Item) {
-        var updated = item
-        updated.deletedAt = Date()
-        updated.contentStatus = .trashed
-        try? appState.itemRepo.update(updated)
-        let record = TrashRecord(itemID: item.id, originalFolderID: item.folderID, originalArchiveStatus: item.archiveStatus)
-        try? appState.trashRepo.insert(record)
+        try? itemService.trashItem(item)
         loadData()
     }
 }

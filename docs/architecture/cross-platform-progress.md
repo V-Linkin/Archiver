@@ -132,15 +132,34 @@ App/ContentView.swift — performSearch() 改为调用 SearchService
 * SearchResultsView 未修改
 * SearchRepository 未修改
 
-### Phase 4C：ItemService.trashItem()
+### Phase 4C：ItemService.trashItem() ✅
 
-状态：待开始。
+状态：已完成并验收通过。
 
-目标：
+新增：
 
-* 抽取 performTrash() 到 ItemService.trashItem()
-* 抽取 createFolder() 到 FolderService
-* Views 改为调用 Service 而非直接调 Repository
+```text
+Services/ItemService.swift
+```
+
+改动：
+
+```text
+Views/Home/HomeView.swift — deleteRecentItem() 改为调用 ItemService.trashItem()
+Views/Platform/PlatformView.swift — deleteItem() + batchDeleteItems() 改为调用 ItemService.trashItem()
+Views/Platform/FolderView.swift — deleteItem() 改为调用 ItemService.trashItem()
+Views/Platform/CustomPlatformContentView.swift — deleteItem() + batchDeleteItems() 改为调用 ItemService.trashItem()
+Views/Platform/UncategorizedContentView.swift — deleteItem() 改为调用 ItemService.trashItem()
+```
+
+结论：
+
+* 新增 ItemService 封装 Item 的 trash 业务操作
+* 5 个 View 的 7 处重复 performTrash 逻辑已统一为 ItemService.trashItem()
+* ItemDetailView 暂未替换（太大，风险高，留到后续阶段）
+* TrashView 恢复/永久删除逻辑未修改
+* UI 行为不变
+* 数据库行为不变
 
 ---
 
@@ -184,6 +203,7 @@ Phase 3B: Phase 3B: 创建 Parser 跨平台契约
 Phase 3C: Phase 3C: 创建 Parser Fixtures 测试数据
 Phase 4A: Phase 4A: macOS 内部边界只读审计
 Phase 4B: Phase 4B: Search 边界优化
+Phase 4C: Phase 4C: ItemService.trashItem()
 ```
 
 ---

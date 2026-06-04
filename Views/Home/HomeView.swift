@@ -177,6 +177,7 @@ struct RecentItemsSection: View {
     @Binding var selectedNav: NavigationTarget?
     @Binding var previousNav: NavigationTarget?
     @Environment(AppState.self) private var appState
+    private let itemService = ItemService()
     
     private let cardWidth: CGFloat = 200
     private let cardHeight: CGFloat = 240
@@ -223,12 +224,7 @@ struct RecentItemsSection: View {
     }
     
     private func deleteRecentItem(_ item: Item) {
-        var updated = item
-        updated.deletedAt = Date()
-        updated.contentStatus = .trashed
-        try? appState.itemRepo.update(updated)
-        let record = TrashRecord(itemID: item.id, originalFolderID: item.folderID, originalArchiveStatus: item.archiveStatus)
-        try? appState.trashRepo.insert(record)
+        try? itemService.trashItem(item)
         appState.refreshData()
     }
 }
