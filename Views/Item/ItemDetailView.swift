@@ -520,6 +520,7 @@ struct MoveToFolderSheet: View {
     var itemPlatform: UUID? = nil
     @Binding var isPresented: Bool
     @Environment(AppState.self) private var appState
+    private let itemService = ItemService()
     @State private var folders: [Folder] = []
     @State private var selectedFolderID: UUID? = nil
     
@@ -572,14 +573,7 @@ struct MoveToFolderSheet: View {
                 Spacer()
                 Button("移动") {
                     guard let folderID = selectedFolderID else { return }
-                    guard var item = try? appState.itemRepo.find(id: itemID) else { return }
-                    item.folderID = folderID
-                    if let folder = folders.first(where: { $0.id == folderID }),
-                       let cpID = folder.customPlatformID {
-                        item.customPlatformID = cpID
-                        item.platform = .custom
-                    }
-                    try? appState.itemRepo.update(item)
+                    try? itemService.moveToFolder(itemID: itemID, folderID: folderID)
                     isPresented = false
                     appState.refreshData()
                 }
@@ -713,6 +707,7 @@ struct MoveToFolderOverlay: View {
     let itemID: UUID
     @Binding var isPresented: Bool
     @Environment(AppState.self) private var appState
+    private let itemService = ItemService()
     @State private var folders: [Folder] = []
     @State private var selectedFolderID: UUID? = nil
     
@@ -765,14 +760,7 @@ struct MoveToFolderOverlay: View {
                 Spacer()
                 Button("移动") {
                     guard let folderID = selectedFolderID else { return }
-                    guard var item = try? appState.itemRepo.find(id: itemID) else { return }
-                    item.folderID = folderID
-                    if let folder = folders.first(where: { $0.id == folderID }),
-                       let cpID = folder.customPlatformID {
-                        item.customPlatformID = cpID
-                        item.platform = .custom
-                    }
-                    try? appState.itemRepo.update(item)
+                    try? itemService.moveToFolder(itemID: itemID, folderID: folderID)
                     isPresented = false
                     appState.refreshData()
                 }

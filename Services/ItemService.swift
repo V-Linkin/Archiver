@@ -4,13 +4,16 @@ import Foundation
 final class ItemService: @unchecked Sendable {
     private let itemRepo: ItemRepository
     private let trashRepo: TrashRepository
+    private let folderRepo: FolderRepository
 
     init(
         itemRepo: ItemRepository = ItemRepository(),
-        trashRepo: TrashRepository = TrashRepository()
+        trashRepo: TrashRepository = TrashRepository(),
+        folderRepo: FolderRepository = FolderRepository()
     ) {
         self.itemRepo = itemRepo
         self.trashRepo = trashRepo
+        self.folderRepo = folderRepo
     }
 
     /// 更新备注
@@ -22,6 +25,23 @@ final class ItemService: @unchecked Sendable {
         updated.modifyDate = Date()
         try itemRepo.update(updated)
         return updated
+    }
+    
+    /// 移动到文件夹
+    /// 如果目标文件夹属于自定义平台，同步更新 customPlatformID 和 platform
+    func moveToFolder(itemID: UUID, folderID: UUID) throws -> Item {
+        guard var item = try itemRepo.find(id: itemID) else {
+            throw NSError(domain: "ItemService", code: 1, userInfo: [NSLocalizedDescriptionKey: "Item not found"])
+        }
+        item.folderID = folderID
+        // 如果目标文件夹属于自定义平台，同步更新 item 的平台归属
+        if let folder = try? folderRepo.find(id: folderID),
+           let cpID = folder.customPlatformID {
+            item.customPlatformID = cpID
+            item.platform = .custom
+        }
+        try itemRepo.update(item)
+        return item
     }
     
     /// 将内容移入回收站

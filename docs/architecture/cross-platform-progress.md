@@ -347,6 +347,27 @@ Views/Item/ItemDetailView.swift — saveRemark() 改为调用 ItemService.update
 * 数据库行为不变
 
 
+
+### Phase 4F-4：ItemDetailView 移动文件夹接入 ItemService ✅
+
+状态：已完成并验收通过。
+
+改动：
+
+```text
+Services/ItemService.swift — 新增 moveToFolder(itemID:folderID:) -> Item + folderRepo 依赖
+Views/Item/ItemDetailView.swift — MoveToFolderSheet + MoveToFolderOverlay 移动逻辑改为调用 ItemService.moveToFolder()
+```
+
+结论：
+
+* ItemService 新增 moveToFolder()，负责 find item → set folderID → 同步 customPlatform → update
+* MoveToFolderSheet 和 MoveToFolderOverlay 不再直接操作 itemRepo
+* 移动到自定义平台文件夹时自动同步 customPlatformID 和 platform
+* UI 行为不变
+* 数据库行为不变
+
+
 ---
 
 ## 4. 总体执行原则
@@ -398,6 +419,7 @@ Phase 4D-7: Phase 4D-7: 拆分 NewFolderSheet 到独立文件
 Phase 4E-2: Phase 4E-2: FolderView.loadData() 后台化
 Phase 4F-2: Phase 4F-2: ItemDetailView.deleteItem() 接入 ItemService
 Phase 4F-3: Phase 4F-3: ItemDetailView.saveRemark() 接入 ItemService
+Phase 4F-4: Phase 4F-4: ItemDetailView 移动文件夹接入 ItemService
 ```
 
 ---
