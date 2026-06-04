@@ -198,10 +198,11 @@ struct FolderView: View {
     }
     
     private func renameFolder() {
-        guard var f = folder, !renameText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        f.name = renameText
-        try? appState.folderRepo.update(f)
-        self.folder = f
+        guard let f = folder, !renameText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        try? folderService.renameFolder(f, newName: renameText)
+        var updated = f
+        updated.name = renameText
+        self.folder = updated
         appState.refreshData()
     }
     

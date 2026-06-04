@@ -13,6 +13,13 @@ final class FolderService: @unchecked Sendable {
         self.itemRepo = itemRepo
     }
 
+    /// 重命名文件夹
+    func renameFolder(_ folder: Folder, newName: String) throws {
+        var updated = folder
+        updated.name = newName
+        try folderRepo.update(updated)
+    }
+    
     /// 删除文件夹：先将 folder 内所有 items 的 folderID 清空，再删除文件夹本身
     func deleteFolder(id: UUID) throws {
         let itemsInFolder = (try? itemRepo.fetchAll(folderID: id)) ?? []

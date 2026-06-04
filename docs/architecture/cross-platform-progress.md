@@ -217,6 +217,28 @@ Views/Platform/UncategorizedContentView.swift — loadData() 改为调用 itemRe
 * 不影响已有 fetchAll() 调用方
 
 
+
+### Phase 4D-4：FolderService.renameFolder() ✅
+
+状态：已完成并验收通过。
+
+改动：
+
+```text
+Services/FolderService.swift — 新增 renameFolder(_:newName:)
+Views/Platform/FolderView.swift — renameFolder() 改为调用 FolderService.renameFolder()
+```
+
+结论：
+
+* FolderView 重命名文件夹的数据操作已抽到 FolderService
+* renameFolder() 只负责修改 name + folderRepo.update()
+* alert / self.folder 状态更新 / refreshData() 保留在 View 层
+* createFolder() / loadData() 暂未处理
+* UI 行为不变
+* 数据库行为不变
+
+
 ---
 
 ## 4. 总体执行原则
@@ -262,6 +284,7 @@ Phase 4B: Phase 4B: Search 边界优化
 Phase 4C: Phase 4C: ItemService.trashItem()
 Phase 4D-2: Phase 4D-2: FolderService.deleteFolder()
 Phase 4D-3: Phase 4D-3: 修复 customPlatformID 数据加载 limit=100 问题
+Phase 4D-4: Phase 4D-4: FolderService.renameFolder()
 ```
 
 ---
