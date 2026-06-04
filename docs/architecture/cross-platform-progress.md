@@ -261,6 +261,31 @@ Views/Platform/PlatformView.swift — NewFolderSheet 创建逻辑改为调用 Fo
 * 数据库行为不变
 
 
+
+### Phase 4D-7：拆分 NewFolderSheet 到独立文件 ✅
+
+状态：已完成并验收通过。
+
+新增：
+
+```text
+Views/Platform/NewFolderSheet.swift
+```
+
+改动：
+
+```text
+Views/Platform/PlatformView.swift — 删除 NewFolderSheet 定义（移至独立文件）
+```
+
+结论：
+
+* NewFolderSheet 从 PlatformView.swift 拆到独立文件
+* 行为完全不变
+* UI 完全不变
+* 三个创建入口正常工作
+
+
 ---
 
 ## 4. 总体执行原则
@@ -308,6 +333,7 @@ Phase 4D-2: Phase 4D-2: FolderService.deleteFolder()
 Phase 4D-3: Phase 4D-3: 修复 customPlatformID 数据加载 limit=100 问题
 Phase 4D-4: Phase 4D-4: FolderService.renameFolder()
 Phase 4D-6: Phase 4D-6: FolderService.createFolder()
+Phase 4D-7: Phase 4D-7: 拆分 NewFolderSheet 到独立文件
 ```
 
 ---
