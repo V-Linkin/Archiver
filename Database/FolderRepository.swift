@@ -77,6 +77,17 @@ final class FolderRepository: @unchecked Sendable {
         }
     }
     
+    /// 查询未分类自定义平台文件夹（platform=.custom 且 customPlatformID 为 nil）
+    func fetchUncategorizedFolders() throws -> [Folder] {
+        try db.read { db in
+            try Row.fetchAll(
+                db,
+                sql: "SELECT * FROM folders WHERE platform=? AND custom_platform_id IS NULL ORDER BY sort_order, name",
+                arguments: [Platform.custom.rawValue]
+            ).map(rowToFolder)
+        }
+    }
+    
     func fetchRecent(limit: Int = 5) throws -> [Folder] {
         try db.read { db in
             try Row.fetchAll(

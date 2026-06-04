@@ -175,18 +175,14 @@ struct UncategorizedContentView: View {
         let itemRepo = appState.itemRepo
         let folderRepo = appState.folderRepo
         DispatchQueue.global(qos: .userInitiated).async {
-            let allItems = (try? itemRepo.fetchAll()) ?? []
-            // 未分类内容: customPlatformID 为 nil 且 platform 为 .custom
-            // 也包含通过链接导入但没有匹配到自定义平台的项目
-            let filtered = allItems.filter { $0.customPlatformID == nil }
-            let sorted = filtered.sorted {
+            let loadedItems = (try? itemRepo.fetchUncategorizedItems()) ?? []
+            let sortedItems = loadedItems.sorted {
                 newest ? $0.importDate > $1.importDate : $0.importDate < $1.importDate
             }
-            let allFolders = (try? folderRepo.fetchAll(platform: .custom)) ?? []
-            let filteredFolders = allFolders.filter { $0.customPlatformID == nil }
+            let loadedFolders = (try? folderRepo.fetchUncategorizedFolders()) ?? []
             DispatchQueue.main.async {
-                self.items = sorted
-                self.folders = filteredFolders
+                self.items = sortedItems
+                self.folders = loadedFolders
             }
         }
     }

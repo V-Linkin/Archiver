@@ -189,6 +189,34 @@ Views/Platform/FolderView.swift — deleteFolder() 改为调用 FolderService.de
 * 数据库行为不变
 
 
+
+### Phase 4D-3：修复 customPlatformID 数据加载 limit=100 问题 ✅
+
+状态：已完成并验收通过。
+
+新增 Repository 方法：
+
+```text
+Database/ItemRepository.swift — fetchByCustomPlatformID(_:) / fetchUncategorizedItems()
+Database/FolderRepository.swift — fetchUncategorizedFolders()
+```
+
+改动：
+
+```text
+Views/Platform/CustomPlatformContentView.swift — loadData() 改为调用 itemRepo.fetchByCustomPlatformID()
+Views/Platform/UncategorizedContentView.swift — loadData() 改为调用 itemRepo.fetchUncategorizedItems() + folderRepo.fetchUncategorizedFolders()
+```
+
+结论：
+
+* 修复 CustomPlatformContentView / UncategorizedContentView 使用 fetchAll() 默认 limit=100 后再内存过滤导致的数据遗漏风险
+* 筛选下推到 SQL 层，不再先取 100 条再内存 filter
+* UI 行为不变
+* 数据库 schema 不变
+* 不影响已有 fetchAll() 调用方
+
+
 ---
 
 ## 4. 总体执行原则
@@ -233,6 +261,7 @@ Phase 4A: Phase 4A: macOS 内部边界只读审计
 Phase 4B: Phase 4B: Search 边界优化
 Phase 4C: Phase 4C: ItemService.trashItem()
 Phase 4D-2: Phase 4D-2: FolderService.deleteFolder()
+Phase 4D-3: Phase 4D-3: 修复 customPlatformID 数据加载 limit=100 问题
 ```
 
 ---

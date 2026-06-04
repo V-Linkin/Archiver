@@ -212,6 +212,28 @@ final class ItemRepository: @unchecked Sendable {
         }
     }
     
+    /// 按自定义平台ID查询内容（无分页限制）
+    func fetchByCustomPlatformID(_ platformID: UUID) throws -> [Item] {
+        try db.read { db in
+            try fetchAll(
+                db,
+                sql: "SELECT * FROM items WHERE custom_platform_id=? AND deleted_at IS NULL ORDER BY import_date DESC",
+                arguments: [platformID.uuidString]
+            )
+        }
+    }
+    
+    /// 查询未分类内容（platform=.custom 且 customPlatformID 为 nil）
+    func fetchUncategorizedItems() throws -> [Item] {
+        try db.read { db in
+            try fetchAll(
+                db,
+                sql: "SELECT * FROM items WHERE platform=? AND custom_platform_id IS NULL AND deleted_at IS NULL ORDER BY import_date DESC",
+                arguments: [Platform.custom.rawValue]
+            )
+        }
+    }
+    
     /// 统计数量
     func count(platform: Platform? = nil, archiveStatus: ArchiveStatus? = nil) throws -> Int {
         try db.read { db in

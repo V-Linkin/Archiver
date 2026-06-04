@@ -267,15 +267,13 @@ struct CustomPlatformContentView: View {
         let itemRepo = appState.itemRepo
         let folderRepo = appState.folderRepo
         DispatchQueue.global(qos: .userInitiated).async {
-            let allItems = (try? itemRepo.fetchAll()) ?? []
-            // 显示 customPlatformID 匹配的项目
-            let filtered = allItems.filter { $0.customPlatformID == customPlatformID }
-            let sorted = filtered.sorted {
+            let loadedItems = (try? itemRepo.fetchByCustomPlatformID(customPlatformID)) ?? []
+            let sortedItems = loadedItems.sorted {
                 newest ? $0.importDate > $1.importDate : $0.importDate < $1.importDate
             }
             let loadedFolders = (try? folderRepo.fetchAll(platform: .custom, customPlatformID: customPlatformID)) ?? []
             DispatchQueue.main.async {
-                self.items = sorted
+                self.items = sortedItems
                 self.folders = loadedFolders
             }
         }
