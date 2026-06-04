@@ -439,6 +439,30 @@ docs/windows/windows-project-structure.md
 * 尚未创建 Windows 项目，尚未编写 C# 代码
 
 
+
+### Phase 5B：创建 Avalonia Windows 项目骨架 ✅
+
+状态：已完成。
+
+新增：
+
+```text
+windows/Gatherly.Windows.sln
+windows/README.md
+windows/src/Gatherly.Windows/  — Avalonia 项目（App, MainWindow, ViewModel, csproj）
+windows/tests/Gatherly.Windows.Tests/  — 测试项目骨架
+```
+
+结论：
+
+* 创建了可编译的 Avalonia 项目骨架
+* 最小窗口显示 "Gatherly Windows MVP"
+* 依赖：Avalonia 11, CommunityToolkit.Mvvm, Microsoft.Data.Sqlite
+* 尚未接入数据库，未实现业务功能
+* macOS 项目不受影响
+* 需要安装 .NET 8 SDK 后执行 `dotnet build` 验证
+
+
 ---
 
 ## 4. 总体执行原则
@@ -494,6 +518,7 @@ Phase 4F-4: Phase 4F-4: ItemDetailView 移动文件夹接入 ItemService
 Phase 4F-5: Phase 4F-5: ItemDetailView 移动平台接入 ItemService
 Phase 4F-6: Phase 4F-6: 拆分 ItemDetailView 子组件到独立文件
 Phase 5A: Phase 5A: Windows MVP 范围定义与技术方案
+Phase 5B: Phase 5B: 创建 Avalonia Windows 项目骨架
 ```
 
 ---

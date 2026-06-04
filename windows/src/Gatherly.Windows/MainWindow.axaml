@@ -1,0 +1,21 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Gatherly.Windows.ViewModels"
+        x:Class="Gatherly.Windows.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="Gatherly Windows"
+        Width="1024" Height="768"
+        WindowStartupLocation="CenterScreen">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <Panel>
+        <TextBlock Text="Gatherly Windows MVP"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   FontSize="24"
+                   FontWeight="Bold" />
+    </Panel>
+</Window>
