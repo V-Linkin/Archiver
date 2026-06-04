@@ -44,6 +44,19 @@ final class ItemService: @unchecked Sendable {
         return item
     }
     
+    /// 移动到自定义平台
+    /// 设置 customPlatformID、platform = .custom，清空 folderID
+    func moveToCustomPlatform(itemID: UUID, customPlatformID: UUID) throws -> Item {
+        guard var item = try itemRepo.find(id: itemID) else {
+            throw NSError(domain: "ItemService", code: 1, userInfo: [NSLocalizedDescriptionKey: "Item not found"])
+        }
+        item.customPlatformID = customPlatformID
+        item.platform = .custom
+        item.folderID = nil
+        try itemRepo.update(item)
+        return item
+    }
+    
     /// 将内容移入回收站
     /// 设置 deletedAt、contentStatus = .trashed，创建 TrashRecord
     /// 保留原 folderID 和 archiveStatus

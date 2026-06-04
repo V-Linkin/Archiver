@@ -611,6 +611,7 @@ struct MoveToPlatformSheet: View {
     @Binding var isPresented: Bool
     var onMoved: (() -> Void)?
     @Environment(AppState.self) private var appState
+    private let itemService = ItemService()
     @State private var selectedPlatformID: UUID? = nil
     @State private var item: Item?
 
@@ -672,11 +673,7 @@ struct MoveToPlatformSheet: View {
                     guard let platformID = selectedPlatformID else { return }
                     let ids = itemIDs.isEmpty ? (itemID.map { [$0] } ?? []) : itemIDs
                     for id in ids {
-                        guard var item = try? appState.itemRepo.find(id: id) else { continue }
-                        item.customPlatformID = platformID
-                        item.platform = .custom
-                        item.folderID = nil
-                        try? appState.itemRepo.update(item)
+                        try? itemService.moveToCustomPlatform(itemID: id, customPlatformID: platformID)
                     }
                     isPresented = false
                     appState.refreshData()
