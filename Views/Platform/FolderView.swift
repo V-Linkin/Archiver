@@ -6,6 +6,7 @@ struct FolderView: View {
     @Binding var previousNav: NavigationTarget?
     @Environment(AppState.self) private var appState
     private let itemService = ItemService()
+    private let folderService = FolderService()
     @State private var folder: Folder? = nil
     @State private var items: [Item] = []
     @State private var subfolders: [Folder] = []
@@ -206,12 +207,7 @@ struct FolderView: View {
     
     private func deleteFolder() {
         guard let f = folder else { return }
-        let itemsInFolder = (try? appState.itemRepo.fetchAll(folderID: f.id)) ?? []
-        for var item in itemsInFolder {
-            item.folderID = nil
-            try? appState.itemRepo.update(item)
-        }
-        try? appState.folderRepo.delete(id: f.id)
+        try? folderService.deleteFolder(id: f.id)
         appState.refreshData()
         let target = previousNav ?? .home
         previousNav = nil

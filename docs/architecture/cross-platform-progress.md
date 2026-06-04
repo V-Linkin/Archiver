@@ -161,6 +161,34 @@ Views/Platform/UncategorizedContentView.swift — deleteItem() 改为调用 Item
 * UI 行为不变
 * 数据库行为不变
 
+
+### Phase 4D-2：FolderService.deleteFolder() ✅
+
+状态：已完成并验收通过。
+
+新增：
+
+```text
+Services/FolderService.swift
+```
+
+改动：
+
+```text
+Views/Platform/FolderView.swift — deleteFolder() 改为调用 FolderService.deleteFolder(id:)
+```
+
+结论：
+
+* 新增 FolderService 封装文件夹删除的业务操作
+* FolderView.deleteFolder() 不再直接操作 itemRepo + folderRepo
+* deleteFolder() 只负责数据变化：清空 items 的 folderID + 删除 folder
+* refreshData() 和导航逻辑保留在 View 层
+* loadData() / renameFolder() / createFolder() 暂未处理
+* UI 行为不变
+* 数据库行为不变
+
+
 ---
 
 ## 4. 总体执行原则
@@ -204,6 +232,7 @@ Phase 3C: Phase 3C: 创建 Parser Fixtures 测试数据
 Phase 4A: Phase 4A: macOS 内部边界只读审计
 Phase 4B: Phase 4B: Search 边界优化
 Phase 4C: Phase 4C: ItemService.trashItem()
+Phase 4D-2: Phase 4D-2: FolderService.deleteFolder()
 ```
 
 ---
