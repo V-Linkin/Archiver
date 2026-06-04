@@ -322,6 +322,7 @@ struct NewFolderSheet: View {
     @Binding var isPresented: Bool
     var onCreate: (() -> Void)?
     @Environment(AppState.self) private var appState
+    private let folderService = FolderService()
     @State private var folderName = ""
     
     var body: some View {
@@ -332,13 +333,12 @@ struct NewFolderSheet: View {
                 Button("取消") { isPresented = false }.keyboardShortcut(.cancelAction)
                 Spacer()
                 Button("创建") {
-                    let folder = Folder(
+                    try? folderService.createFolder(
                         name: folderName,
-                        parentID: parentID,
                         platform: platform,
+                        parentID: parentID,
                         customPlatformID: customPlatformID
                     )
-                    try? appState.folderRepo.insert(folder)
                     isPresented = false
                     appState.refreshData()
                     onCreate?()

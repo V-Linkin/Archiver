@@ -239,6 +239,28 @@ Views/Platform/FolderView.swift — renameFolder() 改为调用 FolderService.re
 * 数据库行为不变
 
 
+
+### Phase 4D-6：FolderService.createFolder() ✅
+
+状态：已完成并验收通过。
+
+改动：
+
+```text
+Services/FolderService.swift — 新增 createFolder(name:platform:parentID:customPlatformID:)
+Views/Platform/PlatformView.swift — NewFolderSheet 创建逻辑改为调用 FolderService.createFolder()
+```
+
+结论：
+
+* FolderService 新增 createFolder()，负责创建 Folder 对象 + folderRepo.insert()
+* NewFolderSheet（定义在 PlatformView.swift）不再直接调用 folderRepo.insert()
+* 三个创建入口（普通平台 / 自定义平台 / 子文件夹）行为不变
+* 空名称校验、sheet 关闭、refreshData、onCreate 回调保留在 View 层
+* UI 行为不变
+* 数据库行为不变
+
+
 ---
 
 ## 4. 总体执行原则
@@ -285,6 +307,7 @@ Phase 4C: Phase 4C: ItemService.trashItem()
 Phase 4D-2: Phase 4D-2: FolderService.deleteFolder()
 Phase 4D-3: Phase 4D-3: 修复 customPlatformID 数据加载 limit=100 问题
 Phase 4D-4: Phase 4D-4: FolderService.renameFolder()
+Phase 4D-6: Phase 4D-6: FolderService.createFolder()
 ```
 
 ---

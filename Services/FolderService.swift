@@ -13,6 +13,23 @@ final class FolderService: @unchecked Sendable {
         self.itemRepo = itemRepo
     }
 
+    /// 创建文件夹
+    func createFolder(
+        name: String,
+        platform: Platform,
+        parentID: UUID? = nil,
+        customPlatformID: UUID? = nil
+    ) throws -> Folder {
+        let folder = Folder(
+            name: name,
+            parentID: parentID,
+            platform: platform,
+            customPlatformID: customPlatformID
+        )
+        try folderRepo.insert(folder)
+        return folder
+    }
+    
     /// 重命名文件夹
     func renameFolder(_ folder: Folder, newName: String) throws {
         var updated = folder
