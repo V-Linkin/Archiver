@@ -191,10 +191,23 @@ struct FolderView: View {
     }
     
     private func loadData() {
-        folder = try? appState.folderRepo.find(id: folderID)
-        let loaded = (try? appState.itemRepo.fetchAll(folderID: folderID)) ?? []
-        items = loaded.sorted { sortNewestFirst ? $0.importDate > $1.importDate : $0.importDate < $1.importDate }
-        subfolders = (try? appState.folderRepo.fetchAll(parentID: folderID)) ?? []
+        let newest = sortNewestFirst
+        let currentFolderID = folderID
+        let folderRepo = appState.folderRepo
+        let itemRepo = appState.itemRepo
+        DispatchQueue.global(qos: .userInitiated).async {
+            let loadedFolder = try? folderRepo.find(id: currentFolderID)
+            let loadedItems = (try? itemRepo.fetchAll(folderID: currentFolderID)) ?? []
+            let sortedItems = loadedItems.sorted {
+                newest ? $0.importDate > $1.importDate : $0.importDate < $1.importDate
+            }
+            let loadedSubfolders = (try? folderRepo.fetchAll(parentID: currentFolderID)) ?? []
+            DispatchQueue.main.async {
+                self.folder = loadedFolder
+                self.items = sortedItems
+                self.subfolders = loadedSubfolders
+            }
+        }
     }
     
     private func renameFolder() {
