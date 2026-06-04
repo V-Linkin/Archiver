@@ -1,0 +1,541 @@
+{
+  "version": 1,
+  "description": "每个平台的 Parser 解析策略定义。Windows 端实现应遵守相同的策略优先级和输出字段。",
+  "protocol": {
+    "input": "URL (http/https)",
+    "output": "ParsedContent",
+    "errorTypes": ["invalidURL", "unsupportedPlatform", "parseFailed", "mediaDownloadFailed", "networkError"],
+    "notes": "ParsedContent 是运行时解析结果，不是数据库持久化模型。后续由 ImportService 转换为 Item / MediaAsset。"
+  },
+  "platforms": {
+    "douyin": {
+      "parser": "DouyinParser",
+      "inputPlatform": "douyin",
+      "supportsShortLinks": false,
+      "shortLinkDomains": [],
+      "requiresWebView": false,
+      "webViewFallback": false,
+      "primaryStrategy": "http",
+      "strategies": [
+        {
+          "order": 1,
+          "name": "ssr_router_data",
+          "description": "从 window._ROUTER_DATA 提取移动端 SSR 数据"
+        },
+        {
+          "order": 2,
+          "name": "ssr_next_data",
+          "description": "从 __NEXT_DATA__ 提取桌面端 SSR 数据"
+        },
+        {
+          "order": 3,
+          "name": "meta_tags",
+          "description": "从 og:title / og:description / og:image 提取基础信息"
+        }
+      ],
+      "httpConfig": {
+        "userAgent": "iPhone Safari iOS 16",
+        "referer": "https://www.douyin.com/",
+        "note": "使用移动端 UA 获取移动端页面"
+      },
+      "externalDependencies": [],
+      "videoHandling": {
+        "deWatermark": true,
+        "note": "将 /playwm/ 替换为 /play/ 获取无水印视频"
+      },
+      "outputFields": ["title", "body", "author", "coverURL", "imageURLs", "videoURL", "platformContentID"],
+      "outputFieldNotes": {
+        "title": "从 desc 截取前 50 字，或从话题标签生成",
+        "body": "完整 desc 文本",
+        "author": "从 authorInfo.nickname 或 desc 中提取",
+        "publishDate": "当前未填充",
+        "authorID": "当前未填充"
+      },
+      "riskLevel": "medium",
+      "riskReason": "HTTP 为主，SSR 数据提取依赖页面结构，平台改版可能导致 JSON 路径变化",
+      "windowsPortingNotes": "纯 HTTP 实现，无 WebView。需适配 SSR JSON 路径（_ROUTER_DATA / __NEXT_DATA__）。"
+    },
+    "xiaohongshu": {
+      "parser": "XiaohongshuParser",
+      "inputPlatform": "xiaohongshu",
+      "supportsShortLinks": true,
+      "shortLinkDomains": ["xhslink.com"],
+      "shortLinkNotes": "xhslink.com 可识别平台但无法直接提取 ID，需展开后获取",
+      "requiresWebView": false,
+      "webViewFallback": true,
+      "primaryStrategy": "http",
+      "strategies": [
+        {
+          "order": 1,
+          "name": "http_ssr",
+          "description": "HTTP 请求，检查 __INITIAL_STATE__ SSR 数据"
+        },
+        {
+          "order": 2,
+          "name": "wkwebview_js",
+          "description": "WKWebView 加载页面，执行 JS 提取 XIAOHONGSHU_JSON"
+        }
+      ],
+      "httpConfig": {
+        "userAgent": "iPhone Safari iOS 17",
+        "note": "使用移动端 UA，需要 Cookie/登录态才能获取 SSR 数据"
+      },
+      "webViewConfig": {
+        "loader": "JSWebLoader (WKWebView)",
+        "jsExtractPrefix": "XIAOHONGSHU_JSON:",
+        "loginCheck": "XHS_LOGIN_REQUIRED",
+        "timeout": "15 seconds + polling"
+      },
+      "externalDependencies": [],
+      "outputFields": ["title", "body", "author", "coverURL", "imageURLs", "videoURL", "platformContentID"],
+      "outputFieldNotes": {
+        "title": "从 note.title 或 JSON 提取",
+        "body": "note.desc 或 text 字段",
+        "author": "user.nickname",
+        "publishDate": "当前未填充",
+        "authorID": "当前未填充"
+      },
+      "riskLevel": "high",
+      "riskReason": "WKWebView 是核心降级路径，DOM/挑战页/登录重定向变化影响解析，JS 选择器依赖页面结构",
+      "windowsPortingNotes": "需要 WebView2 重新实现 JS 提取逻辑。DOM 选择器可能需要适配。xhslink.com 短链展开需实现。"
+    },
+    "coolapk": {
+      "parser": "CoolapkParser",
+      "inputPlatform": "coolapk",
+      "supportsShortLinks": false,
+      "shortLinkDomains": [],
+      "requiresWebView": false,
+      "webViewFallback": true,
+      "primaryStrategy": "http_mirror",
+      "strategies": [
+        {
+          "order": 1,
+          "name": "mirror_site",
+          "description": "优先使用 coolapk1s.com 镜像站，绕过原站反爬，提取 __NEXT_DATA__"
+        },
+        {
+          "order": 2,
+          "name": "http_original",
+          "description": "原站 HTTP，从 HTML meta 标签和 SSR 数据提取"
+        },
+        {
+          "order": 3,
+          "name": "wkwebview_js",
+          "description": "WKWebView 降级，执行 JS 提取 COOLAPK_JSON"
+        }
+      ],
+      "httpConfig": {
+        "userAgent": "Chrome 120 on macOS",
+        "referer": "https://www.coolapk.com/",
+        "note": "原站有反爬，镜像站优先"
+      },
+      "webViewConfig": {
+        "loader": "JSWebLoader (WKWebView)",
+        "jsExtractPrefix": "COOLAPK_JSON:",
+        "timeout": "15 seconds"
+      },
+      "imageHandling": {
+        "proxy": true,
+        "note": "图片 URL 转换为镜像站代理 URL 绕过防盗链"
+      },
+      "externalDependencies": ["coolapk1s.com (镜像站，非官方，可用性不可控)"],
+      "outputFields": ["title", "body", "author", "coverURL", "imageURLs", "platformContentID"],
+      "outputFieldNotes": {
+        "title": "feed.title",
+        "body": "feed.message，清理 HTML 和酷安表情标签",
+        "author": "feed.username",
+        "publishDate": "当前未填充",
+        "authorID": "当前未填充"
+      },
+      "riskLevel": "high",
+      "riskReason": "镜像站可用性不可控，WKWebView JS 降级依赖 DOM 结构，COOLAPK_JSON 选择器可能因平台改版失效",
+      "windowsPortingNotes": "需要 WebView2 重新实现。镜像站 coolapk1s.com 代理 URL 策略需保留。DOM 选择器可能需适配。"
+    },
+    "bilibili": {
+      "parser": "BilibiliParser",
+      "inputPlatform": "bilibili",
+      "supportsShortLinks": true,
+      "shortLinkDomains": ["b23.tv"],
+      "shortLinkNotes": "b23.tv 通过 HTTP HEAD 获取 Location 展开",
+      "requiresWebView": false,
+      "webViewFallback": false,
+      "primaryStrategy": "api",
+      "strategies": [
+        {
+          "order": 1,
+          "name": "resolve_short_link",
+          "description": "b23.tv 短链通过 HTTP HEAD 获取 Location 重定向"
+        },
+        {
+          "order": 2,
+          "name": "ajax_api",
+          "description": "请求 api.bilibili.com/x/web-interface/view 获取视频 JSON 数据"
+        }
+      ],
+      "httpConfig": {
+        "userAgent": "Chrome 120 on macOS",
+        "referer": "https://www.bilibili.com/",
+        "note": "需要 bilibili.com Referer 头"
+      },
+      "externalDependencies": [],
+      "apiEndpoints": ["https://api.bilibili.com/x/web-interface/view?bvid={bvid}"],
+      "outputFields": ["title", "body", "author", "publishDate", "coverURL", "platformContentID"],
+      "outputFieldNotes": {
+        "title": "data.title",
+        "body": "data.desc",
+        "author": "data.owner.name",
+        "publishDate": "data.pubdate (Unix timestamp)",
+        "coverURL": "data.pic，处理 // 和 http:// 前缀",
+        "platformContentID": "BV 号或 av 号",
+        "imageURLs": "当前未填充（视频平台）",
+        "videoURL": "当前未填充（由 downloadMedia 处理）",
+        "authorID": "当前未填充"
+      },
+      "riskLevel": "low",
+      "riskReason": "纯 AJAX API，无 WebView 降级，API 接口稳定",
+      "windowsPortingNotes": "纯 HTTP API 调用，可直接用 HttpClient 实现。b23.tv 短链展开用 HTTP HEAD 即可。"
+    },
+    "github": {
+      "parser": "GitHubParser",
+      "inputPlatform": "github",
+      "supportsShortLinks": false,
+      "shortLinkDomains": [],
+      "requiresWebView": false,
+      "webViewFallback": false,
+      "primaryStrategy": "http",
+      "strategies": [
+        {
+          "order": 1,
+          "name": "http_meta",
+          "description": "HTTP 请求仓库页面，从 meta 标签和 HTML 提取信息"
+        },
+        {
+          "order": 2,
+          "name": "readme_fetch",
+          "description": "二次请求获取 README 内容，转为纯文本"
+        }
+      ],
+      "httpConfig": {
+        "userAgent": "Chrome 120 on macOS",
+        "note": "无特殊要求"
+      },
+      "externalDependencies": [],
+      "outputFields": ["title", "body", "author", "authorID", "publishDate", "coverURL", "imageURLs", "platformContentID", "rawMetadata"],
+      "outputFieldNotes": {
+        "title": "og:title 去掉 'GitHub - ' 前缀",
+        "body": "README 内容 + stars/forks/language",
+        "author": "owner",
+        "authorID": "owner",
+        "publishDate": "HTML datetime 属性",
+        "coverURL": "avatar URL",
+        "platformContentID": "owner/repo",
+        "rawMetadata": "stars, forks, language"
+      },
+      "riskLevel": "low",
+      "riskReason": "纯 HTTP + meta 标签 + 正则，无 WebView，GitHub 页面结构稳定",
+      "windowsPortingNotes": "纯 HTTP 实现，可直接用 HttpClient。正则表达式可复用。"
+    },
+    "youtube": {
+      "parser": "YouTubeParser",
+      "inputPlatform": "youtube",
+      "supportsShortLinks": false,
+      "shortLinkDomains": [],
+      "requiresWebView": false,
+      "webViewFallback": false,
+      "primaryStrategy": "http",
+      "strategies": [
+        {
+          "order": 1,
+          "name": "player_response",
+          "description": "从 ytInitialPlayerResponse JSON 提取视频数据"
+        },
+        {
+          "order": 2,
+          "name": "meta_tags",
+          "description": "从 og:title / og:description / og:image 提取"
+        },
+        {
+          "order": 3,
+          "name": "minimal_fallback",
+          "description": "仅提取 <title> 标签作为最低限度信息"
+        }
+      ],
+      "pageTypeDetection": {
+        "videoPatterns": ["/watch", "/shorts/", "/embed/"],
+        "channelPatterns": ["/channel/", "/@", "/c/", "/user/", "/videos"]
+      },
+      "httpConfig": {
+        "userAgent": "Chrome 120 on macOS",
+        "acceptLanguage": "en-US,en;q=0.9",
+        "note": "需要 Accept-Language 头获取英文页面"
+      },
+      "externalDependencies": [],
+      "outputFields": ["title", "body", "author", "coverURL", "platformContentID", "rawMetadata"],
+      "outputFieldNotes": {
+        "title": "视频标题或频道名",
+        "body": "视频描述或频道描述",
+        "author": "频道名",
+        "platformContentID": "视频 ID 或频道 URL",
+        "publishDate": "视频发布日期（video page）",
+        "imageURLs": "仅填充 cover URL",
+        "rawMetadata": "type (video/channel), parseMethod, subscriberCount (channel)"
+      },
+      "riskLevel": "medium",
+      "riskReason": "HTTP 为主，ytInitialPlayerResponse 提取依赖页面结构，平台改版可能变化",
+      "windowsPortingNotes": "纯 HTTP 实现。需处理 video/channel 两种页面类型。Accept-Language 头建议保持英文。"
+    },
+    "x": {
+      "parser": "XParser",
+      "inputPlatform": "x",
+      "supportsShortLinks": false,
+      "shortLinkDomains": [],
+      "requiresWebView": false,
+      "webViewFallback": false,
+      "primaryStrategy": "third_party_api",
+      "strategies": [
+        {
+          "order": 1,
+          "name": "fxtwitter_api",
+          "description": "请求 api.fxtwitter.com 获取推文 JSON 数据"
+        }
+      ],
+      "httpConfig": {
+        "userAgent": "Chrome 120 on macOS (via BaseParser)",
+        "note": "继承 BaseParser 默认 UA"
+      },
+      "externalDependencies": ["api.fxtwitter.com (非官方 API，稳定性不可控)"],
+      "apiEndpoints": ["https://api.fxtwitter.com/{username}/status/{tweetID}"],
+      "outputFields": ["title", "body", "author", "authorID", "publishDate", "coverURL", "imageURLs", "videoURL", "platformContentID", "rawMetadata"],
+      "outputFieldNotes": {
+        "title": "text 前 50 字",
+        "body": "tweet.text 完整文本",
+        "author": "author.name",
+        "authorID": "author.screen_name",
+        "publishDate": "created_at 或 created_timestamp",
+        "coverURL": "thumbnail_url 或首张图片",
+        "imageURLs": "media.photos[].url",
+        "videoURL": "media.videos[0].url 或 media.gifs[0].url",
+        "platformContentID": "tweet ID",
+        "rawMetadata": "likes, retweets, replies, bookmarks, views, avatarURL, screenName"
+      },
+      "riskLevel": "medium",
+      "riskReason": "依赖第三方 API（fxtwitter），API 稳定性不可控，Twitter/X 可能限制第三方访问",
+      "windowsPortingNotes": "纯 HTTP API 调用，可直接用 HttpClient。但需注意 fxtwitter API 的可用性风险。"
+    },
+    "weibo": {
+      "parser": "WeiboParser",
+      "inputPlatform": "weibo",
+      "supportsShortLinks": false,
+      "shortLinkDomains": [],
+      "requiresWebView": false,
+      "webViewFallback": false,
+      "primaryStrategy": "http",
+      "strategies": [
+        {
+          "order": 1,
+          "name": "mobile_ajax",
+          "description": "移动端 m.weibo.cn，从 $render_data 提取 JSON"
+        },
+        {
+          "order": 2,
+          "name": "desktop_meta",
+          "description": "桌面端 weibo.com，从 og:title / og:description / og:image 提取"
+        }
+      ],
+      "httpConfig": {
+        "userAgent": "iPhone Safari iOS 17",
+        "referer": "https://m.weibo.cn/",
+        "note": "优先移动端，桌面端作为降级"
+      },
+      "externalDependencies": [],
+      "imageHandling": {
+        "makeLarge": true,
+        "note": "图片 URL 从 orj360/orj480/thumb/thumbnail 替换为 large 获取高清图"
+      },
+      "outputFields": ["title", "body", "author", "authorID", "publishDate", "coverURL", "imageURLs", "platformContentID"],
+      "outputFieldNotes": {
+        "title": "text 前 80 字",
+        "body": "status.text（清理 HTML）",
+        "author": "user.screen_name",
+        "authorID": "user.id_str",
+        "publishDate": "created_at（EEE MMM dd HH:mm:ss Z yyyy 格式）",
+        "coverURL": "首张图片",
+        "imageURLs": "pics[].large.url（从第二张开始）"
+      },
+      "riskLevel": "medium",
+      "riskReason": "HTTP 为主，移动端 AJAX 和桌面端 meta 降级，页面结构可能变化",
+      "windowsPortingNotes": "纯 HTTP 实现。移动端 m.weibo.cn 页面优先。图片 URL 大小转换逻辑需保留。"
+    },
+    "zhihu": {
+      "parser": "ZhihuParser",
+      "inputPlatform": "zhihu",
+      "supportsShortLinks": false,
+      "shortLinkDomains": [],
+      "requiresWebView": false,
+      "webViewFallback": true,
+      "primaryStrategy": "api",
+      "strategies": [
+        {
+          "order": 1,
+          "name": "answer_api",
+          "description": "api.zhihu.com/answers/{id} 获取回答 JSON"
+        },
+        {
+          "order": 2,
+          "name": "article_api",
+          "description": "api.zhihu.com/articles/{id} 获取文章 JSON"
+        },
+        {
+          "order": 3,
+          "name": "mobile_meta",
+          "description": "移动端页面 meta 标签提取"
+        },
+        {
+          "order": 4,
+          "name": "wkwebview_js",
+          "description": "WKWebView 降级，从 js-initialData 提取"
+        }
+      ],
+      "httpConfig": {
+        "userAgent": "iPhone Safari iOS 17",
+        "accept": "application/json, text/html, */*",
+        "xRequestedWith": "fetch",
+        "note": "需要 x-requested-with: fetch 头获取 JSON 响应"
+      },
+      "webViewConfig": {
+        "loader": "JSWebLoader (WKWebView)",
+        "jsExtractPrefix": ["ANSWER:", "ARTICLE:"],
+        "timeout": "15 seconds"
+      },
+      "externalDependencies": ["api.zhihu.com (知乎 API，可能需要登录态)"],
+      "apiEndpoints": [
+        "https://api.zhihu.com/answers/{id}?include=content,excerpt,question",
+        "https://api.zhihu.com/articles/{id}"
+      ],
+      "outputFields": ["title", "body", "author", "authorID", "publishDate", "coverURL", "imageURLs", "platformContentID"],
+      "outputFieldNotes": {
+        "title": "question.title (answer) 或 article.title",
+        "body": "content（HTML 转 Markdown）",
+        "author": "author.name",
+        "authorID": "author.id (String)",
+        "publishDate": "created/updated (Unix timestamp)",
+        "coverURL": "article.image_url 或从内容提取",
+        "imageURLs": "从 HTML img 标签提取",
+        "platformContentID": "answer ID 或 article ID"
+      },
+      "riskLevel": "high",
+      "riskReason": "API + WKWebView 降级，api.zhihu.com 可能需要登录态，HTML 转 Markdown 依赖 DOM 结构",
+      "windowsPortingNotes": "API 调用可用 HttpClient 实现。WKWebView 降级需用 WebView2。HTML → Markdown 转换逻辑可参考但需适配。"
+    },
+    "douban": {
+      "parser": "DoubanParser",
+      "inputPlatform": "douban",
+      "supportsShortLinks": false,
+      "shortLinkDomains": [],
+      "requiresWebView": false,
+      "webViewFallback": true,
+      "primaryStrategy": "http",
+      "strategies": [
+        {
+          "order": 1,
+          "name": "mobile_ssr",
+          "description": "移动端 m.douban.com，从 __NEXT_STATE__ 提取 React SSR 数据"
+        },
+        {
+          "order": 2,
+          "name": "review_api",
+          "description": "影评/书评 API JSON 提取"
+        },
+        {
+          "order": 3,
+          "name": "desktop_meta",
+          "description": "桌面端 meta 标签和 HTML 正则提取"
+        },
+        {
+          "order": 4,
+          "name": "wkwebview_js",
+          "description": "WKWebView 降级，执行 JS 提取豆瓣页面内容"
+        }
+      ],
+      "pageTypeDetection": {
+        "subjectPatterns": ["/subject/"],
+        "reviewPatterns": ["/review/"],
+        "note": "不同类型页面使用不同解析策略"
+      },
+      "rateLimiting": {
+        "enabled": true,
+        "minimumInterval": "2 seconds",
+        "implementation": "actor-based DoubanRateLimiter",
+        "note": "避免短时间内大量请求触发豆瓣风控"
+      },
+      "httpConfig": {
+        "userAgent": "iPhone Safari iOS 17",
+        "accept": "text/html,application/xhtml+xml",
+        "acceptLanguage": "zh-CN,zh;q=0.9",
+        "note": "移动端优先获取，桌面端降级"
+      },
+      "webViewConfig": {
+        "loader": "JSWebLoader (WKWebView)",
+        "jsExtractPrefix": "DOUBAN_JSON:",
+        "timeout": "15 seconds"
+      },
+      "externalDependencies": [],
+      "outputFields": ["title", "body", "author", "coverURL", "imageURLs", "platformContentID", "rawMetadata"],
+      "outputFieldNotes": {
+        "title": "条目标题（subject）或影评标题（review）",
+        "body": "条目简介或影评正文",
+        "author": "review.author 或条目元数据",
+        "coverURL": "og:image 或条目封面",
+        "imageURLs": "影评正文图片（bodyImageURLs 用 || 分隔）",
+        "platformContentID": "subject ID 或 review ID",
+        "rawMetadata": "type (subject/review/generic), rating, parseMethod"
+      },
+      "riskLevel": "high",
+      "riskReason": "WebView 是核心降级路径，__NEXT_STATE__ + JS 提取依赖 DOM 结构，2 秒限频，反爬风险最高",
+      "windowsPortingNotes": "需实现 2 秒限频机制。WebView2 重新实现 JS 提取。移动端优先策略需保留。DOM 选择器可能需大量适配。"
+    }
+  },
+  "baseParserConfig": {
+    "description": "BaseParser 为继承它的子类提供默认能力",
+    "defaultUserAgent": "Chrome 120 on macOS",
+    "defaultCapabilities": [
+      "downloadMedia — 下载封面、图片列表、视频",
+      "extractMeta(property:) — 从 meta 标签提取内容",
+      "extractMeta(name:) — 从 meta 标签提取内容",
+      "extractFirstMatch — 正则提取第一个捕获组",
+      "stripHTMLTags — 清理 HTML 标签"
+    ],
+    "inheritors": ["BilibiliParser", "GitHubParser", "XParser"],
+    "nonInheritors": ["DouyinParser", "XiaohongshuParser", "CoolapkParser", "YouTubeParser", "WeiboParser", "ZhihuParser", "DoubanParser"],
+    "notes": "非继承的 Parser 自行实现 URLSession 配置和工具方法"
+  },
+  "jsWebLoaderConfig": {
+    "description": "JSWebLoader 是 macOS 专属 WKWebView 实现，不可跨平台复用",
+    "platform": "macOS (WKWebView)",
+    "timeout": "15 seconds",
+    "pollingConfig": "最多 12 次轮询，每次 0.5 秒",
+    "supportedPlatforms": ["xiaohongshu", "coolapk", "zhihu", "douban"],
+    "platformSpecificJS": {
+      "xiaohongshu": "检测 XHS_LOGIN_REQUIRED，提取 XIAOHONGSHU_JSON",
+      "coolapk": "提取 COOLAPK_JSON（title, text, author, images）",
+      "zhihu": "从 js-initialData 提取 ANSWER: 或 ARTICLE: 前缀结果",
+      "douban": "提取 DOUBAN_JSON（subject/review 内容）"
+    },
+    "windowsNotes": "Windows 端需用 WebView2 + CDP 或等价方案重新实现。JavaScript 选择器可能需适配。"
+  },
+  "crossPlatformRules": {
+    "mustBeConsistent": [
+      "platformContentID — 影响去重和导入判断",
+      "title / body — 影响搜索和展示",
+      "author — 影响展示和搜索",
+      "media URLs — 影响下载和存储"
+    ],
+    "mayDiffer": [
+      "rawMetadata 具体键值",
+      "WebView 降级路径实现细节",
+      "User-Agent 具体字符串",
+      "HTTP 请求头细节"
+    ],
+    "testRequirement": "Windows 端必须通过 Phase 3C fixtures 测试"
+  }
+}
