@@ -389,6 +389,34 @@ Views/Item/ItemDetailView.swift — MoveToPlatformSheet 移动逻辑改为调用
 * 数据库行为不变
 
 
+
+### Phase 4F-6：拆分 ItemDetailView 子组件到独立文件 ✅
+
+状态：已完成并验收通过。
+
+新增：
+
+```text
+Views/Item/Components/InfoRow.swift
+Views/Item/Components/MoveToFolderSheet.swift
+Views/Item/Components/MoveToPlatformSheet.swift
+Views/Item/Components/MoveToFolderOverlay.swift
+```
+
+改动：
+
+```text
+Views/Item/ItemDetailView.swift — 删除 4 个嵌入 struct（788→494 行）
+```
+
+结论：
+
+* 4 个子组件从 ItemDetailView.swift 拆到独立文件
+* ItemDetailView.swift 从 788 行减少到 494 行（-294 行）
+* UI 和业务行为完全不变
+* 数据库和 Repository 不变
+
+
 ---
 
 ## 4. 总体执行原则
@@ -442,6 +470,7 @@ Phase 4F-2: Phase 4F-2: ItemDetailView.deleteItem() 接入 ItemService
 Phase 4F-3: Phase 4F-3: ItemDetailView.saveRemark() 接入 ItemService
 Phase 4F-4: Phase 4F-4: ItemDetailView 移动文件夹接入 ItemService
 Phase 4F-5: Phase 4F-5: ItemDetailView 移动平台接入 ItemService
+Phase 4F-6: Phase 4F-6: 拆分 ItemDetailView 子组件到独立文件
 ```
 
 ---
