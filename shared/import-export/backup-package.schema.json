@@ -1,0 +1,103 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BackupPackage",
+  "description": "导出包目录结构定义 — 未来跨平台推荐格式",
+  "type": "object",
+  "properties": {
+    "format": {
+      "type": "string",
+      "description": "包格式标识",
+      "const": "archiver-export"
+    },
+    "version": {
+      "type": "integer",
+      "description": "包格式版本",
+      "const": 1
+    },
+    "structure": {
+      "type": "object",
+      "description": "包内目录结构",
+      "properties": {
+        "manifest": {
+          "type": "string",
+          "description": "元信息文件路径",
+          "const": "manifest.json"
+        },
+        "database": {
+          "type": "object",
+          "description": "数据库目录",
+          "properties": {
+            "path": {
+              "type": "string",
+              "const": "database/"
+            },
+            "files": {
+              "type": "array",
+              "description": "数据库文件",
+              "items": {
+                "type": "string",
+                "enum": ["archiver.sqlite"]
+              }
+            }
+          },
+          "required": ["path", "files"]
+        },
+        "media": {
+          "type": "object",
+          "description": "媒体文件目录",
+          "properties": {
+            "path": {
+              "type": "string",
+              "const": "media/"
+            },
+            "itemPattern": {
+              "type": "string",
+              "description": "每个 Item 的媒体子目录模式",
+              "const": "media/{itemUUID}/"
+            },
+            "filePattern": {
+              "type": "string",
+              "description": "文件命名模式",
+              "enum": ["cover.jpg", "image_{NNN}.jpg", "video.mp4", "thumbnail_{NNN}.jpg"]
+            }
+          },
+          "required": ["path"]
+        },
+        "customPlatforms": {
+          "type": "object",
+          "description": "自定义平台 Logo 目录",
+          "properties": {
+            "path": {
+              "type": "string",
+              "const": "custom-platforms/logos/"
+            }
+          },
+          "required": ["path"]
+        }
+      },
+      "required": ["manifest", "database", "media", "customPlatforms"]
+    },
+    "pathRules": {
+      "type": "object",
+      "description": "路径规则",
+      "properties": {
+        "separator": {
+          "type": "string",
+          "description": "路径分隔符",
+          "const": "/"
+        },
+        "absolutePathForbidden": {
+          "type": "boolean",
+          "description": "禁止使用绝对路径",
+          "const": true
+        },
+        "mediaLocalPath": {
+          "type": "string",
+          "description": "数据库中 media_assets.local_path 格式",
+          "const": "{itemUUID}/fileName"
+        }
+      }
+    }
+  },
+  "required": ["format", "version", "structure"]
+}

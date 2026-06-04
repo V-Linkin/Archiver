@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Manifest",
+  "description": "导出包元信息 — 未来跨平台推荐格式（替代 backup_info.json）",
+  "type": "object",
+  "properties": {
+    "app": {
+      "type": "string",
+      "const": "Archiver",
+      "description": "应用名称"
+    },
+    "formatVersion": {
+      "type": "integer",
+      "description": "导出包格式版本号",
+      "minimum": 1,
+      "default": 1
+    },
+    "exportedAt": {
+      "type": "integer",
+      "description": "导出时间，Unix timestamp（秒）"
+    },
+    "sourcePlatform": {
+      "type": "string",
+      "description": "导出来源平台",
+      "enum": ["macOS", "Windows"]
+    },
+    "databaseVersion": {
+      "type": "integer",
+      "description": "数据库 schema 版本（与 GRDB migration 一致）",
+      "minimum": 1
+    },
+    "containsDatabase": {
+      "type": "boolean",
+      "description": "是否包含数据库文件"
+    },
+    "containsMedia": {
+      "type": "boolean",
+      "description": "是否包含媒体文件"
+    },
+    "itemCount": {
+      "type": "integer",
+      "description": "导出的 Item 数量",
+      "minimum": 0
+    },
+    "mediaCount": {
+      "type": "integer",
+      "description": "导出的 MediaAsset 数量",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "app",
+    "formatVersion",
+    "exportedAt",
+    "sourcePlatform",
+    "databaseVersion",
+    "containsDatabase",
+    "containsMedia",
+    "itemCount",
+    "mediaCount"
+  ]
+}

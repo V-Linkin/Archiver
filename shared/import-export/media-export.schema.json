@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MediaExport",
+  "description": "导出时 MediaAsset 的字段定义 — 复用 shared/model/media_asset.schema.json 的字段语义，新增 packagePath（导出包内相对路径）",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "主键，UUID v4"
+    },
+    "itemID": {
+      "type": "string",
+      "format": "uuid",
+      "description": "所属内容 ID"
+    },
+    "type": {
+      "type": "string",
+      "description": "媒体类型 rawValue",
+      "enum": ["image", "cover", "video", "thumbnail"]
+    },
+    "localPath": {
+      "type": ["string", "null"],
+      "description": "数据库中的相对路径（{itemUUID}/fileName），跨平台友好"
+    },
+    "remoteURL": {
+      "type": ["string", "null"],
+      "description": "远程原始 URL"
+    },
+    "fileName": {
+      "type": "string",
+      "description": "文件名"
+    },
+    "fileSize": {
+      "type": "integer",
+      "description": "文件大小（字节）"
+    },
+    "mimeType": {
+      "type": ["string", "null"],
+      "description": "MIME 类型"
+    },
+    "width": {
+      "type": ["integer", "null"],
+      "description": "图片/视频宽度（像素）"
+    },
+    "height": {
+      "type": ["integer", "null"],
+      "description": "图片/视频高度（像素）"
+    },
+    "duration": {
+      "type": ["number", "null"],
+      "description": "视频时长（秒）"
+    },
+    "checksum": {
+      "type": ["string", "null"],
+      "description": "文件校验和"
+    },
+    "downloadStatus": {
+      "type": "string",
+      "description": "下载状态 rawValue",
+      "enum": ["pending", "downloading", "completed", "failed", "skipped"]
+    },
+    "thumbnailPath": {
+      "type": ["string", "null"],
+      "description": "缩略图相对路径"
+    },
+    "createdAt": {
+      "type": "number",
+      "description": "创建时间，Unix timestamp（秒）"
+    },
+    "packagePath": {
+      "type": ["string", "null"],
+      "description": "导出包内的相对路径（导出包元数据，非数据库字段）。格式：media/{itemUUID}/fileName"
+    }
+  },
+  "required": ["id", "itemID", "type", "fileName", "fileSize", "downloadStatus", "createdAt"],
+  "notes": {
+    "packagePath": "此字段为导出包元数据，不属于数据库字段。用于还原时定位 zip 内的文件位置。数据库中的 localPath 已经是相对路径，两者语义不同。"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FolderExport",
+  "description": "导出时 Folder 的字段定义 — 复用 shared/model/folder.schema.json 的字段语义",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "主键，UUID v4"
+    },
+    "name": {
+      "type": "string",
+      "description": "文件夹名称"
+    },
+    "parentID": {
+      "type": ["string", "null"],
+      "format": "uuid",
+      "description": "父文件夹 ID，NULL 表示顶级"
+    },
+    "platform": {
+      "type": "string",
+      "description": "所属平台 rawValue",
+      "enum": ["douyin", "xiaohongshu", "coolapk", "bilibili", "github", "youtube", "x", "weibo", "zhihu", "douban", "custom"]
+    },
+    "customPlatformID": {
+      "type": ["string", "null"],
+      "format": "uuid",
+      "description": "自定义平台 ID"
+    },
+    "createdAt": {
+      "type": "number",
+      "description": "创建时间，Unix timestamp（秒）"
+    },
+    "sortOrder": {
+      "type": "integer",
+      "description": "排序序号"
+    }
+  },
+  "required": ["id", "name", "platform", "createdAt", "sortOrder"]
+}
