@@ -94,18 +94,53 @@ shared/parsers/fixtures/
 
 ## 3. 当前进行中阶段
 
-### Phase 4：macOS 内部边界优化
+### Phase 4A：macOS 内部边界只读审计 ✅
+
+状态：已完成并确认通过。
+
+结论：
+
+* AppState 是"上帝对象"，混合了 Repository 引用、数据加载、UI 状态、业务逻辑
+* 几乎所有 View 都通过 `appState.xxxRepo` 直接操作数据库
+* Repository 层结构良好，只做 CRUD + SQL 查询 + Row 映射
+* 缺失 ViewModel 层
+* `performTrash()` 在 5 个 View 中重复
+* 建议按风险从低到高拆分：Search → ItemService → 平台/文件夹 View → ItemDetailView → AppState
+
+### Phase 4B：Search 边界优化 ✅
+
+状态：已完成并验收通过。
+
+新增：
+
+```text
+Services/SearchService.swift
+```
+
+改动：
+
+```text
+App/ContentView.swift — performSearch() 改为调用 SearchService
+```
+
+结论：
+
+* 新增 SearchService 封装 SearchRepository 调用
+* ContentView.performSearch() 不再直接调用 SearchRepository
+* 搜索 UI 和 SQL 行为未改变
+* 验证了 View → Service → Repository 分层模式可行
+* SearchResultsView 未修改
+* SearchRepository 未修改
+
+### Phase 4C：ItemService.trashItem()
 
 状态：待开始。
 
 目标：
 
-* View 不直接操作数据库
-* ViewModel 调用 Service
-* Repository 只处理数据访问
-* Service 处理业务流程
-
-此阶段开始才允许小范围重构 Swift 代码。
+* 抽取 performTrash() 到 ItemService.trashItem()
+* 抽取 createFolder() 到 FolderService
+* Views 改为调用 Service 而非直接调 Repository
 
 ---
 
@@ -147,6 +182,8 @@ Phase 2C: Phase 2C: 创建跨平台导入/导出格式契约
 Phase 3A: Phase 3A: 创建 URLNormalizer 跨平台规则契约
 Phase 3B: Phase 3B: 创建 Parser 跨平台契约
 Phase 3C: Phase 3C: 创建 Parser Fixtures 测试数据
+Phase 4A: Phase 4A: macOS 内部边界只读审计
+Phase 4B: Phase 4B: Search 边界优化
 ```
 
 ---

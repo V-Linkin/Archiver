@@ -32,6 +32,7 @@ struct ContentView: View {
     @Environment(AppState.self) private var appState
     @State private var selectedNav: NavigationTarget? = .home
     @State private var previousNav: NavigationTarget? = .home
+    private let searchService = SearchService()
     
     // Image viewer state (lifted to cover entire window including sidebar)
     @State private var coverImages: [NSImage] = []
@@ -199,10 +200,10 @@ struct ContentView: View {
     }
     
     private func performSearch() {
-        let repo = appState.searchRepo
+        let service = searchService
         let query = appState.searchQuery
         DispatchQueue.global(qos: .userInitiated).async {
-            let results = (try? repo.search(query: query)) ?? []
+            let results = (try? service.search(query: query)) ?? []
             DispatchQueue.main.async { appState.searchResults = results }
         }
     }
