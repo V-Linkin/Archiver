@@ -1,0 +1,99 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Parser Fixture Schema",
+  "description": "定义单条 Parser 测试夹具的结构。用于 macOS 和 Windows 端验证解析一致性。",
+  "type": "object",
+  "required": ["id", "platform", "parser", "inputURL", "expected", "assertions"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "唯一标识符，格式: {platform}-{type}-{variant}"
+    },
+    "platform": {
+      "type": "string",
+      "description": "平台 rawValue，必须与 shared/model/enums.json 中的 Platform 枚举一致",
+      "enum": ["douyin", "xiaohongshu", "coolapk", "bilibili", "github", "youtube", "x", "weibo", "zhihu", "douban"]
+    },
+    "parser": {
+      "type": "string",
+      "description": "对应的 Swift Parser 类名"
+    },
+    "inputURL": {
+      "type": "string",
+      "format": "uri",
+      "description": "输入 URL"
+    },
+    "expected": {
+      "type": "object",
+      "description": "期望的解析结果",
+      "required": ["platform", "normalizedURL"],
+      "properties": {
+        "platform": {
+          "type": "string",
+          "description": "期望识别的平台"
+        },
+        "contentID": {
+          "type": ["string", "null"],
+          "description": "期望提取的 content ID。短链无法直接提取时为 null。"
+        },
+        "normalizedURL": {
+          "type": ["string", "null"],
+          "description": "期望的 normalizedURL。短链无法提取 ID 时为原始 URL。"
+        },
+        "strategy": {
+          "type": "string",
+          "enum": ["http", "api", "http_mirror", "third_party_api"],
+          "description": "期望的解析策略"
+        },
+        "requiresNetwork": {
+          "type": "boolean",
+          "description": "是否需要网络请求"
+        },
+        "requiresWebView": {
+          "type": "boolean",
+          "description": "是否可能需要 WebView 降级"
+        },
+        "shortLinkExpansion": {
+          "type": "boolean",
+          "description": "是否需要短链展开"
+        },
+        "stability": {
+          "type": "string",
+          "enum": ["stable", "volatile"],
+          "description": "该 fixture 的稳定性。stable = 低风险平台纯 HTTP/API，volatile = 高风险平台依赖 WebView/DOM。"
+        }
+      }
+    },
+    "assertions": {
+      "type": "object",
+      "description": "断言配置",
+      "required": ["strong", "weak"],
+      "properties": {
+        "strong": {
+          "type": "object",
+          "description": "强断言 — 必须完全一致，跨平台保持相同结果",
+          "properties": {
+            "platform": { "type": "boolean", "description": "验证平台识别" },
+            "contentID": { "type": "boolean", "description": "验证 content ID 提取" },
+            "normalizedURL": { "type": "boolean", "description": "验证 normalizedURL 生成" },
+            "parser": { "type": "boolean", "description": "验证路由到正确的 Parser" }
+          }
+        },
+        "weak": {
+          "type": "object",
+          "description": "弱断言 — 允许平台改版后失败，需人工确认",
+          "properties": {
+            "titlePresent": { "type": "boolean", "description": "验证 title 非空" },
+            "bodyPresent": { "type": "boolean", "description": "验证 body 非空" },
+            "authorPresent": { "type": "boolean", "description": "验证 author 非空" },
+            "mediaPresent": { "type": "boolean", "description": "验证至少有封面或图片" }
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": "string",
+      "description": "备注说明"
+    }
+  }
+}

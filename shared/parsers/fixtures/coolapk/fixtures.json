@@ -1,0 +1,50 @@
+{
+  "platform": "coolapk",
+  "parser": "CoolapkParser",
+  "strategy": "http_mirror",
+  "stability": "volatile",
+  "fixtures": [
+    {
+      "id": "coolapk-feed",
+      "platform": "coolapk",
+      "parser": "CoolapkParser",
+      "inputURL": "https://www.coolapk.com/feed/12345678",
+      "expected": {
+        "platform": "coolapk",
+        "contentID": "12345678",
+        "normalizedURL": "coolapk://feed/12345678",
+        "strategy": "http_mirror",
+        "requiresNetwork": true,
+        "requiresWebView": true,
+        "shortLinkExpansion": false,
+        "stability": "volatile"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": true, "mediaPresent": false }
+      },
+      "notes": "标准 feed 链接。优先镜像站，降级到 WKWebView。"
+    },
+    {
+      "id": "coolapk1s-feed",
+      "platform": "coolapk",
+      "parser": "CoolapkParser",
+      "inputURL": "https://www.coolapk1s.com/feed/12345678",
+      "expected": {
+        "platform": "coolapk",
+        "contentID": "12345678",
+        "normalizedURL": "coolapk://feed/12345678",
+        "strategy": "http_mirror",
+        "requiresNetwork": true,
+        "requiresWebView": true,
+        "shortLinkExpansion": false,
+        "stability": "volatile"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": true, "mediaPresent": false }
+      },
+      "notes": "coolapk1s.com 域名也能识别"
+    }
+  ]
+}

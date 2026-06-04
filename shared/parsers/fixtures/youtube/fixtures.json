@@ -1,0 +1,71 @@
+{
+  "platform": "youtube",
+  "parser": "YouTubeParser",
+  "strategy": "http",
+  "stability": "stable",
+  "fixtures": [
+    {
+      "id": "youtube-watch",
+      "platform": "youtube",
+      "parser": "YouTubeParser",
+      "inputURL": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "expected": {
+        "platform": "youtube",
+        "contentID": "dQw4w9WgXcQ",
+        "normalizedURL": "youtube://video/dQw4w9WgXcQ",
+        "strategy": "http",
+        "requiresNetwork": true,
+        "requiresWebView": false,
+        "shortLinkExpansion": false,
+        "stability": "stable"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": true, "mediaPresent": false }
+      },
+      "notes": "YouTube 标准 watch 链接"
+    },
+    {
+      "id": "youtube-short-url",
+      "platform": "youtube",
+      "parser": "YouTubeParser",
+      "inputURL": "https://youtu.be/dQw4w9WgXcQ",
+      "expected": {
+        "platform": "youtube",
+        "contentID": "dQw4w9WgXcQ",
+        "normalizedURL": "youtube://video/dQw4w9WgXcQ",
+        "strategy": "http",
+        "requiresNetwork": true,
+        "requiresWebView": false,
+        "shortLinkExpansion": false,
+        "stability": "stable"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": true, "mediaPresent": false }
+      },
+      "notes": "youtu.be 短链接，同一视频应归一到相同 normalizedURL"
+    },
+    {
+      "id": "youtube-shorts",
+      "platform": "youtube",
+      "parser": "YouTubeParser",
+      "inputURL": "https://www.youtube.com/shorts/dQw4w9WgXcQ",
+      "expected": {
+        "platform": "youtube",
+        "contentID": "dQw4w9WgXcQ",
+        "normalizedURL": "youtube://video/dQw4w9WgXcQ",
+        "strategy": "http",
+        "requiresNetwork": true,
+        "requiresWebView": false,
+        "shortLinkExpansion": false,
+        "stability": "stable"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": true, "mediaPresent": false }
+      },
+      "notes": "YouTube Shorts 链接"
+    }
+  ]
+}

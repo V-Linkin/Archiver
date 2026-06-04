@@ -1,0 +1,71 @@
+{
+  "platform": "xiaohongshu",
+  "parser": "XiaohongshuParser",
+  "strategy": "http",
+  "stability": "volatile",
+  "fixtures": [
+    {
+      "id": "xhs-explore",
+      "platform": "xiaohongshu",
+      "parser": "XiaohongshuParser",
+      "inputURL": "https://www.xiaohongshu.com/explore/65a1b2c3d4e5f6789012345",
+      "expected": {
+        "platform": "xiaohongshu",
+        "contentID": "65a1b2c3d4e5f6789012345",
+        "normalizedURL": "xiaohongshu://explore/65a1b2c3d4e5f6789012345",
+        "strategy": "http",
+        "requiresNetwork": true,
+        "requiresWebView": true,
+        "shortLinkExpansion": false,
+        "stability": "volatile"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": true, "mediaPresent": false }
+      },
+      "notes": "标准 explore 链接。HTTP 失败时降级到 WKWebView。"
+    },
+    {
+      "id": "xhs-discovery",
+      "platform": "xiaohongshu",
+      "parser": "XiaohongshuParser",
+      "inputURL": "https://www.xiaohongshu.com/discovery/item/65a1b2c3d4e5f6789012345",
+      "expected": {
+        "platform": "xiaohongshu",
+        "contentID": "65a1b2c3d4e5f6789012345",
+        "normalizedURL": "xiaohongshu://explore/65a1b2c3d4e5f6789012345",
+        "strategy": "http",
+        "requiresNetwork": true,
+        "requiresWebView": true,
+        "shortLinkExpansion": false,
+        "stability": "volatile"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": true, "mediaPresent": false }
+      },
+      "notes": "discovery 格式，与 explore 应归一到相同 normalizedURL"
+    },
+    {
+      "id": "xhs-shortlink",
+      "platform": "xiaohongshu",
+      "parser": "XiaohongshuParser",
+      "inputURL": "https://xhslink.com/abc123",
+      "expected": {
+        "platform": "xiaohongshu",
+        "contentID": null,
+        "normalizedURL": "https://xhslink.com/abc123",
+        "strategy": "http",
+        "requiresNetwork": true,
+        "requiresWebView": true,
+        "shortLinkExpansion": true,
+        "stability": "volatile"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": false, "normalizedURL": false, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": true, "mediaPresent": false }
+      },
+      "notes": "xhslink.com 短链。URLNormalizer 可识别平台但无法提取 ID。Parser/WebView 展开后才能获取完整内容。"
+    }
+  ]
+}

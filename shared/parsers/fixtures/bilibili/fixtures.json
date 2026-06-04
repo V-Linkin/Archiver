@@ -1,0 +1,71 @@
+{
+  "platform": "bilibili",
+  "parser": "BilibiliParser",
+  "strategy": "api",
+  "stability": "stable",
+  "fixtures": [
+    {
+      "id": "bilibili-video-bv",
+      "platform": "bilibili",
+      "parser": "BilibiliParser",
+      "inputURL": "https://www.bilibili.com/video/BV1GJ411x7h7",
+      "expected": {
+        "platform": "bilibili",
+        "contentID": "BV1GJ411x7h7",
+        "normalizedURL": "bilibili://video/BV1GJ411x7h7",
+        "strategy": "api",
+        "requiresNetwork": true,
+        "requiresWebView": false,
+        "shortLinkExpansion": false,
+        "stability": "stable"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": true, "mediaPresent": false }
+      },
+      "notes": "B站公开视频，BV 号格式"
+    },
+    {
+      "id": "bilibili-video-av",
+      "platform": "bilibili",
+      "parser": "BilibiliParser",
+      "inputURL": "https://www.bilibili.com/video/av170001",
+      "expected": {
+        "platform": "bilibili",
+        "contentID": "av170001",
+        "normalizedURL": "bilibili://video/av170001",
+        "strategy": "api",
+        "requiresNetwork": true,
+        "requiresWebView": false,
+        "shortLinkExpansion": false,
+        "stability": "stable"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": true, "mediaPresent": false }
+      },
+      "notes": "B站 av 号格式，可能已被重定向"
+    },
+    {
+      "id": "bilibili-shortlink-b23",
+      "platform": "bilibili",
+      "parser": "BilibiliParser",
+      "inputURL": "https://b23.tv/abc123",
+      "expected": {
+        "platform": "bilibili",
+        "contentID": null,
+        "normalizedURL": "https://b23.tv/abc123",
+        "strategy": "api",
+        "requiresNetwork": true,
+        "requiresWebView": false,
+        "shortLinkExpansion": true,
+        "stability": "stable"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": false, "normalizedURL": false, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": true, "mediaPresent": false }
+      },
+      "notes": "b23.tv 短链。URLNormalizer 可识别平台但无法提取 ID。Parser 通过 HTTP HEAD 展开后才能获取 BV 号。contentID 和 normalizedURL 在展开前不可预测。"
+    }
+  ]
+}

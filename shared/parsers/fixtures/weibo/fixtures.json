@@ -1,0 +1,71 @@
+{
+  "platform": "weibo",
+  "parser": "WeiboParser",
+  "strategy": "http",
+  "stability": "stable",
+  "fixtures": [
+    {
+      "id": "weibo-desktop-status",
+      "platform": "weibo",
+      "parser": "WeiboParser",
+      "inputURL": "https://weibo.com/status/4892046789012",
+      "expected": {
+        "platform": "weibo",
+        "contentID": "4892046789012",
+        "normalizedURL": "weibo://status/4892046789012",
+        "strategy": "http",
+        "requiresNetwork": true,
+        "requiresWebView": false,
+        "shortLinkExpansion": false,
+        "stability": "stable"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": true, "mediaPresent": false }
+      },
+      "notes": "桌面端标准微博链接"
+    },
+    {
+      "id": "weibo-mobile-detail",
+      "platform": "weibo",
+      "parser": "WeiboParser",
+      "inputURL": "https://m.weibo.cn/detail/4892046789012",
+      "expected": {
+        "platform": "weibo",
+        "contentID": "4892046789012",
+        "normalizedURL": "weibo://status/4892046789012",
+        "strategy": "http",
+        "requiresNetwork": true,
+        "requiresWebView": false,
+        "shortLinkExpansion": false,
+        "stability": "stable"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": true, "mediaPresent": false }
+      },
+      "notes": "移动端 detail 链接，与桌面端应归一到相同 normalizedURL"
+    },
+    {
+      "id": "weibo-mobile-status",
+      "platform": "weibo",
+      "parser": "WeiboParser",
+      "inputURL": "https://m.weibo.cn/status/4892046789012",
+      "expected": {
+        "platform": "weibo",
+        "contentID": "4892046789012",
+        "normalizedURL": "weibo://status/4892046789012",
+        "strategy": "http",
+        "requiresNetwork": true,
+        "requiresWebView": false,
+        "shortLinkExpansion": false,
+        "stability": "stable"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": true, "mediaPresent": false }
+      },
+      "notes": "移动端 status 链接"
+    }
+  ]
+}

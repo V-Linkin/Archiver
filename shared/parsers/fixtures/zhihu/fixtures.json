@@ -1,0 +1,71 @@
+{
+  "platform": "zhihu",
+  "parser": "ZhihuParser",
+  "strategy": "api",
+  "stability": "volatile",
+  "fixtures": [
+    {
+      "id": "zhihu-answer",
+      "platform": "zhihu",
+      "parser": "ZhihuParser",
+      "inputURL": "https://www.zhihu.com/question/12345678/answer/87654321",
+      "expected": {
+        "platform": "zhihu",
+        "contentID": "87654321",
+        "normalizedURL": "zhihu://content/87654321",
+        "strategy": "api",
+        "requiresNetwork": true,
+        "requiresWebView": true,
+        "shortLinkExpansion": false,
+        "stability": "volatile"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": true, "mediaPresent": false }
+      },
+      "notes": "回答链接。优先 Answer API，降级到 WKWebView。"
+    },
+    {
+      "id": "zhihu-post",
+      "platform": "zhihu",
+      "parser": "ZhihuParser",
+      "inputURL": "https://zhuanlan.zhihu.com/p/12345678",
+      "expected": {
+        "platform": "zhihu",
+        "contentID": "12345678",
+        "normalizedURL": "zhihu://content/12345678",
+        "strategy": "api",
+        "requiresNetwork": true,
+        "requiresWebView": true,
+        "shortLinkExpansion": false,
+        "stability": "volatile"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": true, "mediaPresent": false }
+      },
+      "notes": "专栏文章链接。优先 Article API。"
+    },
+    {
+      "id": "zhihu-column",
+      "platform": "zhihu",
+      "parser": "ZhihuParser",
+      "inputURL": "https://www.zhihu.com/column/c_12345678",
+      "expected": {
+        "platform": "zhihu",
+        "contentID": "c_12345678",
+        "normalizedURL": "zhihu://content/c_12345678",
+        "strategy": "api",
+        "requiresNetwork": true,
+        "requiresWebView": true,
+        "shortLinkExpansion": false,
+        "stability": "volatile"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": false, "authorPresent": false, "mediaPresent": false }
+      },
+      "notes": "专栏页面。column 类型的 body/author 可能不填充。"
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "platform": "x",
+  "parser": "XParser",
+  "strategy": "third_party_api",
+  "stability": "stable",
+  "fixtures": [
+    {
+      "id": "x-tweet-x-dot-com",
+      "platform": "x",
+      "parser": "XParser",
+      "inputURL": "https://x.com/elonmusk/status/1234567890",
+      "expected": {
+        "platform": "x",
+        "contentID": "1234567890",
+        "normalizedURL": "x://tweet/1234567890",
+        "strategy": "third_party_api",
+        "requiresNetwork": true,
+        "requiresWebView": false,
+        "shortLinkExpansion": false,
+        "stability": "stable"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": true, "mediaPresent": false }
+      },
+      "notes": "x.com 域名。依赖 fxtwitter API，API 可用性不可控。"
+    },
+    {
+      "id": "x-tweet-twitter-dot-com",
+      "platform": "x",
+      "parser": "XParser",
+      "inputURL": "https://twitter.com/elonmusk/status/1234567890",
+      "expected": {
+        "platform": "x",
+        "contentID": "1234567890",
+        "normalizedURL": "x://tweet/1234567890",
+        "strategy": "third_party_api",
+        "requiresNetwork": true,
+        "requiresWebView": false,
+        "shortLinkExpansion": false,
+        "stability": "stable"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": true, "mediaPresent": false }
+      },
+      "notes": "twitter.com 域名，与 x.com 同平台，应归一到相同 normalizedURL"
+    },
+    {
+      "id": "x-tweet-i-status",
+      "platform": "x",
+      "parser": "XParser",
+      "inputURL": "https://x.com/i/status/1234567890",
+      "expected": {
+        "platform": "x",
+        "contentID": "1234567890",
+        "normalizedURL": "x://tweet/1234567890",
+        "strategy": "third_party_api",
+        "requiresNetwork": true,
+        "requiresWebView": false,
+        "shortLinkExpansion": false,
+        "stability": "stable"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": false, "mediaPresent": false }
+      },
+      "notes": "/i/status/ 格式，URL 中无用户名。XParser 需要 username 才能调用 fxtwitter API，此格式可能解析失败。"
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "platform": "github",
+  "parser": "GitHubParser",
+  "strategy": "http",
+  "stability": "stable",
+  "fixtures": [
+    {
+      "id": "github-repo-basic",
+      "platform": "github",
+      "parser": "GitHubParser",
+      "inputURL": "https://github.com/octocat/Hello-World",
+      "expected": {
+        "platform": "github",
+        "contentID": "octocat/Hello-World",
+        "normalizedURL": "github://repo/octocat/Hello-World",
+        "strategy": "http",
+        "requiresNetwork": true,
+        "requiresWebView": false,
+        "shortLinkExpansion": false,
+        "stability": "stable"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": true, "mediaPresent": false }
+      },
+      "notes": "GitHub 官方示例仓库"
+    },
+    {
+      "id": "github-repo-swift",
+      "platform": "github",
+      "parser": "GitHubParser",
+      "inputURL": "https://github.com/nicklockwood/SwiftFormat",
+      "expected": {
+        "platform": "github",
+        "contentID": "nicklockwood/SwiftFormat",
+        "normalizedURL": "github://repo/nicklockwood/SwiftFormat",
+        "strategy": "http",
+        "requiresNetwork": true,
+        "requiresWebView": false,
+        "shortLinkExpansion": false,
+        "stability": "stable"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": true, "mediaPresent": false }
+      },
+      "notes": "有 README 的公开仓库"
+    },
+    {
+      "id": "github-repo-with-query",
+      "platform": "github",
+      "parser": "GitHubParser",
+      "inputURL": "https://github.com/microsoft/TypeScript#readme",
+      "expected": {
+        "platform": "github",
+        "contentID": "microsoft/TypeScript",
+        "normalizedURL": "github://repo/microsoft/TypeScript",
+        "strategy": "http",
+        "requiresNetwork": true,
+        "requiresWebView": false,
+        "shortLinkExpansion": false,
+        "stability": "stable"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": true, "mediaPresent": false }
+      },
+      "notes": "带 #readme hash 的仓库 URL"
+    }
+  ]
+}

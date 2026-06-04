@@ -1,0 +1,71 @@
+{
+  "platform": "douban",
+  "parser": "DoubanParser",
+  "strategy": "http",
+  "stability": "volatile",
+  "fixtures": [
+    {
+      "id": "douban-subject-movie",
+      "platform": "douban",
+      "parser": "DoubanParser",
+      "inputURL": "https://movie.douban.com/subject/35517853/",
+      "expected": {
+        "platform": "douban",
+        "contentID": "35517853",
+        "normalizedURL": "douban://subject/35517853",
+        "strategy": "http",
+        "requiresNetwork": true,
+        "requiresWebView": true,
+        "shortLinkExpansion": false,
+        "stability": "volatile"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": false, "mediaPresent": false }
+      },
+      "notes": "电影条目。末尾斜杠不影响匹配。移动端优先，降级到 WKWebView。2 秒限频。"
+    },
+    {
+      "id": "douban-subject-book",
+      "platform": "douban",
+      "parser": "DoubanParser",
+      "inputURL": "https://book.douban.com/subject/35517853/",
+      "expected": {
+        "platform": "douban",
+        "contentID": "35517853",
+        "normalizedURL": "douban://subject/35517853",
+        "strategy": "http",
+        "requiresNetwork": true,
+        "requiresWebView": true,
+        "shortLinkExpansion": false,
+        "stability": "volatile"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": false, "mediaPresent": false }
+      },
+      "notes": "书籍条目，book.douban.com 子域名"
+    },
+    {
+      "id": "douban-subject-with-query",
+      "platform": "douban",
+      "parser": "DoubanParser",
+      "inputURL": "https://movie.douban.com/subject/35517853?from=showing",
+      "expected": {
+        "platform": "douban",
+        "contentID": "35517853",
+        "normalizedURL": "douban://subject/35517853",
+        "strategy": "http",
+        "requiresNetwork": true,
+        "requiresWebView": true,
+        "shortLinkExpansion": false,
+        "stability": "volatile"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": false, "mediaPresent": false }
+      },
+      "notes": "带 query 参数，不影响 contentID 提取"
+    }
+  ]
+}

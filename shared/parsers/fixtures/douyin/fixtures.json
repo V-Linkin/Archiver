@@ -1,0 +1,71 @@
+{
+  "platform": "douyin",
+  "parser": "DouyinParser",
+  "strategy": "http",
+  "stability": "stable",
+  "fixtures": [
+    {
+      "id": "douyin-desktop-video",
+      "platform": "douyin",
+      "parser": "DouyinParser",
+      "inputURL": "https://www.douyin.com/video/7301234567890",
+      "expected": {
+        "platform": "douyin",
+        "contentID": "7301234567890",
+        "normalizedURL": "douyin://video/7301234567890",
+        "strategy": "http",
+        "requiresNetwork": true,
+        "requiresWebView": false,
+        "shortLinkExpansion": false,
+        "stability": "stable"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": true, "mediaPresent": false }
+      },
+      "notes": "桌面端标准视频链接"
+    },
+    {
+      "id": "douyin-mobile-share",
+      "platform": "douyin",
+      "parser": "DouyinParser",
+      "inputURL": "https://www.iesdouyin.com/share/video/7301234567890",
+      "expected": {
+        "platform": "douyin",
+        "contentID": "7301234567890",
+        "normalizedURL": "douyin://video/7301234567890",
+        "strategy": "http",
+        "requiresNetwork": true,
+        "requiresWebView": false,
+        "shortLinkExpansion": false,
+        "stability": "stable"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": true, "mediaPresent": false }
+      },
+      "notes": "移动端分享链接，与桌面端应归一到相同 normalizedURL"
+    },
+    {
+      "id": "douyin-with-tracking",
+      "platform": "douyin",
+      "parser": "DouyinParser",
+      "inputURL": "https://www.douyin.com/video/7301234567890?from_share=single&share_type=copy",
+      "expected": {
+        "platform": "douyin",
+        "contentID": "7301234567890",
+        "normalizedURL": "douyin://video/7301234567890",
+        "strategy": "http",
+        "requiresNetwork": true,
+        "requiresWebView": false,
+        "shortLinkExpansion": false,
+        "stability": "stable"
+      },
+      "assertions": {
+        "strong": { "platform": true, "contentID": true, "normalizedURL": true, "parser": true },
+        "weak": { "titlePresent": true, "bodyPresent": true, "authorPresent": true, "mediaPresent": false }
+      },
+      "notes": "带 tracking 参数，不影响 normalizedURL"
+    }
+  ]
+}
