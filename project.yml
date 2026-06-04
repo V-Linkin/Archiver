@@ -35,6 +35,12 @@ targets:
       - path: Resources
       - path: Assets.xcassets
       - path: Info.plist
+      - path: shared/db
+        type: folder
+        buildPhase: resources
+        rules:
+          - filePattern: "*.sql"
+            buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.archiver.app
