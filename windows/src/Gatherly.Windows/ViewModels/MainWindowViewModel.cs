@@ -52,12 +52,16 @@ public partial class MainWindowViewModel : ObservableObject
     public SearchViewModel Search { get; }
     public TrashViewModel Trash { get; }
 
+    private readonly ItemService _itemService;
+
     public MainWindowViewModel(SqliteConnection connection)
     {
         var itemRepo = new ItemRepository(connection);
         var folderRepo = new FolderRepository(connection);
         var searchRepo = new SearchRepository(connection);
         var trashRepo = new TrashRepository(connection);
+
+        _itemService = new ItemService(itemRepo, trashRepo);
 
         Home = new HomeViewModel(new HomeDataService(itemRepo));
         ContentList = new ContentListViewModel(new ContentListService(itemRepo, folderRepo));
@@ -98,4 +102,32 @@ public partial class MainWindowViewModel : ObservableObject
 
     [RelayCommand]
     private void ShowTrash() => CurrentSection = "Trash";
+
+    [RelayCommand]
+    private async Task TrashSelectedItemAsync()
+    {
+        if (SelectedItem == null) return;
+
+        try
+        {
+            await _itemService.TrashItemAsync(SelectedItem);
+
+            // Clear selection
+            SelectedItem = null;
+
+            // Clear sub-ViewModel selections
+            Home.SelectedItem = null;
+            ContentList.SelectedItem = null;
+            Search.SelectedItem = null;
+            Trash.SelectedItem = null;
+
+            // Refresh lists
+            await Home.LoadCommand.ExecuteAsync(null);
+            await Trash.LoadCommand.ExecuteAsync(null);
+        }
+        catch
+        {
+            // Silently ignore errors for now
+        }
+    }
 }

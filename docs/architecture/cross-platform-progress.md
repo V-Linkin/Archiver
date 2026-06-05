@@ -653,6 +653,38 @@ windows/src/Gatherly.Windows/Views/TrashView.axaml — ListBox 绑定 SelectedIt
 * 尚未实现编辑 / 删除 / 恢复 / 移动 / 媒体
 * macOS 项目不受影响
 
+### Phase 5I：Windows 移入回收站写入能力 ✅
+
+状态：已完成。
+
+新增：
+
+```text
+windows/src/Gatherly.Windows/Services/ItemService.cs — TrashItemAsync()
+windows/tests/Gatherly.Windows.Tests/ItemServiceTests.cs — 13 个测试
+windows/tests/Gatherly.Windows.Tests/WriteRepositoryTests.cs — 8 个测试
+```
+
+改动：
+
+```text
+windows/src/Gatherly.Windows/Database/ItemRepository.cs — 新增 UpdateAsync()
+windows/src/Gatherly.Windows/Database/TrashRepository.cs — 新增 InsertAsync()
+windows/src/Gatherly.Windows/ViewModels/MainWindowViewModel.cs — 新增 TrashSelectedItemCommand
+```
+
+结论：
+
+* ItemService.TrashItemAsync() 严格对齐 macOS ItemService.trashItem() 语义
+* 设置 deletedAt = now, contentStatus = trashed
+* 创建 TrashRecord 保存 originalFolderId, originalArchiveStatus, mediaPaths
+* autoDeleteAt = deletedAt + 30 天
+* MainWindowViewModel.TrashSelectedItemCommand 可触发移入回收站
+* 成功后清空 SelectedItem，刷新 Home 和 Trash 列表
+* 94 个测试全部通过（含 21 个写入测试）
+* 尚未实现恢复 / 永久删除 / 备注编辑 / 移动
+* macOS 项目不受影响
+
 
 ---
 
@@ -716,6 +748,7 @@ Phase 5E: Phase 5E: Windows 搜索 / 列表数据服务
 Phase 5F: Phase 5F: Windows ViewModels
 Phase 5G: Phase 5G: Windows 基础 UI 骨架
 Phase 5H: Phase 5H: Windows 内容详情只读页
+Phase 5I: Phase 5I: Windows 移入回收站写入能力
 ```
 
 ---

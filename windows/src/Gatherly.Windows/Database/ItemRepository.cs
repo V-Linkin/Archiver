@@ -5,7 +5,7 @@ using Microsoft.Data.Sqlite;
 namespace Gatherly.Windows.Database;
 
 /// <summary>
-/// Item 数据访问层 — 只读
+/// Item 数据访问层 — 读取 + 最小写入
 /// </summary>
 public class ItemRepository
 {
@@ -16,9 +16,8 @@ public class ItemRepository
         _connection = connection;
     }
 
-    /// <summary>
-    /// 获取最近导入的内容（默认排除已删除）
-    /// </summary>
+    // ==================== Read ====================
+
     public async Task<List<Item>> GetRecentAsync(int limit = 100)
     {
         using var cmd = _connection.CreateCommand();
@@ -27,9 +26,6 @@ public class ItemRepository
         return await ReadItemsAsync(cmd);
     }
 
-    /// <summary>
-    /// 根据 ID 获取 item
-    /// </summary>
     public async Task<Item?> GetByIdAsync(Guid id)
     {
         using var cmd = _connection.CreateCommand();
@@ -39,9 +35,6 @@ public class ItemRepository
         return await reader.ReadAsync() ? SqliteRowMapper.ReadItem(reader) : null;
     }
 
-    /// <summary>
-    /// 按平台获取内容
-    /// </summary>
     public async Task<List<Item>> GetByPlatformAsync(Platform platform, int limit = 100)
     {
         using var cmd = _connection.CreateCommand();
@@ -51,9 +44,6 @@ public class ItemRepository
         return await ReadItemsAsync(cmd);
     }
 
-    /// <summary>
-    /// 按文件夹 ID 获取内容
-    /// </summary>
     public async Task<List<Item>> GetByFolderIdAsync(Guid folderId, int limit = 100)
     {
         using var cmd = _connection.CreateCommand();
@@ -63,9 +53,6 @@ public class ItemRepository
         return await ReadItemsAsync(cmd);
     }
 
-    /// <summary>
-    /// 按自定义平台 ID 获取内容
-    /// </summary>
     public async Task<List<Item>> GetByCustomPlatformIdAsync(Guid customPlatformId)
     {
         using var cmd = _connection.CreateCommand();
@@ -74,9 +61,6 @@ public class ItemRepository
         return await ReadItemsAsync(cmd);
     }
 
-    /// <summary>
-    /// 获取未分类内容（platform=custom 且 customPlatformId 为 null）
-    /// </summary>
     public async Task<List<Item>> GetUncategorizedItemsAsync()
     {
         using var cmd = _connection.CreateCommand();
@@ -85,14 +69,55 @@ public class ItemRepository
         return await ReadItemsAsync(cmd);
     }
 
-    /// <summary>
-    /// 获取回收站内容
-    /// </summary>
     public async Task<List<Item>> GetTrashedAsync()
     {
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = "SELECT * FROM items WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC";
         return await ReadItemsAsync(cmd);
+    }
+
+    // ==================== Write ====================
+
+    /// <summary>
+    /// 更新 item 全字段
+    /// </summary>
+    public async Task UpdateAsync(Item item)
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = @"
+            UPDATE items SET
+                title=$title, body=$body, original_url=$originalUrl, platform=$platform,
+                platform_content_id=$platformContentId, normalized_url=$normalizedUrl,
+                author=$author, author_id=$authorId,
+                publish_date=$publishDate, import_date=$importDate, modify_date=$modifyDate,
+                content_status=$contentStatus, archive_status=$archiveStatus,
+                media_status=$mediaStatus, cover_asset_id=$coverAssetId,
+                folder_id=$folderId, remark=$remark, is_starred=$isStarred,
+                version=$version, deleted_at=$deletedAt, custom_platform_id=$customPlatformId
+            WHERE id=$id";
+        cmd.Parameters.AddWithValue("$id", item.Id.ToString());
+        cmd.Parameters.AddWithValue("$title", (object?)item.Title ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$body", (object?)item.Body ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$originalUrl", item.OriginalUrl);
+        cmd.Parameters.AddWithValue("$platform", item.Platform.ToRawValue());
+        cmd.Parameters.AddWithValue("$platformContentId", (object?)item.PlatformContentId ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$normalizedUrl", item.NormalizedUrl);
+        cmd.Parameters.AddWithValue("$author", (object?)item.Author ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$authorId", (object?)item.AuthorId ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$publishDate", item.PublishDate?.ToUnixTimeSeconds() ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("$importDate", item.ImportDate.ToUnixTimeSeconds());
+        cmd.Parameters.AddWithValue("$modifyDate", item.ModifyDate.ToUnixTimeSeconds());
+        cmd.Parameters.AddWithValue("$contentStatus", item.ContentStatus.ToRawValue());
+        cmd.Parameters.AddWithValue("$archiveStatus", item.ArchiveStatus.ToRawValue());
+        cmd.Parameters.AddWithValue("$mediaStatus", item.MediaStatus.ToRawValue());
+        cmd.Parameters.AddWithValue("$coverAssetId", item.CoverAssetId?.ToString() ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("$folderId", item.FolderId?.ToString() ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("$remark", (object?)item.Remark ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$isStarred", item.IsStarred ? 1 : 0);
+        cmd.Parameters.AddWithValue("$version", item.Version);
+        cmd.Parameters.AddWithValue("$deletedAt", item.DeletedAt?.ToUnixTimeSeconds() ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("$customPlatformId", item.CustomPlatformId?.ToString() ?? (object)DBNull.Value);
+        await cmd.ExecuteNonQueryAsync();
     }
 
     private async Task<List<Item>> ReadItemsAsync(SqliteCommand cmd)

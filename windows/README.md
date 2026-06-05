@@ -10,8 +10,9 @@
 ✅ Phase 5F: Windows ViewModels
 ✅ Phase 5G: Windows 基础 UI 骨架
 ✅ Phase 5H: Windows 内容详情只读页
+✅ Phase 5I: Windows 移入回收站写入能力
 
-❌ Phase 5I: 基础导入 / 备份恢复
+❌ Phase 5J: 回收站恢复 / 永久删除
 ❌ Phase 6:  Parser + WebView2
 ❌ Phase 7:  安装包
 ```
@@ -26,11 +27,11 @@
 | `MigrationRunner` | 读取 shared/db/migrations/*.sql |
 | `DatabasePaths` | 跨平台数据库路径 |
 | `SqliteRowMapper` | SQLite 行 → C# Model 映射 |
-| `ItemRepository` | Items 只读查询（7 个方法） |
+| `ItemRepository` | Items 读取（7 个方法）+ UpdateAsync |
 | `FolderRepository` | Folders 只读查询（5 个方法） |
 | `MediaRepository` | MediaAssets 只读查询（1 个方法） |
 | `CustomPlatformRepository` | CustomPlatforms 只读查询（2 个方法） |
-| `TrashRepository` | TrashRecords 只读查询（2 个方法） |
+| `TrashRepository` | TrashRecords 读取（2 个方法）+ InsertAsync |
 | `SearchRepository` | FTS5 + LIKE fallback 搜索 |
 
 ### 服务层（Services）
@@ -41,6 +42,7 @@
 | `ContentListService` | 平台 / 文件夹 / 自定义平台 / 未分类列表 |
 | `SearchService` | 搜索服务封装 |
 | `TrashDataService` | 回收站数据读取 |
+| `ItemService` | Item 业务操作（TrashItemAsync） |
 
 ### ViewModel 层
 
@@ -51,7 +53,7 @@
 | `ContentListViewModel` | 平台 / 文件夹 / 自定义平台 / 未分类 + SelectedItem |
 | `SearchViewModel` | 搜索 + SelectedItem |
 | `TrashViewModel` | 回收站（只读）+ SelectedItem |
-| `MainWindowViewModel` | 根容器 + 导航 + SelectedItem + 详情显示属性 |
+| `MainWindowViewModel` | 根容器 + 导航 + SelectedItem + TrashSelectedItemCommand |
 
 ### UI 层
 
@@ -62,7 +64,7 @@
 | `ContentListView` | 内容列表（支持选中） |
 | `SearchView` | 搜索输入 + 结果列表（支持选中） |
 | `TrashView` | 回收站列表（支持选中） |
-| `ItemDetailView` | 右侧详情只读展示（标题/平台/作者/时间/正文/备注/URL） |
+| `ItemDetailView` | 右侧详情只读展示 |
 
 ### 测试
 
@@ -70,7 +72,7 @@
 dotnet test windows/Gatherly.Windows.sln
 ```
 
-74 个测试全部通过。
+94 个测试全部通过。
 
 ## 技术栈
 
@@ -89,25 +91,9 @@ dotnet build windows/Gatherly.Windows.sln
 dotnet run --project windows/src/Gatherly.Windows
 ```
 
-需要安装 .NET 8 SDK：
-
-```bash
-# macOS
-brew install dotnet@8
-
-# Windows
-# https://dotnet.microsoft.com/download/dotnet/8.0
-```
-
-## 搜索说明
-
-- FTS5 `unicode61` tokenizer 对中文分词为单字粒度
-- 英文搜索正常
-- LIKE fallback 支持中文子串匹配
-
 ## 注意
 
 - 本项目与 macOS 版共享 `shared/` 契约
 - 数据库文件 (.db) 跨平台兼容
-- 当前实现：数据读取 + ViewModel + 三栏 UI + 详情只读
-- 尚未实现详情编辑 / 写入 / 导入导出
+- 当前实现：数据读取 + ViewModel + 三栏 UI + 详情只读 + 移入回收站
+- 尚未实现恢复 / 永久删除 / 备注编辑 / 导入导出
