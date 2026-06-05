@@ -492,6 +492,36 @@ windows/src/Gatherly.Windows/Gatherly.Windows.csproj — 添加 SQL 文件 Conte
 * macOS 项目不受影响
 
 
+
+### Phase 5D：C# Models + Repository 基础读取 ✅
+
+状态：已完成。
+
+新增：
+
+```text
+windows/src/Gatherly.Windows/Models/Enums/ — 7 个 C# enum (Platform, ArchiveStatus, ContentStatus, MediaStatus, MediaType, DownloadStatus, TaskStatus)
+windows/src/Gatherly.Windows/Models/ — 6 个 C# Model (Item, Folder, MediaAsset, CustomPlatform, TrashRecord, ImportTask)
+windows/src/Gatherly.Windows/Database/SqliteRowMapper.cs — SQLite 行到 C# Model 映射
+windows/src/Gatherly.Windows/Database/ItemRepository.cs — 只读
+windows/src/Gatherly.Windows/Database/FolderRepository.cs — 只读
+windows/src/Gatherly.Windows/Database/MediaRepository.cs — 只读
+windows/src/Gatherly.Windows/Database/CustomPlatformRepository.cs — 只读
+windows/src/Gatherly.Windows/Database/TrashRepository.cs — 只读
+windows/tests/Gatherly.Windows.Tests/ModelMappingTests.cs — 4 个测试
+windows/tests/Gatherly.Windows.Tests/RepositoryReadTests.cs — 10 个测试
+```
+
+结论：
+
+* 7 个 C# enum rawValue 与 shared/model/enums.json 完全一致
+* 6 个 C# Model 字段与 shared/model/*.schema.json 对齐
+* 5 个只读 Repository 实现基础查询
+* 21 个测试全部通过（含 Phase 5C 的 7 个）
+* UUID → Guid, Date → DateTimeOffset (Unix seconds), Bool → int 0/1, Enum → string rawValue
+* macOS 项目不受影响
+
+
 ---
 
 ## 4. 总体执行原则
@@ -549,6 +579,7 @@ Phase 4F-6: Phase 4F-6: 拆分 ItemDetailView 子组件到独立文件
 Phase 5A: Phase 5A: Windows MVP 范围定义与技术方案
 Phase 5B: Phase 5B: 创建 Avalonia Windows 项目骨架
 Phase 5C: Phase 5C: Windows 项目接入 shared/db migrations
+Phase 5D: Phase 5D: C# Models + Repository 基础读取
 ```
 
 ---
