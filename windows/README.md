@@ -11,10 +11,15 @@
   - 项目依赖配置
   - 测试项目骨架
 
+✅ Phase 5C 已完成：
+  - 数据库初始化（DatabaseInitializer）
+  - Migration 执行（MigrationRunner）
+  - 路径管理（DatabasePaths）
+  - 7 个单元测试全部通过
+
 ❌ 未完成：
-  - 数据库接入（Phase 5C）
-  - Repository 实现（Phase 5C）
-  - Model 映射（Phase 5C）
+  - Repository 实现（Phase 5D）
+  - Model 映射（Phase 5D）
   - 首页 / 列表 / 搜索 / 详情（Phase 5D-5F）
   - 回收站（Phase 5F）
   - 导入 / 备份恢复（Phase 5G）

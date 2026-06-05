@@ -463,6 +463,35 @@ windows/tests/Gatherly.Windows.Tests/  — 测试项目骨架
 * 需要安装 .NET 8 SDK 后执行 `dotnet build` 验证
 
 
+
+### Phase 5C：Windows 项目接入 shared/db migrations ✅
+
+状态：已完成。
+
+新增：
+
+```text
+windows/src/Gatherly.Windows/Database/DatabasePaths.cs
+windows/src/Gatherly.Windows/Database/MigrationRunner.cs
+windows/src/Gatherly.Windows/Database/DatabaseInitializer.cs
+windows/tests/Gatherly.Windows.Tests/DatabaseMigrationTests.cs (7 个测试)
+```
+
+改动：
+
+```text
+windows/src/Gatherly.Windows/Gatherly.Windows.csproj — 添加 SQL 文件 Content 引用
+```
+
+结论：
+
+* Windows 项目可以读取 shared/db/migrations/*.sql
+* 可以创建 SQLite 数据库并执行 migration
+* 7 个单元测试全部通过：表创建、FTS5 创建、索引创建、幂等性、WAL 模式、FTS5 读写
+* 尚未实现 Repository / Model / UI
+* macOS 项目不受影响
+
+
 ---
 
 ## 4. 总体执行原则
@@ -519,6 +548,7 @@ Phase 4F-5: Phase 4F-5: ItemDetailView 移动平台接入 ItemService
 Phase 4F-6: Phase 4F-6: 拆分 ItemDetailView 子组件到独立文件
 Phase 5A: Phase 5A: Windows MVP 范围定义与技术方案
 Phase 5B: Phase 5B: 创建 Avalonia Windows 项目骨架
+Phase 5C: Phase 5C: Windows 项目接入 shared/db migrations
 ```
 
 ---

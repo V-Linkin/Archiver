@@ -19,6 +19,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Database\Migrations\*.sql" />
+    <Content Include="..\..\shared\db\migrations\*.sql" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
