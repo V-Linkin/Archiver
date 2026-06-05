@@ -35,7 +35,9 @@
         </StackPanel>
 
         <!-- Items section -->
-        <ListBox ItemsSource="{Binding Items}" Margin="8,0">
+        <ListBox ItemsSource="{Binding Items}"
+                 SelectedItem="{Binding SelectedItem}"
+                 Margin="8,0">
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="m:Item">
                     <StackPanel Margin="4,6">

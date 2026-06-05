@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Gatherly.Windows.Models;
 using Gatherly.Windows.Services;
@@ -13,6 +14,9 @@ public partial class TrashViewModel : ViewModelBase
     private readonly TrashDataService _trashService;
 
     public ObservableCollection<Item> TrashedItems { get; } = new();
+
+    [ObservableProperty]
+    private Item? _selectedItem;
 
     public TrashViewModel(TrashDataService trashService)
     {

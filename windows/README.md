@@ -9,8 +9,8 @@
 ✅ Phase 5E: 搜索 + 列表数据服务
 ✅ Phase 5F: Windows ViewModels
 ✅ Phase 5G: Windows 基础 UI 骨架
+✅ Phase 5H: Windows 内容详情只读页
 
-❌ Phase 5H: 内容详情只读页
 ❌ Phase 5I: 基础导入 / 备份恢复
 ❌ Phase 6:  Parser + WebView2
 ❌ Phase 7:  安装包
@@ -47,22 +47,22 @@
 | 类 | 职责 |
 |---|---|
 | `ViewModelBase` | 基类（IsBusy / ErrorMessage） |
-| `HomeViewModel` | 首页最近内容列表 |
-| `ContentListViewModel` | 平台 / 文件夹 / 自定义平台 / 未分类 |
-| `SearchViewModel` | 搜索 |
-| `TrashViewModel` | 回收站（只读） |
-| `MainWindowViewModel` | 根容器 + 导航状态 + 子 ViewModel |
+| `HomeViewModel` | 首页最近内容列表 + SelectedItem |
+| `ContentListViewModel` | 平台 / 文件夹 / 自定义平台 / 未分类 + SelectedItem |
+| `SearchViewModel` | 搜索 + SelectedItem |
+| `TrashViewModel` | 回收站（只读）+ SelectedItem |
+| `MainWindowViewModel` | 根容器 + 导航 + SelectedItem + 详情显示属性 |
 
 ### UI 层
 
 | View | 说明 |
 |---|---|
-| `MainWindow` | 三栏布局：Sidebar + 内容区 + 详情占位 |
-| `HomeView` | 首页最近内容列表 |
-| `ContentListView` | 内容列表（items + folders） |
-| `SearchView` | 搜索输入 + 结果列表 |
-| `TrashView` | 回收站列表 |
-| `PlaceholderDetailView` | 右侧详情占位 |
+| `MainWindow` | 三栏布局：Sidebar + 内容区 + 详情区 |
+| `HomeView` | 首页最近内容列表（支持选中） |
+| `ContentListView` | 内容列表（支持选中） |
+| `SearchView` | 搜索输入 + 结果列表（支持选中） |
+| `TrashView` | 回收站列表（支持选中） |
+| `ItemDetailView` | 右侧详情只读展示（标题/平台/作者/时间/正文/备注/URL） |
 
 ### 测试
 
@@ -70,7 +70,7 @@
 dotnet test windows/Gatherly.Windows.sln
 ```
 
-61 个测试全部通过。
+74 个测试全部通过。
 
 ## 技术栈
 
@@ -109,5 +109,5 @@ brew install dotnet@8
 
 - 本项目与 macOS 版共享 `shared/` 契约
 - 数据库文件 (.db) 跨平台兼容
-- 当前只实现数据读取 + ViewModel + 基础 UI
+- 当前实现：数据读取 + ViewModel + 三栏 UI + 详情只读
 - 尚未实现详情编辑 / 写入 / 导入导出

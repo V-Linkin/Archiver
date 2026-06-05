@@ -19,7 +19,9 @@
                    IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                    Foreground="Red" Margin="16,4" />
 
-        <ListBox ItemsSource="{Binding TrashedItems}" Margin="8,0">
+        <ListBox ItemsSource="{Binding TrashedItems}"
+                 SelectedItem="{Binding SelectedItem}"
+                 Margin="8,0">
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="m:Item">
                     <StackPanel Margin="4,6">

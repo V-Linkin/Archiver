@@ -16,6 +16,9 @@ public partial class SearchViewModel : ViewModelBase
     [ObservableProperty]
     private string _query = string.Empty;
 
+    [ObservableProperty]
+    private Item? _selectedItem;
+
     public ObservableCollection<Item> Results { get; } = new();
 
     public SearchViewModel(SearchService searchService)

@@ -20,6 +20,7 @@
                    Foreground="Red" Margin="16,4" />
 
         <ListBox ItemsSource="{Binding RecentItems}"
+                 SelectedItem="{Binding SelectedItem}"
                  Margin="8,0">
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="m:Item">

@@ -617,6 +617,42 @@ windows/src/Gatherly.Windows/ViewModels/MainWindowViewModel.cs — 新增 Curren
 * 尚未实现内容列表点击导航
 * macOS 项目不受影响
 
+### Phase 5H：Windows 内容详情只读页 ✅
+
+状态：已完成。
+
+新增：
+
+```text
+windows/src/Gatherly.Windows/Views/ItemDetailView.axaml + .cs — 右侧详情只读展示
+windows/tests/Gatherly.Windows.Tests/ItemDetailSelectionTests.cs — 13 个测试
+```
+
+改动：
+
+```text
+windows/src/Gatherly.Windows/ViewModels/MainWindowViewModel.cs — 新增 SelectedItem + 显示辅助属性
+windows/src/Gatherly.Windows/ViewModels/HomeViewModel.cs — 新增 SelectedItem
+windows/src/Gatherly.Windows/ViewModels/ContentListViewModel.cs — 新增 SelectedItem
+windows/src/Gatherly.Windows/ViewModels/SearchViewModel.cs — 新增 SelectedItem
+windows/src/Gatherly.Windows/ViewModels/TrashViewModel.cs — 新增 SelectedItem
+windows/src/Gatherly.Windows/MainWindow.axaml — 右侧替换为 ItemDetailView
+windows/src/Gatherly.Windows/Views/HomeView.axaml — ListBox 绑定 SelectedItem
+windows/src/Gatherly.Windows/Views/ContentListView.axaml — ListBox 绑定 SelectedItem
+windows/src/Gatherly.Windows/Views/SearchView.axaml — ListBox 绑定 SelectedItem
+windows/src/Gatherly.Windows/Views/TrashView.axaml — ListBox 绑定 SelectedItem
+```
+
+结论：
+
+* 列表选中 item 后右侧详情区显示：标题、平台、作者、发布时间、导入时间、正文、备注、原始URL、标准化URL
+* 未选中时显示占位提示
+* 各子 ViewModel 的 SelectedItem 通过 PropertyChanged 事件传播到 MainWindowViewModel
+* 空字段使用 fallback 显示
+* 74 个测试全部通过（含 13 个详情选择测试）
+* 尚未实现编辑 / 删除 / 恢复 / 移动 / 媒体
+* macOS 项目不受影响
+
 
 ---
 
@@ -679,6 +715,7 @@ Phase 5D: Phase 5D: C# Models + Repository 基础读取
 Phase 5E: Phase 5E: Windows 搜索 / 列表数据服务
 Phase 5F: Phase 5F: Windows ViewModels
 Phase 5G: Phase 5G: Windows 基础 UI 骨架
+Phase 5H: Phase 5H: Windows 内容详情只读页
 ```
 
 ---

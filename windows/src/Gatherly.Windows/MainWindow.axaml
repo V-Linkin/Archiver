@@ -46,8 +46,8 @@
             <views:HomeView DataContext="{Binding Home}" />
         </Panel>
 
-        <!-- Right Detail Placeholder -->
-        <views:PlaceholderDetailView Grid.Column="2" />
+        <!-- Right Detail -->
+        <views:ItemDetailView Grid.Column="2" DataContext="{Binding .}" />
 
     </Grid>
 </Window>

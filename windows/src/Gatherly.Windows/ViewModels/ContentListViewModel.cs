@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Gatherly.Windows.Models;
 using Gatherly.Windows.Models.Enums;
@@ -15,6 +16,9 @@ public partial class ContentListViewModel : ViewModelBase
 
     public ObservableCollection<Item> Items { get; } = new();
     public ObservableCollection<Folder> Folders { get; } = new();
+
+    [ObservableProperty]
+    private Item? _selectedItem;
 
     public ContentListViewModel(ContentListService contentService)
     {

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Gatherly.Windows.Models;
 using Gatherly.Windows.Services;
@@ -13,6 +14,9 @@ public partial class HomeViewModel : ViewModelBase
     private readonly HomeDataService _homeService;
 
     public ObservableCollection<Item> RecentItems { get; } = new();
+
+    [ObservableProperty]
+    private Item? _selectedItem;
 
     public HomeViewModel(HomeDataService homeService)
     {

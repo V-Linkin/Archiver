@@ -1,0 +1,65 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Gatherly.Windows.ViewModels"
+             x:Class="Gatherly.Windows.Views.ItemDetailView"
+             x:DataType="vm:MainWindowViewModel">
+
+    <Panel>
+        <!-- Placeholder when no item selected -->
+        <StackPanel IsVisible="{Binding !HasSelectedItem}"
+                    HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+            <TextBlock Text="📄" FontSize="48" HorizontalAlignment="Center" />
+            <TextBlock Text="选择一个内容以查看详情"
+                       FontSize="16" Foreground="Gray" HorizontalAlignment="Center" />
+        </StackPanel>
+
+        <!-- Detail view when item selected -->
+        <ScrollViewer IsVisible="{Binding HasSelectedItem}" Padding="16">
+            <StackPanel Spacing="12">
+                <TextBlock Text="{Binding DisplayTitle}"
+                           FontSize="20" FontWeight="Bold" TextWrapping="Wrap" />
+
+                <StackPanel Orientation="Horizontal" Spacing="16">
+                    <Border Background="#E8F0FE" CornerRadius="4" Padding="8,4">
+                        <TextBlock Text="{Binding DisplayPlatform}" FontSize="13" />
+                    </Border>
+                    <TextBlock Text="{Binding DisplayAuthor}"
+                               VerticalAlignment="Center" Foreground="Gray" />
+                </StackPanel>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="发布时间" FontSize="12" Foreground="Gray" />
+                    <TextBlock Text="{Binding DisplayPublishDate}" FontSize="13" />
+                </StackPanel>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="导入时间" FontSize="12" Foreground="Gray" />
+                    <TextBlock Text="{Binding DisplayImportDate}" FontSize="13" />
+                </StackPanel>
+
+                <Border Background="#F5F5F5" CornerRadius="6" Padding="12" Margin="0,4">
+                    <TextBlock Text="{Binding DisplayBody}"
+                               TextWrapping="Wrap" FontSize="14" LineHeight="22" />
+                </Border>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="备注" FontSize="12" Foreground="Gray" />
+                    <TextBlock Text="{Binding DisplayRemark, FallbackValue='暂无备注'}"
+                               FontSize="13" FontStyle="Italic" />
+                </StackPanel>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="原始 URL" FontSize="12" Foreground="Gray" />
+                    <TextBlock Text="{Binding DisplayOriginalUrl}" FontSize="12"
+                               TextDecorations="Underline" Foreground="#1A73E8" />
+                </StackPanel>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="标准化 URL" FontSize="12" Foreground="Gray" />
+                    <TextBlock Text="{Binding DisplayNormalizedUrl}" FontSize="12"
+                               Foreground="Gray" />
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Panel>
+</UserControl>
