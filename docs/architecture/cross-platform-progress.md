@@ -521,6 +521,33 @@ windows/tests/Gatherly.Windows.Tests/RepositoryReadTests.cs — 10 个测试
 * UUID → Guid, Date → DateTimeOffset (Unix seconds), Bool → int 0/1, Enum → string rawValue
 * macOS 项目不受影响
 
+### Phase 5E：Windows 搜索 / 列表数据服务 ✅
+
+状态：已完成。
+
+新增：
+
+```text
+windows/src/Gatherly.Windows/Database/SearchRepository.cs — FTS5 + LIKE fallback 搜索
+windows/src/Gatherly.Windows/Services/HomeDataService.cs — 首页最近内容
+windows/src/Gatherly.Windows/Services/ContentListService.cs — 平台/文件夹/自定义平台/未分类列表
+windows/src/Gatherly.Windows/Services/SearchService.cs — 搜索服务封装
+windows/src/Gatherly.Windows/Services/TrashDataService.cs — 回收站数据读取
+windows/tests/Gatherly.Windows.Tests/SearchRepositoryTests.cs — 10 个测试
+windows/tests/Gatherly.Windows.Tests/ListDataServiceTests.cs — 16 个测试
+```
+
+结论：
+
+* SearchRepository 实现 FTS5 搜索 + LIKE fallback，空 query 返回空
+* 4 个数据服务封装已有 Repository，只做读取
+* ContentListService 覆盖平台/文件夹/自定义平台/未分类 8 个查询方法
+* TrashDataService 封装回收站 items 和 trashRecord 读取
+* 47 个测试全部通过（含 Phase 5C-5D 的 21 个）
+* FTS5 unicode61 tokenizer 中文分词为单字粒度，LIKE fallback 补充
+* 尚未实现写入 / UI / ViewModel
+* macOS 项目不受影响
+
 
 ---
 
@@ -580,6 +607,7 @@ Phase 5A: Phase 5A: Windows MVP 范围定义与技术方案
 Phase 5B: Phase 5B: 创建 Avalonia Windows 项目骨架
 Phase 5C: Phase 5C: Windows 项目接入 shared/db migrations
 Phase 5D: Phase 5D: C# Models + Repository 基础读取
+Phase 5E: Phase 5E: Windows 搜索 / 列表数据服务
 ```
 
 ---
