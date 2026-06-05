@@ -1,6 +1,8 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Gatherly.Windows.Database;
+using Gatherly.Windows.ViewModels;
 
 namespace Gatherly.Windows;
 
@@ -15,9 +17,10 @@ public class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            var connection = DatabaseInitializer.Initialize();
             desktop.MainWindow = new MainWindow
             {
-                DataContext = new ViewModels.MainWindowViewModel()
+                DataContext = new MainWindowViewModel(connection)
             };
         }
 

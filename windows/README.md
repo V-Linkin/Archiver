@@ -7,9 +7,10 @@
 ✅ Phase 5C: 数据库初始化 + Migration 执行
 ✅ Phase 5D: C# Models + 只读 Repository
 ✅ Phase 5E: 搜索 + 列表数据服务
+✅ Phase 5F: Windows ViewModels
 
-❌ Phase 5F: Windows ViewModels
-❌ Phase 5G: 基础导入 / 备份恢复
+❌ Phase 5G: Windows 首页 / 列表 UI 骨架
+❌ Phase 5H: 基础导入 / 备份恢复
 ❌ Phase 6:  Parser + WebView2
 ❌ Phase 7:  安装包
 ```
@@ -40,13 +41,24 @@
 | `SearchService` | 搜索服务封装 |
 | `TrashDataService` | 回收站数据读取 |
 
+### ViewModel 层
+
+| 类 | 职责 |
+|---|---|
+| `ViewModelBase` | 基类（IsBusy / ErrorMessage） |
+| `HomeViewModel` | 首页最近内容列表 |
+| `ContentListViewModel` | 平台 / 文件夹 / 自定义平台 / 未分类 |
+| `SearchViewModel` | 搜索 |
+| `TrashViewModel` | 回收站（只读） |
+| `MainWindowViewModel` | 根容器，持有子 ViewModel |
+
 ### 测试
 
 ```text
 dotnet test windows/Gatherly.Windows.sln
 ```
 
-47 个测试全部通过（含数据库、Repository、Service、搜索）。
+61 个测试全部通过（含数据库、Repository、Service、ViewModel、搜索）。
 
 ## 技术栈
 
@@ -85,5 +97,5 @@ brew install dotnet@8
 
 - 本项目与 macOS 版共享 `shared/` 契约
 - 数据库文件 (.db) 跨平台兼容
-- 当前只实现数据读取，尚未实现写入
-- 尚未实现 UI 页面 / ViewModel
+- 当前只实现数据读取 + ViewModel，尚未实现写入
+- 尚未实现 Avalonia UI 页面

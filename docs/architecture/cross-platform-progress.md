@@ -548,6 +548,40 @@ windows/tests/Gatherly.Windows.Tests/ListDataServiceTests.cs — 16 个测试
 * 尚未实现写入 / UI / ViewModel
 * macOS 项目不受影响
 
+### Phase 5F：Windows ViewModels ✅
+
+状态：已完成。
+
+新增：
+
+```text
+windows/src/Gatherly.Windows/ViewModels/ViewModelBase.cs — 基类 (IsBusy / ErrorMessage)
+windows/src/Gatherly.Windows/ViewModels/HomeViewModel.cs — 首页最近内容
+windows/src/Gatherly.Windows/ViewModels/ContentListViewModel.cs — 平台/文件夹/自定义平台/未分类
+windows/src/Gatherly.Windows/ViewModels/SearchViewModel.cs — 搜索
+windows/src/Gatherly.Windows/ViewModels/TrashViewModel.cs — 回收站（只读）
+windows/tests/Gatherly.Windows.Tests/ViewModelTests.cs — 14 个测试
+```
+
+改动：
+
+```text
+windows/src/Gatherly.Windows/ViewModels/MainWindowViewModel.cs — 新增子 ViewModel 属性
+windows/src/Gatherly.Windows/App.axaml.cs — 初始化数据库连接，传入 MainWindowViewModel
+```
+
+结论：
+
+* 6 个 ViewModel 已创建（含 ViewModelBase 基类）
+* MainWindowViewModel 持有 Home / ContentList / Search / Trash 四个子 ViewModel
+* 所有 ViewModel 通过 Service 获取数据，不直接操作数据库
+* 使用 CommunityToolkit.Mvvm (ObservableObject / ObservableProperty / RelayCommand)
+* App.axaml.cs 更新为初始化数据库连接并传入 MainWindowViewModel
+* 14 个 ViewModel 测试全部通过（总计 61 个）
+* 尚未实现 Avalonia UI 页面
+* 尚未实现写入功能
+* macOS 项目不受影响
+
 
 ---
 
@@ -608,6 +642,7 @@ Phase 5B: Phase 5B: 创建 Avalonia Windows 项目骨架
 Phase 5C: Phase 5C: Windows 项目接入 shared/db migrations
 Phase 5D: Phase 5D: C# Models + Repository 基础读取
 Phase 5E: Phase 5E: Windows 搜索 / 列表数据服务
+Phase 5F: Phase 5F: Windows ViewModels
 ```
 
 ---
