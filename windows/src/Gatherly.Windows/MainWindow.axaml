@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Gatherly.Windows.ViewModels"
+        xmlns:views="using:Gatherly.Windows.Views"
         x:Class="Gatherly.Windows.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="Gatherly Windows"
@@ -11,11 +12,42 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <Panel>
-        <TextBlock Text="Gatherly Windows MVP"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   FontSize="24"
-                   FontWeight="Bold" />
-    </Panel>
+    <Grid ColumnDefinitions="200,*,300">
+
+        <!-- Left Sidebar -->
+        <Border Grid.Column="0" Background="#2C2C2C">
+            <StackPanel Margin="0,16,0,0" Spacing="2">
+                <TextBlock Text="拾屿"
+                           Foreground="White" FontSize="20" FontWeight="Bold"
+                           HorizontalAlignment="Center" Margin="0,0,0,16" />
+
+                <Button Content="🏠 首页"
+                        Command="{Binding ShowHomeCommand}"
+                        HorizontalContentAlignment="Left"
+                        Padding="16,10" Background="Transparent"
+                        Foreground="White" BorderThickness="0" />
+
+                <Button Content="🔍 搜索"
+                        Command="{Binding ShowSearchCommand}"
+                        HorizontalContentAlignment="Left"
+                        Padding="16,10" Background="Transparent"
+                        Foreground="White" BorderThickness="0" />
+
+                <Button Content="🗑️ 回收站"
+                        Command="{Binding ShowTrashCommand}"
+                        HorizontalContentAlignment="Left"
+                        Padding="16,10" Background="Transparent"
+                        Foreground="White" BorderThickness="0" />
+            </StackPanel>
+        </Border>
+
+        <!-- Center Content -->
+        <Panel Grid.Column="1">
+            <views:HomeView DataContext="{Binding Home}" />
+        </Panel>
+
+        <!-- Right Detail Placeholder -->
+        <views:PlaceholderDetailView Grid.Column="2" />
+
+    </Grid>
 </Window>

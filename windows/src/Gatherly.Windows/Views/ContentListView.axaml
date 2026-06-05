@@ -1,0 +1,55 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Gatherly.Windows.ViewModels"
+             xmlns:m="using:Gatherly.Windows.Models"
+             x:Class="Gatherly.Windows.Views.ContentListView"
+             x:DataType="vm:ContentListViewModel">
+
+    <DockPanel>
+        <TextBlock DockPanel.Dock="Top" Text="内容列表"
+                   FontSize="18" FontWeight="Bold" Margin="16,16,16,8" />
+
+        <TextBlock DockPanel.Dock="Top"
+                   Text="正在加载..."
+                   IsVisible="{Binding IsBusy}"
+                   Margin="16,4" />
+
+        <TextBlock DockPanel.Dock="Top"
+                   Text="{Binding ErrorMessage}"
+                   IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                   Foreground="Red" Margin="16,4" />
+
+        <!-- Folders section -->
+        <StackPanel DockPanel.Dock="Top" Margin="8,0,8,4">
+            <TextBlock Text="文件夹" FontWeight="SemiBold" Margin="4,0,4,4"
+                       IsVisible="{Binding Folders.Count}" />
+            <ItemsControl ItemsSource="{Binding Folders}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="m:Folder">
+                        <Border Background="#F0F0F0" CornerRadius="4" Padding="8,4" Margin="0,2">
+                            <TextBlock Text="{Binding Name}" />
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+
+        <!-- Items section -->
+        <ListBox ItemsSource="{Binding Items}" Margin="8,0">
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="m:Item">
+                    <StackPanel Margin="4,6">
+                        <TextBlock Text="{Binding Title, FallbackValue='未命名内容'}"
+                                   FontWeight="SemiBold" />
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <TextBlock Text="{Binding Platform}"
+                                       Foreground="Gray" FontSize="12" />
+                            <TextBlock Text="{Binding Author, FallbackValue=''}"
+                                       Foreground="Gray" FontSize="12" />
+                        </StackPanel>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </DockPanel>
+</UserControl>

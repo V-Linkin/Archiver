@@ -8,9 +8,10 @@
 ✅ Phase 5D: C# Models + 只读 Repository
 ✅ Phase 5E: 搜索 + 列表数据服务
 ✅ Phase 5F: Windows ViewModels
+✅ Phase 5G: Windows 基础 UI 骨架
 
-❌ Phase 5G: Windows 首页 / 列表 UI 骨架
-❌ Phase 5H: 基础导入 / 备份恢复
+❌ Phase 5H: 内容详情只读页
+❌ Phase 5I: 基础导入 / 备份恢复
 ❌ Phase 6:  Parser + WebView2
 ❌ Phase 7:  安装包
 ```
@@ -50,7 +51,18 @@
 | `ContentListViewModel` | 平台 / 文件夹 / 自定义平台 / 未分类 |
 | `SearchViewModel` | 搜索 |
 | `TrashViewModel` | 回收站（只读） |
-| `MainWindowViewModel` | 根容器，持有子 ViewModel |
+| `MainWindowViewModel` | 根容器 + 导航状态 + 子 ViewModel |
+
+### UI 层
+
+| View | 说明 |
+|---|---|
+| `MainWindow` | 三栏布局：Sidebar + 内容区 + 详情占位 |
+| `HomeView` | 首页最近内容列表 |
+| `ContentListView` | 内容列表（items + folders） |
+| `SearchView` | 搜索输入 + 结果列表 |
+| `TrashView` | 回收站列表 |
+| `PlaceholderDetailView` | 右侧详情占位 |
 
 ### 测试
 
@@ -58,7 +70,7 @@
 dotnet test windows/Gatherly.Windows.sln
 ```
 
-61 个测试全部通过（含数据库、Repository、Service、ViewModel、搜索）。
+61 个测试全部通过。
 
 ## 技术栈
 
@@ -74,6 +86,7 @@ MVVM:     CommunityToolkit.Mvvm
 
 ```bash
 dotnet build windows/Gatherly.Windows.sln
+dotnet run --project windows/src/Gatherly.Windows
 ```
 
 需要安装 .NET 8 SDK：
@@ -91,11 +104,10 @@ brew install dotnet@8
 - FTS5 `unicode61` tokenizer 对中文分词为单字粒度
 - 英文搜索正常
 - LIKE fallback 支持中文子串匹配
-- 中文精确词组搜索可能需要后续调整 tokenizer
 
 ## 注意
 
 - 本项目与 macOS 版共享 `shared/` 契约
 - 数据库文件 (.db) 跨平台兼容
-- 当前只实现数据读取 + ViewModel，尚未实现写入
-- 尚未实现 Avalonia UI 页面
+- 当前只实现数据读取 + ViewModel + 基础 UI
+- 尚未实现详情编辑 / 写入 / 导入导出

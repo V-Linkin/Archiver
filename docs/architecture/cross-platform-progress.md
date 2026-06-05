@@ -582,6 +582,41 @@ windows/src/Gatherly.Windows/App.axaml.cs — 初始化数据库连接，传入 
 * 尚未实现写入功能
 * macOS 项目不受影响
 
+### Phase 5G：Windows 基础 UI 骨架 ✅
+
+状态：已完成。
+
+新增：
+
+```text
+windows/src/Gatherly.Windows/Views/HomeView.axaml + .cs — 首页最近内容列表
+windows/src/Gatherly.Windows/Views/ContentListView.axaml + .cs — 内容列表
+windows/src/Gatherly.Windows/Views/SearchView.axaml + .cs — 搜索
+windows/src/Gatherly.Windows/Views/TrashView.axaml + .cs — 回收站
+windows/src/Gatherly.Windows/Views/PlaceholderDetailView.axaml + .cs — 详情占位
+```
+
+改动：
+
+```text
+windows/src/Gatherly.Windows/MainWindow.axaml — 三栏布局 (Sidebar + 内容区 + 详情占位)
+windows/src/Gatherly.Windows/ViewModels/MainWindowViewModel.cs — 新增 CurrentSection 导航状态 + ShowHome/ShowSearch/ShowTrash 命令
+```
+
+结论：
+
+* MainWindow 三栏布局：左侧深色 Sidebar + 中间内容区 + 右侧详情占位
+* Sidebar 包含首页 / 搜索 / 回收站三个导航按钮
+* HomeView 绑定 HomeViewModel.RecentItems
+* ContentListView 绑定 ContentListViewModel.Items + Folders
+* SearchView 绑定 SearchViewModel.Query / Results / SearchCommand
+* TrashView 绑定 TrashViewModel.TrashedItems
+* PlaceholderDetailView 显示占位文本
+* 启动时自动加载首页数据
+* 尚未实现详情编辑 / 写入 / 恢复 / 永久删除
+* 尚未实现内容列表点击导航
+* macOS 项目不受影响
+
 
 ---
 
@@ -643,6 +678,7 @@ Phase 5C: Phase 5C: Windows 项目接入 shared/db migrations
 Phase 5D: Phase 5D: C# Models + Repository 基础读取
 Phase 5E: Phase 5E: Windows 搜索 / 列表数据服务
 Phase 5F: Phase 5F: Windows ViewModels
+Phase 5G: Phase 5G: Windows 基础 UI 骨架
 ```
 
 ---
