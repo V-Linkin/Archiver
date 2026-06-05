@@ -28,3 +28,17 @@ media/
 cache/
 exports/
 Archiver.sqlite
+
+# .NET / Visual Studio
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.dll
+*.exe
+*.pdb
+*.nupkg
+.vs/
+*.DotSettings.user
+project.lock.json
