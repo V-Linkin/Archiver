@@ -85,6 +85,13 @@
                     <TextBlock Text="{Binding DisplayNormalizedUrl}" FontSize="12"
                                Foreground="Gray" />
                 </StackPanel>
+
+                <!-- Trash action -->
+                <Button Content="移入回收站"
+                        Command="{Binding TrashSelectedItemCommand}"
+                        HorizontalAlignment="Left"
+                        Padding="12,6" FontSize="13"
+                        Margin="0,8,0,0" />
             </StackPanel>
         </ScrollViewer>
     </Panel>

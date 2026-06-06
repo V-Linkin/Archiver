@@ -19,6 +19,18 @@
                    IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                    Foreground="Red" Margin="16,4" />
 
+        <!-- Action buttons -->
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                    Spacing="8" Margin="16,8">
+            <Button Content="恢复"
+                    Command="{Binding RestoreSelectedItemCommand}"
+                    Padding="12,6" FontSize="13" />
+            <Button Content="永久删除"
+                    Command="{Binding PermanentlyDeleteSelectedItemCommand}"
+                    Padding="12,6" FontSize="13"
+                    Foreground="Red" />
+        </StackPanel>
+
         <ListBox ItemsSource="{Binding TrashedItems}"
                  SelectedItem="{Binding SelectedItem}"
                  Margin="8,0">

@@ -19,6 +19,13 @@ public partial class TrashViewModel : ViewModelBase
     [ObservableProperty]
     private Item? _selectedItem;
 
+    public bool HasSelectedTrashItem => SelectedItem != null;
+
+    partial void OnSelectedItemChanged(Item? value)
+    {
+        OnPropertyChanged(nameof(HasSelectedTrashItem));
+    }
+
     public TrashViewModel(TrashDataService trashService, ItemService itemService)
     {
         _trashService = trashService;
