@@ -766,6 +766,31 @@ windows/src/Gatherly.Windows/ViewModels/TrashViewModel.cs — 新增 HasSelected
 * 115 个测试全部通过
 * macOS 项目不受影响
 
+### Phase 5N：Windows 备份 zip 恢复 Service ✅
+
+状态：已完成。
+
+新增：
+
+```text
+windows/src/Gatherly.Windows/Services/BackupImportService.cs — zip 备份包恢复入口
+windows/src/Gatherly.Windows/Services/DatabaseMergeService.cs — ATTACH + INSERT OR IGNORE 合并数据库
+windows/src/Gatherly.Windows/Services/MediaRestoreService.cs — 复制 media/platform_logos 文件
+windows/tests/Gatherly.Windows.Tests/BackupImportTests.cs — 14 个测试
+```
+
+结论：
+
+* BackupImportService 支持从 macOS 当前 zip 备份格式恢复
+* 恢复 archiver.db（ATTACH + INSERT OR IGNORE + FTS5 rebuild）
+* 恢复 media/ 和 platform_logos/ 文件（跳过已存在）
+* 仅支持恢复到空数据库，非空时抛出异常
+* 未接 UI，未实现文件选择器
+* 129 个测试全部通过（含 14 个备份恢复测试）
+* 尚未支持合并到已有库
+* 尚未实现 manifest.json 新格式
+* macOS 项目不受影响
+
 
 ---
 
@@ -833,6 +858,7 @@ Phase 5I: Phase 5I: Windows 移入回收站写入能力
 Phase 5J: Phase 5J: Windows 回收站恢复 / 永久删除
 Phase 5K: Phase 5K: Windows 备注编辑
 Phase 5L: Phase 5L: Windows 回收站相关 UI 按钮接入
+Phase 5N: Phase 5N: Windows 备份 zip 恢复 Service
 ```
 
 ---
