@@ -3,16 +3,28 @@ set -e
 
 # ============================================================
 # 拾屿 Archiver — 一键打包 + 上传 DMG 到 GitHub Release
-# 用法: ./scripts/build_release.sh [version]
-# 示例: ./scripts/build_release.sh 1.0.4
+# 用法: ./scripts/build_release.sh [version] [--local-only]
+# 示例: ./scripts/build_release.sh 1.1.16              # 完整发布
+#       ./scripts/build_release.sh 1.1.16 --local-only  # 仅构建 DMG
 # ============================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_DIR"
 
-# ---------- 版本号 ----------
-VERSION="${1:-$(grep -A1 'CFBundleShortVersionString' Info.plist | grep string | sed 's/.*<string>\(.*\)<\/string>.*/\1/')}"
+# ---------- 解析参数 ----------
+VERSION=""
+LOCAL_ONLY=false
+
+for arg in "$@"; do
+  case $arg in
+    --local-only|--skip-upload) LOCAL_ONLY=true ;;
+    -*) echo "❌ 未知参数: $arg"; exit 1 ;;
+    *) VERSION="$arg" ;;
+  esac
+done
+
+VERSION="${VERSION:-$(grep -A1 'CFBundleShortVersionString' Info.plist | grep string | sed 's/.*<string>\(.*\)<\/string>.*/\1/')}"
 ENGLISH_NAME="Archiver"
 DMG_NAME="${ENGLISH_NAME}_v${VERSION}.dmg"
 APP_DISPLAY_NAME="拾屿"
@@ -21,6 +33,11 @@ echo "======================================"
 echo "  拾屿 Archiver — Release Builder"
 echo "  版本: v${VERSION}"
 echo "  DMG: ${DMG_NAME}"
+if [ "$LOCAL_ONLY" = true ]; then
+echo "  模式: 仅本地构建（不上传 Release）"
+else
+echo "  模式: 完整发布（含上传 GitHub Release）"
+fi
 echo "======================================"
 
 # ---------- 1. 确保 XcodeGen 生成项目 ----------
@@ -89,39 +106,44 @@ hdiutil create \
 echo "  ✅ DMG 已生成: $DMG_OUTPUT"
 ls -lh "$DMG_OUTPUT"
 
-# ---------- 5. 上传到 GitHub Release ----------
-echo ""
-echo "[5/6] 上传到 GitHub Release v${VERSION}..."
-
-# 检查 tag 是否存在
-if ! git rev-parse "v${VERSION}" >/dev/null 2>&1; then
-    echo "  创建 tag v${VERSION}..."
-    git tag "v${VERSION}"
-    git push origin "v${VERSION}"
-fi
-
-# 检查 release 是否存在
-if gh release view "v${VERSION}" >/dev/null 2>&1; then
-    echo "  Release v${VERSION} 已存在，删除旧 DMG asset..."
-    EXISTING_ASSETS=$(gh release view "v${VERSION}" --json assets --jq '.assets[].name' 2>/dev/null || true)
-    for asset in $EXISTING_ASSETS; do
-        if [[ "$asset" == *.dmg ]]; then
-            echo "    删除: $asset"
-            gh release delete-asset "v${VERSION}" "$asset" --yes
-        fi
-    done
+# ---------- 5. 上传到 GitHub Release（仅在非 local-only 模式）----------
+if [ "$LOCAL_ONLY" = true ]; then
+    echo ""
+    echo "[5/6] 跳过 GitHub Release 上传（--local-only 模式）"
 else
-    echo "  创建 Release v${VERSION}..."
-    gh release create "v${VERSION}" \
-        --title "拾屿 Archiver v${VERSION}" \
-        --notes "拾屿 Archiver v${VERSION}" \
-        --generate-notes
-fi
+    echo ""
+    echo "[5/6] 上传到 GitHub Release v${VERSION}..."
 
-# 上传 DMG
-echo "  上传 ${DMG_NAME}..."
-gh release upload "v${VERSION}" "$DMG_OUTPUT" --clobber
-echo "  ✅ 上传成功!"
+    # 检查 tag 是否存在
+    if ! git rev-parse "v${VERSION}" >/dev/null 2>&1; then
+        echo "  创建 tag v${VERSION}..."
+        git tag "v${VERSION}"
+        git push origin "v${VERSION}"
+    fi
+
+    # 检查 release 是否存在
+    if gh release view "v${VERSION}" >/dev/null 2>&1; then
+        echo "  Release v${VERSION} 已存在，删除旧 DMG asset..."
+        EXISTING_ASSETS=$(gh release view "v${VERSION}" --json assets --jq '.assets[].name' 2>/dev/null || true)
+        for asset in $EXISTING_ASSETS; do
+            if [[ "$asset" == *.dmg ]]; then
+                echo "    删除: $asset"
+                gh release delete-asset "v${VERSION}" "$asset" --yes
+            fi
+        done
+    else
+        echo "  创建 Release v${VERSION}..."
+        gh release create "v${VERSION}" \
+            --title "拾屿 Archiver v${VERSION}" \
+            --notes "拾屿 Archiver v${VERSION}" \
+            --generate-notes
+    fi
+
+    # 上传 DMG
+    echo "  上传 ${DMG_NAME}..."
+    gh release upload "v${VERSION}" "$DMG_OUTPUT" --clobber
+    echo "  ✅ 上传成功!"
+fi
 
 # ---------- 6. 清理 ----------
 echo ""
@@ -131,6 +153,12 @@ echo "  ✅ 清理完成"
 
 echo ""
 echo "======================================"
+if [ "$LOCAL_ONLY" = true ]; then
+echo "  🎉 本地 DMG 打包完成!"
+echo "  路径: build/${DMG_NAME}"
+echo "  ⚠️  未上传到 GitHub Release"
+else
 echo "  🎉 发布完成!"
 echo "  下载: https://github.com/V-Linkin/Archiver/releases/download/v${VERSION}/${DMG_NAME}"
+fi
 echo "======================================"

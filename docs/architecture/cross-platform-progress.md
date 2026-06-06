@@ -908,6 +908,8 @@ Phase 5L: Phase 5L: Windows 回收站相关 UI 按钮接入
 Phase 5N: Phase 5N: Windows 备份 zip 恢复 Service
 Phase 5O: Phase 5O: Windows 备份恢复 UI 接入
 Phase 5P: Phase 5P: Windows MVP 验收清单
+Phase 6A: Phase 6A: macOS DMG 打包与回归测试
+Phase 6B: Phase 6B: macOS 测试 Target 与 Release 脚本安全性
 ```
 
 ---

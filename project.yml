@@ -61,6 +61,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.archiver.app.tests
         INFOPLIST_FILE: Tests/Info.plist
+    scheme: {}
 
 packages:
   GRDB:
