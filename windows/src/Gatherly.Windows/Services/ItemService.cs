@@ -24,18 +24,15 @@ public class ItemService
     /// </summary>
     public async Task TrashItemAsync(Item item, IReadOnlyList<string>? mediaPaths = null)
     {
-        // 从数据库获取最新版本
         var fresh = await _itemRepo.GetByIdAsync(item.Id)
             ?? throw new InvalidOperationException($"Item not found: {item.Id}");
 
         var now = DateTimeOffset.UtcNow;
 
-        // 更新 item 状态
         fresh.DeletedAt = now;
         fresh.ContentStatus = ContentStatus.trashed;
         await _itemRepo.UpdateAsync(fresh);
 
-        // 创建回收站记录
         var record = new TrashRecord
         {
             Id = Guid.NewGuid(),
@@ -47,5 +44,46 @@ public class ItemService
             MediaPaths = mediaPaths?.ToList() ?? new List<string>()
         };
         await _trashRepo.InsertAsync(record);
+    }
+
+    /// <summary>
+    /// 从回收站恢复内容
+    /// 对齐 macOS TrashView.restoreItem() 语义
+    /// </summary>
+    public async Task RestoreItemAsync(Item item)
+    {
+        var record = await _trashRepo.GetByItemIdAsync(item.Id)
+            ?? throw new InvalidOperationException($"TrashRecord not found for item: {item.Id}");
+
+        var fresh = await _itemRepo.GetByIdAsync(item.Id)
+            ?? throw new InvalidOperationException($"Item not found: {item.Id}");
+
+        // 恢复 item 状态
+        fresh.DeletedAt = null;
+        fresh.ContentStatus = ContentStatus.normal;
+        fresh.ArchiveStatus = record.OriginalArchiveStatus;
+        fresh.FolderId = record.OriginalFolderId;
+        await _itemRepo.UpdateAsync(fresh);
+
+        // 删除回收站记录
+        await _trashRepo.DeleteByItemIdAsync(item.Id);
+    }
+
+    /// <summary>
+    /// 永久删除 item
+    /// 依赖外键 cascade 删除 media_assets / trash_records
+    /// 本轮不删除真实媒体文件（macOS 有文件系统删除，Windows 暂未实现）
+    /// </summary>
+    public async Task PermanentlyDeleteItemAsync(Item item)
+    {
+        // 确保 trash record 存在（如果 cascade 未自动处理）
+        var record = await _trashRepo.GetByItemIdAsync(item.Id);
+        if (record != null)
+        {
+            await _trashRepo.DeleteByItemIdAsync(item.Id);
+        }
+
+        // 永久删除 item（cascade 删除 media_assets）
+        await _itemRepo.DeleteAsync(item.Id);
     }
 }

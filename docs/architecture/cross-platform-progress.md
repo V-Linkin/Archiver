@@ -685,6 +685,37 @@ windows/src/Gatherly.Windows/ViewModels/MainWindowViewModel.cs — 新增 TrashS
 * 尚未实现恢复 / 永久删除 / 备注编辑 / 移动
 * macOS 项目不受影响
 
+### Phase 5J：Windows 回收站恢复 / 永久删除 ✅
+
+状态：已完成。
+
+新增：
+
+```text
+windows/tests/Gatherly.Windows.Tests/TrashViewModelTests.cs — 12 个测试
+```
+
+改动：
+
+```text
+windows/src/Gatherly.Windows/Database/ItemRepository.cs — 新增 DeleteAsync()
+windows/src/Gatherly.Windows/Database/TrashRepository.cs — 新增 DeleteByItemIdAsync()
+windows/src/Gatherly.Windows/Services/ItemService.cs — 新增 RestoreItemAsync() + PermanentlyDeleteItemAsync()
+windows/src/Gatherly.Windows/ViewModels/TrashViewModel.cs — 新增 RestoreSelectedItemCommand + PermanentlyDeleteSelectedItemCommand
+windows/src/Gatherly.Windows/ViewModels/MainWindowViewModel.cs — 传递 ItemService 给 TrashViewModel
+```
+
+结论：
+
+* 回收站闭环已完成：移入 → 恢复 / 永久删除
+* RestoreItemAsync() 严格对齐 macOS 语义：清空 deletedAt、恢复 contentStatus=normal、恢复 originalArchiveStatus、恢复 originalFolderId、删除 TrashRecord
+* PermanentlyDeleteItemAsync() 永久删除 item + TrashRecord，依赖外键 cascade 删除 media_assets
+* 永久删除暂不删除真实媒体文件（macOS 有文件系统删除，Windows 暂未实现）
+* TrashViewModel 新增恢复 / 永久删除命令，成功后刷新列表并清空 SelectedItem
+* 106 个测试全部通过（含 12 个回收站测试）
+* 尚未实现清空回收站 / 批量操作 / 备注编辑
+* macOS 项目不受影响
+
 
 ---
 
@@ -749,6 +780,7 @@ Phase 5F: Phase 5F: Windows ViewModels
 Phase 5G: Phase 5G: Windows 基础 UI 骨架
 Phase 5H: Phase 5H: Windows 内容详情只读页
 Phase 5I: Phase 5I: Windows 移入回收站写入能力
+Phase 5J: Phase 5J: Windows 回收站恢复 / 永久删除
 ```
 
 ---

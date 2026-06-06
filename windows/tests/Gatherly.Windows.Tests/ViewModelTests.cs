@@ -287,6 +287,9 @@ public class ViewModelTests : IDisposable
         var vm = new TrashViewModel(
             new TrashDataService(
                 new ItemRepository(_connection),
+                new TrashRepository(_connection)),
+            new ItemService(
+                new ItemRepository(_connection),
                 new TrashRepository(_connection)));
 
         await vm.LoadCommand.ExecuteAsync(null);

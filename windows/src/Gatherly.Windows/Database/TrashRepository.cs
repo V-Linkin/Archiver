@@ -6,7 +6,7 @@ using Microsoft.Data.Sqlite;
 namespace Gatherly.Windows.Database;
 
 /// <summary>
-/// TrashRecord 数据访问层 — 读取 + 最小写入
+/// TrashRecord 数据访问层 — 读取 + 写入
 /// </summary>
 public class TrashRepository
 {
@@ -43,9 +43,6 @@ public class TrashRepository
 
     // ==================== Write ====================
 
-    /// <summary>
-    /// 插入回收站记录
-    /// </summary>
     public async Task InsertAsync(TrashRecord record)
     {
         var mediaPathsJson = JsonSerializer.Serialize(record.MediaPaths);
@@ -63,6 +60,14 @@ public class TrashRepository
         cmd.Parameters.AddWithValue("$originalFolderId", record.OriginalFolderId?.ToString() ?? (object)DBNull.Value);
         cmd.Parameters.AddWithValue("$originalArchiveStatus", record.OriginalArchiveStatus.ToRawValue());
         cmd.Parameters.AddWithValue("$mediaPaths", mediaPathsJson);
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    public async Task DeleteByItemIdAsync(Guid itemId)
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "DELETE FROM trash_records WHERE item_id=$itemId";
+        cmd.Parameters.AddWithValue("$itemId", itemId.ToString());
         await cmd.ExecuteNonQueryAsync();
     }
 }

@@ -120,6 +120,20 @@ public class ItemRepository
         await cmd.ExecuteNonQueryAsync();
     }
 
+
+    // ==================== Write ====================
+
+    /// <summary>
+    /// 永久删除 item（依赖外键 cascade 删除 media_assets / trash_records）
+    /// </summary>
+    public async Task DeleteAsync(Guid itemId)
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "DELETE FROM items WHERE id=$id";
+        cmd.Parameters.AddWithValue("$id", itemId.ToString());
+        await cmd.ExecuteNonQueryAsync();
+    }
+
     private async Task<List<Item>> ReadItemsAsync(SqliteCommand cmd)
     {
         using var reader = await cmd.ExecuteReaderAsync();

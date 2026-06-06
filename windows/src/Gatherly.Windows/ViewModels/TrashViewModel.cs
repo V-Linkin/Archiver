@@ -7,20 +7,22 @@ using Gatherly.Windows.Services;
 namespace Gatherly.Windows.ViewModels;
 
 /// <summary>
-/// 回收站 ViewModel — 已删除内容列表（只读）
+/// 回收站 ViewModel — 已删除内容列表 + 恢复 / 永久删除
 /// </summary>
 public partial class TrashViewModel : ViewModelBase
 {
     private readonly TrashDataService _trashService;
+    private readonly ItemService _itemService;
 
     public ObservableCollection<Item> TrashedItems { get; } = new();
 
     [ObservableProperty]
     private Item? _selectedItem;
 
-    public TrashViewModel(TrashDataService trashService)
+    public TrashViewModel(TrashDataService trashService, ItemService itemService)
     {
         _trashService = trashService;
+        _itemService = itemService;
     }
 
     [RelayCommand]
@@ -47,6 +49,40 @@ public partial class TrashViewModel : ViewModelBase
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task RestoreSelectedItemAsync()
+    {
+        if (SelectedItem == null) return;
+
+        try
+        {
+            await _itemService.RestoreItemAsync(SelectedItem);
+            SelectedItem = null;
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            SetError(ex.Message);
+        }
+    }
+
+    [RelayCommand]
+    private async Task PermanentlyDeleteSelectedItemAsync()
+    {
+        if (SelectedItem == null) return;
+
+        try
+        {
+            await _itemService.PermanentlyDeleteItemAsync(SelectedItem);
+            SelectedItem = null;
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            SetError(ex.Message);
         }
     }
 }

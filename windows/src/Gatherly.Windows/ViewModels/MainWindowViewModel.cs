@@ -66,7 +66,7 @@ public partial class MainWindowViewModel : ObservableObject
         Home = new HomeViewModel(new HomeDataService(itemRepo));
         ContentList = new ContentListViewModel(new ContentListService(itemRepo, folderRepo));
         Search = new SearchViewModel(new SearchService(searchRepo));
-        Trash = new TrashViewModel(new TrashDataService(itemRepo, trashRepo));
+        Trash = new TrashViewModel(new TrashDataService(itemRepo, trashRepo), _itemService);
 
         // Subscribe to sub-ViewModel selection changes
         Home.PropertyChanged += (_, e) =>
