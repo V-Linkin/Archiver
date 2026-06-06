@@ -27,6 +27,28 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private bool _isEditingRemark;
 
+    [ObservableProperty]
+    private bool _isImportingBackup;
+
+    [ObservableProperty]
+    private string? _backupImportStatus;
+
+    [ObservableProperty]
+    private string? _backupImportError;
+
+    public bool HasBackupImportStatus => BackupImportStatus != null;
+    public bool HasBackupImportError => BackupImportError != null;
+
+    partial void OnBackupImportStatusChanged(string? value)
+    {
+        OnPropertyChanged(nameof(HasBackupImportStatus));
+    }
+
+    partial void OnBackupImportErrorChanged(string? value)
+    {
+        OnPropertyChanged(nameof(HasBackupImportError));
+    }
+
     partial void OnSelectedItemChanged(Item? value)
     {
         OnPropertyChanged(nameof(HasSelectedItem));
@@ -63,6 +85,7 @@ public partial class MainWindowViewModel : ObservableObject
     public TrashViewModel Trash { get; }
 
     private readonly ItemService _itemService;
+    private readonly BackupImportService _backupImportService;
 
     public MainWindowViewModel(SqliteConnection connection)
     {
@@ -72,6 +95,7 @@ public partial class MainWindowViewModel : ObservableObject
         var trashRepo = new TrashRepository(connection);
 
         _itemService = new ItemService(itemRepo, trashRepo);
+        _backupImportService = new BackupImportService();
 
         Home = new HomeViewModel(new HomeDataService(itemRepo));
         ContentList = new ContentListViewModel(new ContentListService(itemRepo, folderRepo));
@@ -102,6 +126,52 @@ public partial class MainWindowViewModel : ObservableObject
 
         // Load home data on startup
         _ = Home.LoadCommand.ExecuteAsync(null);
+    }
+
+    /// <summary>
+    /// 从 zip 备份包恢复数据
+    /// </summary>
+    public async Task ImportBackupAsync(string backupZipPath)
+    {
+        if (IsImportingBackup) return;
+
+        IsImportingBackup = true;
+        BackupImportStatus = null;
+        BackupImportError = null;
+
+        try
+        {
+            await _backupImportService.ImportBackupAsync(
+                backupZipPath,
+                DatabasePaths.DatabaseFile,
+                DatabasePaths.DataDirectory);
+
+            BackupImportStatus = "导入成功";
+
+            // Clear selection
+            SelectedItem = null;
+            Home.SelectedItem = null;
+            ContentList.SelectedItem = null;
+            Search.SelectedItem = null;
+            Trash.SelectedItem = null;
+
+            // Refresh data
+            await Home.LoadCommand.ExecuteAsync(null);
+            await Trash.LoadCommand.ExecuteAsync(null);
+
+            if (!string.IsNullOrWhiteSpace(Search.Query))
+            {
+                await Search.SearchCommand.ExecuteAsync(null);
+            }
+        }
+        catch (Exception ex)
+        {
+            BackupImportError = $"导入失败：{ex.Message}";
+        }
+        finally
+        {
+            IsImportingBackup = false;
+        }
     }
 
     [RelayCommand]

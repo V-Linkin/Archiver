@@ -791,6 +791,33 @@ windows/tests/Gatherly.Windows.Tests/BackupImportTests.cs — 14 个测试
 * 尚未实现 manifest.json 新格式
 * macOS 项目不受影响
 
+### Phase 5O：Windows 备份恢复 UI 接入 ✅
+
+状态：已完成。
+
+修改：
+
+```text
+windows/src/Gatherly.Windows/ViewModels/MainWindowViewModel.cs — 新增 ImportBackupAsync + 状态属性
+windows/src/Gatherly.Windows/MainWindow.axaml — Sidebar 底部增加导入备份按钮和状态显示
+windows/src/Gatherly.Windows/MainWindow.axaml.cs — 文件选择器 + 调用 ViewModel
+windows/tests/Gatherly.Windows.Tests/BackupImportViewModelTests.cs — 8 个测试
+```
+
+结论：
+
+* MainWindowViewModel 新增 ImportBackupAsync() 方法和导入状态属性
+* MainWindow Sidebar 底部新增"📦 导入备份"按钮 + 状态文字
+* MainWindow code-behind 使用 Avalonia StorageProvider 选择 zip 文件
+* 恢复成功后刷新 Home / Trash / Search 数据
+* 恢复成功后清空 SelectedItem
+* 仅支持恢复到空数据库
+* 137 个测试全部通过（含 8 个备份导入 ViewModel 测试）
+* 尚未支持合并到已有库
+* 尚未实现备份导出
+* 尚未实现 manifest.json 新格式
+* macOS 项目不受影响
+
 
 ---
 
@@ -859,6 +886,7 @@ Phase 5J: Phase 5J: Windows 回收站恢复 / 永久删除
 Phase 5K: Phase 5K: Windows 备注编辑
 Phase 5L: Phase 5L: Windows 回收站相关 UI 按钮接入
 Phase 5N: Phase 5N: Windows 备份 zip 恢复 Service
+Phase 5O: Phase 5O: Windows 备份恢复 UI 接入
 ```
 
 ---

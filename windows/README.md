@@ -16,7 +16,7 @@
 ✅ Phase 5L: Windows 回收站相关 UI 按钮接入
 ✅ Phase 5N: Windows 备份 zip 恢复 Service
 
-❌ Phase 5O: 备份恢复 UI 接入
+✅ Phase 5O: Windows 备份恢复 UI 接入
 ❌ Phase 6:  Parser + WebView2
 ❌ Phase 7:  安装包
 ```
@@ -118,4 +118,7 @@ dotnet run --project windows/src/Gatherly.Windows
 - 本项目与 macOS 版共享 `shared/` 契约
 - 数据库文件 (.db) 跨平台兼容
 - 已实现：列表/搜索/详情/回收站/备注编辑/备份恢复 Service
-- 尚未实现：备份恢复 UI / Parser / WebView2 / 安装包
+- 尚未实现：Parser / WebView2 / 安装包
+| `MainWindowViewModel` | 根容器 + 导航 + 备注编辑 + TrashSelectedItem + 备份导入 |
+| `MainWindow` | 三栏布局 + Sidebar 导入备份按钮 + 文件选择器 |
+137 个测试全部通过。
