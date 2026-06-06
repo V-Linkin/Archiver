@@ -287,4 +287,165 @@ public class ItemServiceTests : IDisposable
         await vm.Trash.LoadCommand.ExecuteAsync(null);
         Assert.Single(vm.Trash.TrashedItems);
     }
+
+    // ==================== ItemService.UpdateRemarkAsync ====================
+
+    [Fact]
+    public async Task UpdateRemarkAsync_SavesRemark()
+    {
+        InsertTestItem();
+        var service = new ItemService(
+            new ItemRepository(_connection),
+            new TrashRepository(_connection));
+
+        var item = (await new ItemRepository(_connection).GetByIdAsync(
+            Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
+
+        var updated = await service.UpdateRemarkAsync(item, "Test remark");
+
+        Assert.Equal("Test remark", updated.Remark);
+
+        var fromDb = await new ItemRepository(_connection).GetByIdAsync(
+            Guid.Parse("00000000-0000-0000-0000-000000000001"));
+        Assert.Equal("Test remark", fromDb!.Remark);
+    }
+
+    [Fact]
+    public async Task UpdateRemarkAsync_EmptyStringSavesNull()
+    {
+        InsertTestItem();
+        var service = new ItemService(
+            new ItemRepository(_connection),
+            new TrashRepository(_connection));
+
+        var item = (await new ItemRepository(_connection).GetByIdAsync(
+            Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
+
+        await service.UpdateRemarkAsync(item, "Something");
+        var item2 = (await new ItemRepository(_connection).GetByIdAsync(
+            Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
+        var cleared = await service.UpdateRemarkAsync(item2, "");
+
+        Assert.Null(cleared.Remark);
+    }
+
+    [Fact]
+    public async Task UpdateRemarkAsync_NullSavesNull()
+    {
+        InsertTestItem();
+        var service = new ItemService(
+            new ItemRepository(_connection),
+            new TrashRepository(_connection));
+
+        var item = (await new ItemRepository(_connection).GetByIdAsync(
+            Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
+
+        var updated = await service.UpdateRemarkAsync(item, null);
+
+        Assert.Null(updated.Remark);
+    }
+
+    [Fact]
+    public async Task UpdateRemarkAsync_UpdatesModifyDate()
+    {
+        InsertTestItem();
+        var service = new ItemService(
+            new ItemRepository(_connection),
+            new TrashRepository(_connection));
+
+        var item = (await new ItemRepository(_connection).GetByIdAsync(
+            Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
+        var oldModifyDate = item.ModifyDate;
+
+        await Task.Delay(1100);
+
+        var updated = await service.UpdateRemarkAsync(item, "New remark");
+
+        Assert.True(updated.ModifyDate > oldModifyDate);
+    }
+
+    [Fact]
+    public async Task UpdateRemarkAsync_DoesNotAffectContentStatus()
+    {
+        InsertTestItem();
+        var service = new ItemService(
+            new ItemRepository(_connection),
+            new TrashRepository(_connection));
+
+        var item = (await new ItemRepository(_connection).GetByIdAsync(
+            Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
+
+        await service.UpdateRemarkAsync(item, "Remark");
+
+        var fromDb = await new ItemRepository(_connection).GetByIdAsync(
+            Guid.Parse("00000000-0000-0000-0000-000000000001"));
+        Assert.Equal(ContentStatus.normal, fromDb!.ContentStatus);
+        Assert.Null(fromDb.DeletedAt);
+    }
+
+    [Fact]
+    public async Task MainWindowViewModel_SaveRemarkCommand_NullDoesNotCrash()
+    {
+        var vm = new MainWindowViewModel(_connection);
+        vm.SelectedItem = null;
+        await vm.SaveRemarkCommand.ExecuteAsync(null);
+        Assert.Null(vm.SelectedItem);
+    }
+
+    [Fact]
+    public async Task MainWindowViewModel_StartEditRemark_EntersEditMode()
+    {
+        InsertTestItem();
+        var vm = new MainWindowViewModel(_connection);
+        await vm.Home.LoadCommand.ExecuteAsync(null);
+
+        if (vm.Home.RecentItems.Count > 0)
+        {
+            vm.SelectedItem = vm.Home.RecentItems[0];
+            Assert.False(vm.IsEditingRemark);
+
+            vm.StartEditRemarkCommand.Execute(null);
+            Assert.True(vm.IsEditingRemark);
+        }
+    }
+
+    [Fact]
+    public async Task MainWindowViewModel_CancelEditRemark_ExitsEditMode()
+    {
+        InsertTestItem();
+        var vm = new MainWindowViewModel(_connection);
+        await vm.Home.LoadCommand.ExecuteAsync(null);
+
+        if (vm.Home.RecentItems.Count > 0)
+        {
+            vm.SelectedItem = vm.Home.RecentItems[0];
+            vm.StartEditRemarkCommand.Execute(null);
+            vm.EditableRemark = "Changed but not saved";
+
+            vm.CancelEditRemarkCommand.Execute(null);
+            Assert.False(vm.IsEditingRemark);
+            Assert.Equal(vm.SelectedItem?.Remark ?? string.Empty, vm.EditableRemark);
+        }
+    }
+
+    [Fact]
+    public async Task MainWindowViewModel_SaveRemark_UpdatesSelectedItem()
+    {
+        InsertTestItem();
+        var vm = new MainWindowViewModel(_connection);
+        await vm.Home.LoadCommand.ExecuteAsync(null);
+
+        if (vm.Home.RecentItems.Count > 0)
+        {
+            vm.SelectedItem = vm.Home.RecentItems[0];
+            vm.StartEditRemarkCommand.Execute(null);
+            vm.EditableRemark = "Saved remark";
+
+            await vm.SaveRemarkCommand.ExecuteAsync(null);
+
+            Assert.False(vm.IsEditingRemark);
+            Assert.Equal("Saved remark", vm.SelectedItem?.Remark);
+            Assert.Equal("Saved remark", vm.DisplayRemark);
+        }
+    }
 }

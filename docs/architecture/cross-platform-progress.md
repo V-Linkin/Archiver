@@ -716,6 +716,34 @@ windows/src/Gatherly.Windows/ViewModels/MainWindowViewModel.cs — 传递 ItemSe
 * 尚未实现清空回收站 / 批量操作 / 备注编辑
 * macOS 项目不受影响
 
+### Phase 5K：Windows 备注编辑 ✅
+
+状态：已完成。
+
+新增：
+
+```text
+windows/tests/Gatherly.Windows.Tests/ItemServiceTests.cs — 扩展 9 个备注测试
+```
+
+改动：
+
+```text
+windows/src/Gatherly.Windows/Services/ItemService.cs — 新增 UpdateRemarkAsync()
+windows/src/Gatherly.Windows/ViewModels/MainWindowViewModel.cs — 新增 EditableRemark / IsEditingRemark / StartEditRemark / CancelEditRemark / SaveRemark 命令
+windows/src/Gatherly.Windows/Views/ItemDetailView.axaml — 备注区域增加编辑 UI（查看/编辑模式切换）
+```
+
+结论：
+
+* ItemService.UpdateRemarkAsync() 严格对齐 macOS 语义：读取最新 item、设置 remark、更新 modifyDate
+* 空字符串保存为 null
+* MainWindowViewModel 新增备注编辑状态和命令
+* ItemDetailView 备注区域支持查看/编辑模式切换
+* 115 个测试全部通过（含 9 个备注编辑测试）
+* 尚未实现标题/正文编辑 / 移动 / 导入导出 / Parser
+* macOS 项目不受影响
+
 
 ---
 
@@ -781,6 +809,7 @@ Phase 5G: Phase 5G: Windows 基础 UI 骨架
 Phase 5H: Phase 5H: Windows 内容详情只读页
 Phase 5I: Phase 5I: Windows 移入回收站写入能力
 Phase 5J: Phase 5J: Windows 回收站恢复 / 永久删除
+Phase 5K: Phase 5K: Windows 备注编辑
 ```
 
 ---

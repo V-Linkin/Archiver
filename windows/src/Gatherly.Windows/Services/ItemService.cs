@@ -19,6 +19,22 @@ public class ItemService
     }
 
     /// <summary>
+    /// 更新备注
+    /// 对齐 macOS ItemService.updateRemark() 语义
+    /// </summary>
+    public async Task<Item> UpdateRemarkAsync(Item item, string? remark)
+    {
+        var fresh = await _itemRepo.GetByIdAsync(item.Id)
+            ?? throw new InvalidOperationException($"Item not found: {item.Id}");
+
+        fresh.Remark = string.IsNullOrWhiteSpace(remark) ? null : remark;
+        fresh.ModifyDate = DateTimeOffset.UtcNow;
+        await _itemRepo.UpdateAsync(fresh);
+
+        return fresh;
+    }
+
+    /// <summary>
     /// 将内容移入回收站
     /// 对齐 macOS ItemService.trashItem() 语义
     /// </summary>
@@ -58,14 +74,12 @@ public class ItemService
         var fresh = await _itemRepo.GetByIdAsync(item.Id)
             ?? throw new InvalidOperationException($"Item not found: {item.Id}");
 
-        // 恢复 item 状态
         fresh.DeletedAt = null;
         fresh.ContentStatus = ContentStatus.normal;
         fresh.ArchiveStatus = record.OriginalArchiveStatus;
         fresh.FolderId = record.OriginalFolderId;
         await _itemRepo.UpdateAsync(fresh);
 
-        // 删除回收站记录
         await _trashRepo.DeleteByItemIdAsync(item.Id);
     }
 
@@ -76,14 +90,12 @@ public class ItemService
     /// </summary>
     public async Task PermanentlyDeleteItemAsync(Item item)
     {
-        // 确保 trash record 存在（如果 cascade 未自动处理）
         var record = await _trashRepo.GetByItemIdAsync(item.Id);
         if (record != null)
         {
             await _trashRepo.DeleteByItemIdAsync(item.Id);
         }
 
-        // 永久删除 item（cascade 删除 media_assets）
         await _itemRepo.DeleteAsync(item.Id);
     }
 }

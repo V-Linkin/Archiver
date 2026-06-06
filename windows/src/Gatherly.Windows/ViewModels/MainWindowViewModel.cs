@@ -8,7 +8,7 @@ using Microsoft.Data.Sqlite;
 namespace Gatherly.Windows.ViewModels;
 
 /// <summary>
-/// 主窗口 ViewModel — 根容器，持有子 ViewModel、导航状态和选中项
+/// 主窗口 ViewModel — 根容器，持有子 ViewModel、导航状态、选中项和备注编辑
 /// </summary>
 public partial class MainWindowViewModel : ObservableObject
 {
@@ -20,6 +20,12 @@ public partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty]
     private Item? _selectedItem;
+
+    [ObservableProperty]
+    private string _editableRemark = string.Empty;
+
+    [ObservableProperty]
+    private bool _isEditingRemark;
 
     partial void OnSelectedItemChanged(Item? value)
     {
@@ -33,6 +39,10 @@ public partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(DisplayRemark));
         OnPropertyChanged(nameof(DisplayOriginalUrl));
         OnPropertyChanged(nameof(DisplayNormalizedUrl));
+
+        // Sync editable remark
+        EditableRemark = value?.Remark ?? string.Empty;
+        IsEditingRemark = false;
     }
 
     public bool HasSelectedItem => SelectedItem != null;
@@ -112,22 +122,48 @@ public partial class MainWindowViewModel : ObservableObject
         {
             await _itemService.TrashItemAsync(SelectedItem);
 
-            // Clear selection
             SelectedItem = null;
-
-            // Clear sub-ViewModel selections
             Home.SelectedItem = null;
             ContentList.SelectedItem = null;
             Search.SelectedItem = null;
             Trash.SelectedItem = null;
 
-            // Refresh lists
             await Home.LoadCommand.ExecuteAsync(null);
             await Trash.LoadCommand.ExecuteAsync(null);
         }
         catch
         {
-            // Silently ignore errors for now
+        }
+    }
+
+    [RelayCommand]
+    private void StartEditRemark()
+    {
+        if (SelectedItem == null) return;
+        EditableRemark = SelectedItem.Remark ?? string.Empty;
+        IsEditingRemark = true;
+    }
+
+    [RelayCommand]
+    private void CancelEditRemark()
+    {
+        EditableRemark = SelectedItem?.Remark ?? string.Empty;
+        IsEditingRemark = false;
+    }
+
+    [RelayCommand]
+    private async Task SaveRemarkAsync()
+    {
+        if (SelectedItem == null) return;
+
+        try
+        {
+            var updated = await _itemService.UpdateRemarkAsync(SelectedItem, EditableRemark);
+            SelectedItem = updated;
+            IsEditingRemark = false;
+        }
+        catch
+        {
         }
     }
 }

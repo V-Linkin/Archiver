@@ -42,10 +42,36 @@
                                TextWrapping="Wrap" FontSize="14" LineHeight="22" />
                 </Border>
 
+                <!-- Remark section with edit -->
                 <StackPanel Spacing="4">
                     <TextBlock Text="备注" FontSize="12" Foreground="Gray" />
-                    <TextBlock Text="{Binding DisplayRemark, FallbackValue='暂无备注'}"
-                               FontSize="13" FontStyle="Italic" />
+
+                    <!-- View mode -->
+                    <StackPanel IsVisible="{Binding !IsEditingRemark}" Spacing="4">
+                        <TextBlock Text="{Binding DisplayRemark, FallbackValue='暂无备注'}"
+                                   FontSize="13" FontStyle="Italic"
+                                   TextWrapping="Wrap" />
+                        <Button Content="编辑备注"
+                                Command="{Binding StartEditRemarkCommand}"
+                                HorizontalAlignment="Left"
+                                Padding="8,4" FontSize="12" />
+                    </StackPanel>
+
+                    <!-- Edit mode -->
+                    <StackPanel IsVisible="{Binding IsEditingRemark}" Spacing="4">
+                        <TextBox Text="{Binding EditableRemark}"
+                                 AcceptsReturn="True"
+                                 MinHeight="60"
+                                 Watermark="输入备注..." />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Content="保存"
+                                    Command="{Binding SaveRemarkCommand}"
+                                    Padding="8,4" FontSize="12" />
+                            <Button Content="取消"
+                                    Command="{Binding CancelEditRemarkCommand}"
+                                    Padding="8,4" FontSize="12" />
+                        </StackPanel>
+                    </StackPanel>
                 </StackPanel>
 
                 <StackPanel Spacing="4">
