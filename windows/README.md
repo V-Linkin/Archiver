@@ -18,6 +18,7 @@
 
 ✅ Phase 5O: Windows 备份恢复 UI 接入
 ✅ Phase 5P: Windows MVP 验收清单
+✅ Phase 5Q: Windows MVP 真实运行验收
 ❌ Phase 6:  Parser + WebView2
 ❌ Phase 7:  安装包
 ```
@@ -125,3 +126,4 @@ dotnet run --project windows/src/Gatherly.Windows
 137 个测试全部通过。
 - 验收文档：docs/windows/windows-mvp-acceptance.md
 - 手动测试清单：docs/windows/windows-manual-test-checklist.md
+- 真实运行验收报告：docs/windows/windows-mvp-test-report.md

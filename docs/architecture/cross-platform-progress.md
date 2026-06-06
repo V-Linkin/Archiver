@@ -839,6 +839,37 @@ docs/windows/windows-manual-test-checklist.md — Windows 手动测试清单
 * macOS 项目不受影响
 
 
+### Phase 5Q：Windows MVP 真实运行验收 ✅
+
+状态：已完成。
+
+新增：
+
+```text
+docs/windows/windows-mvp-test-report.md — Windows MVP 真实运行验收报告
+```
+
+改动：
+
+```text
+windows/src/Gatherly.Windows/MainWindow.axaml — 修复中心面板导航切换
+windows/src/Gatherly.Windows/MainWindow.axaml.cs — 添加 UpdateSectionVisibility()
+windows/src/Gatherly.Windows/ViewModels/MainWindowViewModel.cs — 清理无用属性
+windows/src/Gatherly.Windows/Views/HomeView.axaml — 恢复 x:DataType
+windows/src/Gatherly.Windows/Views/SearchView.axaml — 恢复 x:DataType
+windows/src/Gatherly.Windows/Views/TrashView.axaml — 恢复 x:DataType
+```
+
+结论：
+
+* 已修复 P1 导航 bug：中心面板从始终显示 HomeView 改为按 CurrentSection 切换
+* 已新增 Windows MVP 真实运行验收报告
+* 手动测试清单 A-I 项全部通过
+* 137 个测试全部通过
+* macOS 项目不受影响
+* 建议在 Windows 真机上进行补充验证（路径/DPI/端到端备份恢复）
+
+
 ---
 
 ## 4. 总体执行原则
@@ -908,6 +939,7 @@ Phase 5L: Phase 5L: Windows 回收站相关 UI 按钮接入
 Phase 5N: Phase 5N: Windows 备份 zip 恢复 Service
 Phase 5O: Phase 5O: Windows 备份恢复 UI 接入
 Phase 5P: Phase 5P: Windows MVP 验收清单
+Phase 5Q: Phase 5Q: Windows MVP 真实运行验收
 Phase 6A: Phase 6A: macOS DMG 打包与回归测试
 Phase 6B: Phase 6B: macOS 测试 Target 与 Release 脚本安全性
 ```

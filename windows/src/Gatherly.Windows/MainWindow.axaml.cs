@@ -10,6 +10,22 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(vm.CurrentSection))
+                    UpdateSectionVisibility(vm.CurrentSection);
+            };
+        }
+    }
+
+    private void UpdateSectionVisibility(string section)
+    {
+        HomeViewControl.IsVisible = section == "Home";
+        SearchViewControl.IsVisible = section == "Search";
+        TrashViewControl.IsVisible = section == "Trash";
     }
 
     private async void ImportBackup_Click(object? sender, RoutedEventArgs e)

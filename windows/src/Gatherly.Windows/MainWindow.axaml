@@ -68,7 +68,9 @@
 
         <!-- Center Content -->
         <Panel Grid.Column="1">
-            <views:HomeView DataContext="{Binding Home}" />
+            <views:HomeView x:Name="HomeViewControl" DataContext="{Binding Home}" />
+            <views:SearchView x:Name="SearchViewControl" DataContext="{Binding Search}" IsVisible="False" />
+            <views:TrashView x:Name="TrashViewControl" DataContext="{Binding Trash}" IsVisible="False" />
         </Panel>
 
         <!-- Right Detail -->

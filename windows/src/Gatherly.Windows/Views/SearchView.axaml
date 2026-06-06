@@ -2,8 +2,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Gatherly.Windows.ViewModels"
              xmlns:m="using:Gatherly.Windows.Models"
-             x:Class="Gatherly.Windows.Views.SearchView"
-             x:DataType="vm:SearchViewModel">
+             x:DataType="vm:SearchViewModel"
+             x:Class="Gatherly.Windows.Views.SearchView">
 
     <DockPanel>
         <TextBlock DockPanel.Dock="Top" Text="搜索"
@@ -31,7 +31,7 @@
                  SelectedItem="{Binding SelectedItem}"
                  Margin="8,0">
             <ListBox.ItemTemplate>
-                <DataTemplate x:DataType="m:Item">
+                <DataTemplate>
                     <StackPanel Margin="4,6">
                         <TextBlock Text="{Binding Title, FallbackValue='未命名内容'}"
                                    FontWeight="SemiBold" />

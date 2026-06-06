@@ -2,8 +2,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Gatherly.Windows.ViewModels"
              xmlns:m="using:Gatherly.Windows.Models"
-             x:Class="Gatherly.Windows.Views.HomeView"
-             x:DataType="vm:HomeViewModel">
+             x:DataType="vm:HomeViewModel"
+             x:Class="Gatherly.Windows.Views.HomeView">
 
     <DockPanel>
         <TextBlock DockPanel.Dock="Top" Text="首页 — 最近内容"
@@ -23,7 +23,7 @@
                  SelectedItem="{Binding SelectedItem}"
                  Margin="8,0">
             <ListBox.ItemTemplate>
-                <DataTemplate x:DataType="m:Item">
+                <DataTemplate>
                     <StackPanel Margin="4,6">
                         <TextBlock Text="{Binding Title, FallbackValue='未命名内容'}"
                                    FontWeight="SemiBold" />
