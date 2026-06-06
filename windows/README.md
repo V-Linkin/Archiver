@@ -124,6 +124,25 @@ dotnet run --project windows/src/Gatherly.Windows
 | `MainWindowViewModel` | 根容器 + 导航 + 备注编辑 + TrashSelectedItem + 备份导入 |
 | `MainWindow` | 三栏布局 + Sidebar 导入备份按钮 + 文件选择器 |
 137 个测试全部通过。
-- 验收文档：docs/windows/windows-mvp-acceptance.md
-- 手动测试清单：docs/windows/windows-manual-test-checklist.md
-- 真实运行验收报告：docs/windows/windows-mvp-test-report.md
+
+## Windows 真机接手 / Handoff
+
+当前 Windows 项目已可 build / test / run，但仍需在真实 Windows 电脑上运行验证。
+
+接手文档：
+
+```text
+docs/windows/windows-handoff-for-real-machine.md   ← 从这里开始
+docs/windows/windows-manual-test-checklist.md       ← 逐项勾选测试
+docs/windows/windows-mvp-acceptance.md              ← MVP 完成能力
+docs/windows/windows-mvp-test-report.md             ← Phase 5Q 验收报告
+```
+
+快速开始：
+
+```bash
+git pull
+dotnet build windows/Gatherly.Windows.sln
+dotnet test windows/Gatherly.Windows.sln
+dotnet run --project windows/src/Gatherly.Windows
+```

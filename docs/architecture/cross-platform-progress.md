@@ -870,6 +870,34 @@ windows/src/Gatherly.Windows/Views/TrashView.axaml — 恢复 x:DataType
 * 建议在 Windows 真机上进行补充验证（路径/DPI/端到端备份恢复）
 
 
+### Phase 6C-Prep：Windows 真机接手文档更新 ✅
+
+状态：已完成。
+
+新增：
+
+```text
+docs/windows/windows-handoff-for-real-machine.md — Windows 真机接手指南
+```
+
+改动：
+
+```text
+windows/README.md — 新增 Windows 真机接手 / Handoff 章节
+docs/architecture/cross-platform-progress.md — 新增 Phase 6C-Prep 记录
+```
+
+结论：
+
+* 已新增 Windows 真机接手指南，包含构建/测试/运行/发布步骤
+* 已说明 Windows 数据路径和备份恢复测试流程
+* 已明确当前不要做的事（Parser/WebView2/安装包等）
+* 已新增问题分级标准（P0-P3）
+* 本轮只更新文档，未修改业务代码
+* 137 个测试全部通过
+* macOS 项目不受影响
+
+
 ---
 
 ## 4. 总体执行原则
@@ -940,6 +968,7 @@ Phase 5N: Phase 5N: Windows 备份 zip 恢复 Service
 Phase 5O: Phase 5O: Windows 备份恢复 UI 接入
 Phase 5P: Phase 5P: Windows MVP 验收清单
 Phase 5Q: Phase 5Q: Windows MVP 真实运行验收
+Phase 6C-Prep: Phase 6C-Prep: Windows 真机接手文档更新
 Phase 6A: Phase 6A: macOS DMG 打包与回归测试
 Phase 6B: Phase 6B: macOS 测试 Target 与 Release 脚本安全性
 ```
