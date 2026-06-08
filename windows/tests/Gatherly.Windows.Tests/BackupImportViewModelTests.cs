@@ -70,6 +70,10 @@ public class BackupImportViewModelTests : IDisposable
             JsonSerializer.Serialize(info));
 
         var zipPath = Path.Combine(_tempDir, "test_backup.zip");
+                // On Windows, SQLite WAL lock may linger after connection close
+        SqliteConnection.ClearAllPools();
+        System.Threading.Thread.Sleep(200);
+
         ZipFile.CreateFromDirectory(zipDir, zipPath);
         Directory.Delete(zipDir, true);
 

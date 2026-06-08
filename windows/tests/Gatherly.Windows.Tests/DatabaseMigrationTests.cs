@@ -17,15 +17,26 @@ public class DatabaseMigrationTests : IDisposable
 
     public void Dispose()
     {
-        if (File.Exists(_tempDbPath))
+        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+        System.Threading.Thread.Sleep(300);
+
+        // Retry file deletion to handle Windows WAL lock release delay
+        for (int retry = 0; retry < 5; retry++)
         {
-            File.Delete(_tempDbPath);
+            try
+            {
+                if (File.Exists(_tempDbPath)) File.Delete(_tempDbPath);
+                var walPath = _tempDbPath + "-wal";
+                var shmPath = _tempDbPath + "-shm";
+                if (File.Exists(walPath)) File.Delete(walPath);
+                if (File.Exists(shmPath)) File.Delete(shmPath);
+                break;
+            }
+            catch (IOException) when (retry < 4)
+            {
+                System.Threading.Thread.Sleep(300);
+            }
         }
-        // 清理 WAL/SHM 文件
-        var walPath = _tempDbPath + "-wal";
-        var shmPath = _tempDbPath + "-shm";
-        if (File.Exists(walPath)) File.Delete(walPath);
-        if (File.Exists(shmPath)) File.Delete(shmPath);
     }
 
     [Fact]
