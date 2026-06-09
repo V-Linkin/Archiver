@@ -334,22 +334,23 @@ Database / Models / shared / macOS 代码均未修改。
 | 项目 | 结果 |
 |------|------|
 | 是否修改代码 | 是 |
-| 修改文件 | `windows/src/Gatherly.Windows/MainWindow.axaml.cs` |
-| 修改内容 | 将 PropertyChanged 订阅从构造函数移到 OnDataContextChanged，修复 P1 导航切换 bug |
+| 修改文件 | `MainWindow.axaml.cs`、`BackupImportService.cs`、`BackupImportTests.cs` |
+| 修改内容 | 1) 将 PropertyChanged 订阅从构造函数移到 OnDataContextChanged，修复 P1 导航切换 bug；2) 新增 LocateBackupRoot() 方法，支持 macOS archiver_backup_{UUID}/ 子目录结构 |
 
 ---
 
 ## 9. 结论
 
-- Windows build/test 已通过。
-- Windows `dotnet run` 与 `publish` exe 可正常启动并创建本地数据路径。
+- Windows build/test 已通过（141/141 passed）。
+- Windows `dotnet publish` exe 可正常启动并创建本地数据路径。
 - Phase 6D 修复了 P1 导航切换 bug（PropertyChanged 订阅时机问题）。
+- Phase 6D 修复了 P1 macOS 真实 zip 备份导入兼容问题（archiver_backup_{UUID}/ 子目录）。
 - 空库 GUI 走查通过：首页/搜索/回收站切换正常，空状态不崩溃。
-- macOS zip 备份恢复端到端：⏳ 待补测（本机暂无 macOS 导出的 zip 备份包）。
+- macOS 真实 zip 备份导入已验证成功：数据恢复、media/platform_logos 复制均正常。
 - 当前未发现 P0 / P1 阻塞问题。
 
 ### 是否可以进入下一阶段
 
 可以继续推进。建议下一步：
-1. 补测 macOS zip 备份恢复端到端（需准备 macOS 备份包）
-2. 完整 GUI 走查（有数据时的首页/搜索/详情/备注/回收站）
+1. Parser / WebView2（独立高风险阶段，需逐平台实现）
+2. Windows 安装器

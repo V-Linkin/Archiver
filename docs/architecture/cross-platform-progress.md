@@ -898,6 +898,29 @@ docs/architecture/cross-platform-progress.md — 新增 Phase 6C-Prep 记录
 * macOS 项目不受影响
 
 
+### Phase 6D：Windows 真机 GUI 走查与 Bug 修复 ✅
+
+状态：已完成。
+
+改动：
+
+```text
+windows/src/Gatherly.Windows/MainWindow.axaml.cs — 修复 Sidebar 导航切换（P1）
+windows/src/Gatherly.Windows/Services/BackupImportService.cs — 修复 macOS 真实 zip 备份导入（P1）
+windows/tests/Gatherly.Windows.Tests/BackupImportTests.cs — 新增 4 个 macOS 真实格式测试
+docs/windows/windows-real-machine-test-report.md — Phase 6D 验证报告
+```
+
+结论：
+
+* 修复 P1：Sidebar 导航切换不工作（PropertyChanged 订阅时机问题）
+* 修复 P1：Windows 不兼容 macOS 真实 zip 备份结构（archiver_backup_{UUID}/ 子目录）
+* 空库 GUI 走查通过：首页/搜索/回收站切换正常，空状态不崩溃
+* macOS 真实 zip 备份导入已验证成功
+* 141 个测试全部通过（新增 4 个备份导入测试）
+* macOS 项目不受影响
+
+
 ---
 
 ## 4. 总体执行原则
