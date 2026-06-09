@@ -32,7 +32,7 @@ public class BackupImportTests : IDisposable
     }
 
     /// <summary>
-    /// 创建一个模拟 macOS 备份的 zip 文件
+    /// 创建一个模拟 macOS 备份的 zip 文件（根目录格式，兼容旧测试）
     /// </summary>
     private string CreateTestBackupZip(
         bool includeDb = true,
@@ -347,5 +347,137 @@ public class BackupImportTests : IDisposable
         var item = await repo.GetByIdAsync(Guid.Parse("00000000-0000-0000-0000-000000000001"));
         Assert.NotNull(item);
         Assert.Equal("https://example.com", item!.OriginalUrl);
+    }
+
+    // ==================== macOS 真实格式测试 (archiver_backup_{UUID}/ 子目录) ====================
+
+    /// <summary>
+    /// 创建模拟 macOS 真实导出格式的 zip（文件在 archiver_backup_{UUID}/ 子目录内）
+    /// </summary>
+    private string CreateMacOSRealBackupZip(
+        bool includeDb = true,
+        bool includeMedia = true,
+        bool includeLogos = true,
+        bool includeBackupInfo = true)
+    {
+        var zipDir = Path.Combine(_tempDir, "macos_zip_source");
+        var subDir = Path.Combine(zipDir, $"archiver_backup_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(subDir);
+
+        // 创建 archiver.db（在子目录内）
+        if (includeDb)
+        {
+            var dbPath = Path.Combine(subDir, "archiver.db");
+            using (var conn = new SqliteConnection($"Data Source={dbPath}"))
+            {
+                conn.Open();
+                MigrationRunner.RunAll(conn);
+
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = @"
+                        INSERT INTO items (id, original_url, platform, normalized_url,
+                            import_date, modify_date, content_status, archive_status, media_status)
+                        VALUES ('00000000-0000-0000-0000-000000000001', 'https://example.com', 'bilibili',
+                            'https://example.com', 1700000000, 1700000000, 'normal', 'pending', 'textOnly')";
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        // 创建 media/ 目录（在子目录内）
+        if (includeMedia)
+        {
+            var mediaDir = Path.Combine(subDir, "media", "00000000-0000-0000-0000-000000000001");
+            Directory.CreateDirectory(mediaDir);
+            File.WriteAllBytes(Path.Combine(mediaDir, "image_001.jpg"), new byte[] { 0xFF, 0xD8, 0xFF });
+        }
+
+        // 创建 platform_logos/ 目录（在子目录内）
+        if (includeLogos)
+        {
+            var logosDir = Path.Combine(subDir, "platform_logos");
+            Directory.CreateDirectory(logosDir);
+            File.WriteAllBytes(Path.Combine(logosDir, "bilibili.png"), new byte[] { 0x89, 0x50, 0x4E });
+        }
+
+        // 创建 backup_info.json（在子目录内）
+        if (includeBackupInfo)
+        {
+            var info = new Dictionary<string, object>
+            {
+                ["version"] = "1.0.0",
+                ["backupDate"] = "2026-06-08T16:54:00Z",
+                ["hasDatabase"] = includeDb,
+                ["hasMedia"] = includeMedia,
+                ["hasLogos"] = includeLogos
+            };
+            File.WriteAllText(
+                Path.Combine(subDir, "backup_info.json"),
+                JsonSerializer.Serialize(info));
+        }
+
+        // 打包为 zip
+        var zipPath = Path.Combine(_tempDir, "test_macos_real_backup.zip");
+        SqliteConnection.ClearAllPools();
+        System.Threading.Thread.Sleep(200);
+
+        ZipFile.CreateFromDirectory(zipDir, zipPath);
+
+        // 清理源目录
+        Directory.Delete(zipDir, true);
+
+        return zipPath;
+    }
+
+    [Fact]
+    public async Task ImportBackup_MacOSRealFormat_RestoresDatabase()
+    {
+        var zipPath = CreateMacOSRealBackupZip();
+        var service = new BackupImportService();
+
+        await service.ImportBackupAsync(zipPath, _targetDbPath, _targetDataDir);
+
+        using var conn = new SqliteConnection($"Data Source={_targetDbPath}");
+        conn.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM items";
+        var count = Convert.ToInt64(cmd.ExecuteScalar());
+        Assert.Equal(1, count);
+    }
+
+    [Fact]
+    public async Task ImportBackup_MacOSRealFormat_RestoresMedia()
+    {
+        var zipPath = CreateMacOSRealBackupZip();
+        var service = new BackupImportService();
+
+        await service.ImportBackupAsync(zipPath, _targetDbPath, _targetDataDir);
+
+        var mediaFile = Path.Combine(_targetDataDir, "media",
+            "00000000-0000-0000-0000-000000000001", "image_001.jpg");
+        Assert.True(File.Exists(mediaFile));
+    }
+
+    [Fact]
+    public async Task ImportBackup_MacOSRealFormat_RestoresPlatformLogos()
+    {
+        var zipPath = CreateMacOSRealBackupZip();
+        var service = new BackupImportService();
+
+        await service.ImportBackupAsync(zipPath, _targetDbPath, _targetDataDir);
+
+        var logoFile = Path.Combine(_targetDataDir, "platform_logos", "bilibili.png");
+        Assert.True(File.Exists(logoFile));
+    }
+
+    [Fact]
+    public async Task ImportBackup_MacOSRealFormat_MissingDb_ThrowsException()
+    {
+        var zipPath = CreateMacOSRealBackupZip(includeDb: false);
+        var service = new BackupImportService();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.ImportBackupAsync(zipPath, _targetDbPath, _targetDataDir));
     }
 }

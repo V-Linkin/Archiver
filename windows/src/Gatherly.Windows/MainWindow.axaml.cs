@@ -7,18 +7,37 @@ namespace Gatherly.Windows;
 
 public partial class MainWindow : Window
 {
+    private MainWindowViewModel? _subscribedVm;
+
     public MainWindow()
     {
         InitializeComponent();
+    }
 
+    protected override void OnDataContextChanged(EventArgs e)
+    {
+        base.OnDataContextChanged(e);
+
+        // Unsubscribe old ViewModel
+        if (_subscribedVm != null)
+        {
+            _subscribedVm.PropertyChanged -= OnVmPropertyChanged;
+            _subscribedVm = null;
+        }
+
+        // Subscribe new ViewModel
         if (DataContext is MainWindowViewModel vm)
         {
-            vm.PropertyChanged += (_, e) =>
-            {
-                if (e.PropertyName == nameof(vm.CurrentSection))
-                    UpdateSectionVisibility(vm.CurrentSection);
-            };
+            _subscribedVm = vm;
+            vm.PropertyChanged += OnVmPropertyChanged;
+            UpdateSectionVisibility(vm.CurrentSection);
         }
+    }
+
+    private void OnVmPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (_subscribedVm != null && e.PropertyName == nameof(_subscribedVm.CurrentSection))
+            UpdateSectionVisibility(_subscribedVm.CurrentSection);
     }
 
     private void UpdateSectionVisibility(string section)

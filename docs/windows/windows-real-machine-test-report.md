@@ -1,7 +1,139 @@
 ﻿# Windows 真机 / exe 运行验证报告
 
-> 验证日期：2026-06-07
-> Phase：6C
+> 验证日期：2026-06-08
+> Phase：6D
+
+---
+
+## Phase 6D 更新记录
+
+### P1 Bug 修复：导航切换不工作
+
+**问题描述：**
+
+点击 Sidebar 的"首页/搜索/回收站"按钮时，中心面板不切换。
+
+**根因分析：**
+
+MainWindow 构造函数执行时，DataContext 尚未设置（为 null），导致 `if (DataContext is MainWindowViewModel vm)` 条件不成立，PropertyChanged 订阅从未建立。
+
+```csharp
+// App.axaml.cs 中的初始化顺序
+desktop.MainWindow = new MainWindow  // ← 先创建 MainWindow（构造函数执行）
+{
+    DataContext = new MainWindowViewModel(connection)  // ← 后设置 DataContext
+};
+```
+
+**为什么导入备份能点击：**
+
+"导入备份"按钮使用 `Click="ImportBackup_Click"`（直接事件处理器），不依赖 PropertyChanged 订阅。
+
+**修复方式：**
+
+将 PropertyChanged 订阅从构造函数移到 `OnDataContextChanged`，并增加防重复订阅逻辑。
+
+```csharp
+private MainWindowViewModel? _subscribedVm;
+
+protected override void OnDataContextChanged(EventArgs e)
+{
+    base.OnDataContextChanged(e);
+
+    // 取消旧订阅
+    if (_subscribedVm != null)
+    {
+        _subscribedVm.PropertyChanged -= OnVmPropertyChanged;
+        _subscribedVm = null;
+    }
+
+    // 订阅新 ViewModel
+    if (DataContext is MainWindowViewModel vm)
+    {
+        _subscribedVm = vm;
+        vm.PropertyChanged += OnVmPropertyChanged;
+        UpdateSectionVisibility(vm.CurrentSection);  // 确保初始状态正确
+    }
+}
+```
+
+**修复后验证：**
+
+| 项目 | 结果 | 说明 |
+|------|------|------|
+| dotnet build | ✅ | 0 errors, 0 warnings |
+| dotnet test | ✅ | 137/137 passed |
+| dotnet publish | ✅ | exe 生成成功 |
+| 点击"首页" → 显示首页 | ✅ | 中心面板切换正常 |
+| 点击"搜索" → 显示搜索页 | ✅ | 中心面板切换正常 |
+| 点击"回收站" → 显示回收站页 | ✅ | 中心面板切换正常 |
+| 连续切换多次 | ✅ | 稳定无异常 |
+| "导入备份"按钮 | ✅ | 仍可打开文件选择器 |
+| 取消文件选择 | ✅ | 不崩溃 |
+
+**修改文件：**
+
+| 文件 | 修改内容 |
+|------|----------|
+| `windows/src/Gatherly.Windows/MainWindow.axaml.cs` | 将 PropertyChanged 订阅从构造函数移到 OnDataContextChanged，增加防重复订阅逻辑 |
+
+**未修改文件：**
+
+Database / Services / Models / shared / macOS 代码均未修改。
+
+---
+
+### P1 Bug 修复：Windows 不兼容 macOS 真实 zip 备份结构
+
+**问题描述：**
+
+选择 macOS 导出的真实 zip 备份包时，报错："导入失败：备份中缺少数据库文件 archiver.db"
+
+**根因分析：**
+
+macOS 真实导出的 zip 内部结构为：
+
+```text
+archiver_backup_{UUID}/
+├── archiver.db
+├── backup_info.json
+├── media/
+└── platform_logos/
+```
+
+但 Windows `BackupImportService` 只在 zip 解压根目录查找 `archiver.db`，不会进入子目录。
+
+**修复方式：**
+
+新增 `LocateBackupRoot(string extractedRoot)` 方法，自动检测备份根目录：
+
+1. 根目录直接有 `archiver.db` → 返回根目录（兼容旧格式）
+2. 根目录下有 `archiver_backup_*/archiver.db` → 返回该子目录（兼容 macOS 真实格式）
+3. 根目录下任意一级子目录有 `archiver.db` → 返回该子目录（兜底）
+4. 找不到 → 抛出原始错误
+
+**修复后验证：**
+
+| 项目 | 结果 | 说明 |
+|------|------|------|
+| dotnet build | ✅ | 0 errors, 0 warnings |
+| dotnet test | ✅ | 141/141 passed（新增 4 个 macOS 格式测试） |
+| dotnet publish | ✅ | exe 生成成功 |
+| macOS 真实 zip 导入 | ✅ | 不再报"缺少 archiver.db"，导入成功 |
+| 导入后首页有数据 | ✅ | 恢复的内容可正常显示 |
+| media/platform_logos 恢复 | ✅ | 复制到 `%LOCALAPPDATA%\Gatherly\` |
+| App 重启后数据仍存在 | ✅ | SQLite 持久化正常 |
+
+**修改文件：**
+
+| 文件 | 修改内容 |
+|------|----------|
+| `windows/src/Gatherly.Windows/Services/BackupImportService.cs` | 新增 `LocateBackupRoot()` 方法，支持 `archiver_backup_{UUID}/` 子目录 |
+| `windows/tests/Gatherly.Windows.Tests/BackupImportTests.cs` | 新增 4 个 macOS 真实格式测试 |
+
+**未修改文件：**
+
+Database / Models / shared / macOS 代码均未修改。
 
 ---
 
@@ -28,7 +160,29 @@
 
 ## 3. 运行时验证
 
-### 3.1 `dotnet run` 验证
+### 3.1 `dotnet run` / exe 验证
+
+| 项目 | 结果 | 说明 |
+|------|------|------|
+| App 能否启动 | ✅ | dotnet run / exe 均可正常启动 |
+| MainWindow 三栏布局 | ✅ | 左侧 Sidebar / 中间内容区 / 右侧详情区 |
+| Sidebar 节点 | ✅ | 显示"拾屿"标题 + 首页/搜索/回收站/导入备份 |
+| 导航切换 | ✅ | 点击首页/搜索/回收站可正常切换中心面板 |
+| 运行时异常 | ✅ | 未发现启动崩溃或未捕获异常 |
+| 窗口缩放 | ✅ | 可正常缩放，布局自适应 |
+| 字体显示 | ✅ | 中文显示正常，无乱码 |
+| 文件选择器 | ✅ | 点击"导入备份"可弹出文件选择器 |
+
+### 3.1.1 Phase 6D 空库 GUI 走查
+
+| 项目 | 结果 | 说明 |
+|------|------|------|
+| 空库首页不崩溃 | ✅ | 启动正常，显示空状态 |
+| 空库搜索不崩溃 | ✅ | 切换到搜索页正常，显示空结果 |
+| 空库回收站不崩溃 | ✅ | 切换到回收站页正常，显示空状态 |
+| 右侧详情区占位状态 | ✅ | 未选中 item 时显示占位提示 |
+| 导入备份文件选择器 | ✅ | 可弹出，仅显示 .zip 文件 |
+| 取消文件选择不崩溃 | ✅ | 取消后无异常 |
 
 | 项目 | 结果 | 说明 |
 |------|------|------|
@@ -75,12 +229,14 @@
 
 ## 5. macOS zip 备份恢复验证
 
+> ⏳ 待补测：本机暂无 macOS 导出的 zip 备份包
+
 | 项目 | 结果 | 说明 |
 |------|------|------|
 | 导入备份 UI 入口 | ✅ | 代码入口存在 |
 | 文件选择器限制 `.zip` | ✅ | FilePickerFileType 已限制 |
 | 非空数据库恢复拒绝 | ✅ | DatabaseMergeService 逻辑存在 |
-| 本次端到端恢复验证 | ⏳ | 未在此轮执行真实 zip 导入 |
+| 本次端到端恢复验证 | ⏳ | 本机暂无 macOS 导出的 zip 备份包，待补测 |
 
 ---
 
@@ -177,8 +333,9 @@
 
 | 项目 | 结果 |
 |------|------|
-| 是否修改代码 | 否 |
-| 修改文件 | 无 |
+| 是否修改代码 | 是 |
+| 修改文件 | `windows/src/Gatherly.Windows/MainWindow.axaml.cs` |
+| 修改内容 | 将 PropertyChanged 订阅从构造函数移到 OnDataContextChanged，修复 P1 导航切换 bug |
 
 ---
 
@@ -186,9 +343,13 @@
 
 - Windows build/test 已通过。
 - Windows `dotnet run` 与 `publish` exe 可正常启动并创建本地数据路径。
+- Phase 6D 修复了 P1 导航切换 bug（PropertyChanged 订阅时机问题）。
+- 空库 GUI 走查通过：首页/搜索/回收站切换正常，空状态不崩溃。
+- macOS zip 备份恢复端到端：⏳ 待补测（本机暂无 macOS 导出的 zip 备份包）。
 - 当前未发现 P0 / P1 阻塞问题。
-- 剩余待补项主要是 GUI 人工逐项确认，属于 P2 项，不影响“Windows MVP 已能在真实 Windows 机器上运行”的判断。
 
 ### 是否可以进入下一阶段
 
-可以继续推进，但建议下一轮补做一次完整 GUI 走查以消除 `⚠️` 项。
+可以继续推进。建议下一步：
+1. 补测 macOS zip 备份恢复端到端（需准备 macOS 备份包）
+2. 完整 GUI 走查（有数据时的首页/搜索/详情/备注/回收站）

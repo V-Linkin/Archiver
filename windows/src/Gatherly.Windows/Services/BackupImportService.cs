@@ -40,24 +40,21 @@ public class BackupImportService
         {
             ZipFile.ExtractToDirectory(backupZipPath, tempDir);
 
-            // 3. 验证 archiver.db 存在
-            var dbFile = Path.Combine(tempDir, "archiver.db");
-            if (!File.Exists(dbFile))
-            {
-                throw new InvalidOperationException("备份中缺少数据库文件 archiver.db");
-            }
+            // 3. 定位备份根目录（兼容 macOS archiver_backup_{UUID}/ 子目录）
+            var backupRoot = LocateBackupRoot(tempDir);
+            var dbFile = Path.Combine(backupRoot, "archiver.db");
 
             // 4. 可选读取 backup_info.json
-            ReadBackupInfo(tempDir);
+            ReadBackupInfo(backupRoot);
 
             // 5. 合并数据库
             await _mergeService.MergeAsync(dbFile, targetDatabasePath);
 
             // 6. 恢复 media/
-            _mediaService.RestoreMedia(tempDir, targetDataDirectory);
+            _mediaService.RestoreMedia(backupRoot, targetDataDirectory);
 
             // 7. 恢复 platform_logos/
-            _mediaService.RestorePlatformLogos(tempDir, targetDataDirectory);
+            _mediaService.RestorePlatformLogos(backupRoot, targetDataDirectory);
         }
         finally
         {
@@ -91,5 +88,64 @@ public class BackupImportService
         {
             // backup_info.json 解析失败不影响恢复
         }
+    }
+
+    /// <summary>
+    /// 定位备份根目录。
+    /// 支持两种 zip 结构：
+    /// 1. 根目录直接有 archiver.db（旧格式/测试格式）
+    /// 2. 根目录下 archiver_backup_{UUID}/ 子目录内有 archiver.db（macOS 真实导出格式）
+    /// </summary>
+    private static string LocateBackupRoot(string extractedRoot)
+    {
+        // 1. 根目录直接有 archiver.db
+        if (File.Exists(Path.Combine(extractedRoot, "archiver.db")))
+        {
+            return extractedRoot;
+        }
+
+        // 2. 检查一级子目录，优先 archiver_backup_* 前缀
+        var subDirs = Directory.GetDirectories(extractedRoot);
+        string? backupDir = null;
+        int matchCount = 0;
+
+        foreach (var dir in subDirs)
+        {
+            var dirName = Path.GetFileName(dir);
+            if (dirName.StartsWith("archiver_backup_", StringComparison.OrdinalIgnoreCase)
+                && File.Exists(Path.Combine(dir, "archiver.db")))
+            {
+                backupDir = dir;
+                matchCount++;
+            }
+        }
+
+        // 找到 archiver_backup_* 且只有一匹配，直接返回
+        if (backupDir != null && matchCount == 1)
+        {
+            return backupDir;
+        }
+
+        // 多个 archiver_backup_* 匹配时取第一个（实际几乎不会发生）
+        if (backupDir != null)
+        {
+            return backupDir;
+        }
+
+        // 3. 无 archiver_backup_* 前缀时，遍历所有一级子目录
+        foreach (var dir in subDirs)
+        {
+            // 跳过 __MACOSX 等系统目录
+            if (Path.GetFileName(dir).StartsWith("__", StringComparison.Ordinal))
+                continue;
+
+            if (File.Exists(Path.Combine(dir, "archiver.db")))
+            {
+                return dir;
+            }
+        }
+
+        // 4. 找不到
+        throw new InvalidOperationException("备份中缺少数据库文件 archiver.db");
     }
 }
