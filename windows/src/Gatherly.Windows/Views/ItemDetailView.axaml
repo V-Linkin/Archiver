@@ -52,34 +52,35 @@
             <StackPanel Spacing="20" Margin="24,16,24,24"
                         MaxWidth="800">
 
-                <!-- Image gallery - large display -->
+                <!-- Image gallery - horizontal scroll -->
                 <StackPanel Spacing="8"
                             IsVisible="{Binding HasImages}">
                     <TextBlock Text="图片" FontSize="14" Foreground="Gray" />
-                    <ItemsControl ItemsSource="{Binding ImageAssets}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="vm:MediaAssetDisplay">
-                                <StackPanel Spacing="4" Margin="0,0,0,12">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding ImageAssets}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:MediaAssetDisplay">
                                     <Button Padding="0" Background="Transparent"
                                             BorderThickness="0" Cursor="Hand"
-                                            HorizontalAlignment="Stretch"
-                                            HorizontalContentAlignment="Stretch"
+                                            Margin="0,0,8,0"
                                             Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).OpenImageViewerCommand}"
                                             CommandParameter="{Binding}">
-                                        <Border CornerRadius="8"
+                                        <Border Width="300" Height="400" CornerRadius="6"
                                                 ClipToBounds="True" Background="#F0F0F0">
                                             <Image Source="{Binding FullPath, Converter={x:Static conv:FilePathToBitmapConverter.Instance}}"
-                                                   Stretch="Uniform"
-                                                   MaxHeight="500" />
+                                                   Stretch="UniformToFill" />
                                         </Border>
                                     </Button>
-                                    <TextBlock Text="{Binding FileName}"
-                                               FontSize="12" Foreground="Gray"
-                                               IsVisible="{Binding !FileExists}" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
                 </StackPanel>
 
                 <!-- Platform / Author / Time -->
