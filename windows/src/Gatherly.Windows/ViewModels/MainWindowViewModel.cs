@@ -292,6 +292,94 @@ public partial class MainWindowViewModel : ObservableObject
             // 媒体加载失败不影响主流程
         }
     }
+
+    /// <summary>
+    /// 打开图片查看器
+    /// </summary>
+    [RelayCommand]
+    private void OpenImageViewer(MediaAssetDisplay? image)
+    {
+        if (image == null || ImageAssets.Count == 0) return;
+
+        var index = ImageAssets.IndexOf(image);
+        if (index < 0) index = 0;
+
+        if (App.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+            && desktop.MainWindow is Avalonia.Controls.Window mainWindow)
+        {
+            Views.ImageViewerWindow.Open(mainWindow, ImageAssets.ToList(), index);
+        }
+    }
+
+    /// <summary>
+    /// 用系统默认播放器打开视频文件
+    /// </summary>
+    [RelayCommand]
+    private void OpenVideoFile(MediaAssetDisplay? video)
+    {
+        if (video?.FullPath == null || !video.FileExists) return;
+
+        try
+        {
+            var fullPath = video.FullPath.Replace('/', '\\');
+            if (File.Exists(fullPath))
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = fullPath,
+                    UseShellExecute = true
+                });
+            }
+        }
+        catch
+        {
+            // 打开失败不影响主流程
+        }
+    }
+
+    /// <summary>
+    /// 打开视频文件所在目录
+    /// </summary>
+    [RelayCommand]
+    private void OpenVideoFolder(MediaAssetDisplay? video)
+    {
+        if (video?.FullPath == null) return;
+
+        try
+        {
+            // 确保路径使用正确的反斜杠
+            var fullPath = video.FullPath.Replace('/', '\\');
+
+            if (video.FileExists && File.Exists(fullPath))
+            {
+                // 文件存在：用 explorer /select 定位文件
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = $"/select,\"{fullPath}\"",
+                    UseShellExecute = false
+                });
+            }
+            else
+            {
+                // 文件不存在：打开所在目录
+                var dir = Path.GetDirectoryName(fullPath);
+                if (dir != null && Directory.Exists(dir))
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = "explorer.exe",
+                        Arguments = $"\"{dir}\"",
+                        UseShellExecute = false
+                    });
+                }
+            }
+        }
+        catch
+        {
+            // 打开失败不影响主流程
+        }
+    }
 }
 
 /// <summary>
