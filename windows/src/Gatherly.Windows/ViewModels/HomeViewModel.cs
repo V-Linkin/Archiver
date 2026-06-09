@@ -7,7 +7,7 @@ using Gatherly.Windows.Services;
 namespace Gatherly.Windows.ViewModels;
 
 /// <summary>
-/// 首页 ViewModel — 最近导入内容列表
+/// 首页 ViewModel — 最近导入内容列表 + 首图
 /// </summary>
 public partial class HomeViewModel : ViewModelBase
 {
@@ -34,6 +34,15 @@ public partial class HomeViewModel : ViewModelBase
         try
         {
             var items = await _homeService.GetRecentItemsAsync();
+
+            // 批量加载首图路径，先设置再添加到集合
+            var imagePaths = await _homeService.GetFirstImagePathsAsync(items.Select(i => i.Id));
+            foreach (var item in items)
+            {
+                if (imagePaths.TryGetValue(item.Id, out var path))
+                    item.FirstImagePath = path;
+            }
+
             RecentItems.Clear();
             foreach (var item in items)
             {

@@ -31,8 +31,8 @@ public class CustomPlatformRepository
     public async Task<CustomPlatform?> GetByIdAsync(Guid id)
     {
         using var cmd = _connection.CreateCommand();
-        cmd.CommandText = "SELECT * FROM custom_platforms WHERE id=$id";
-        cmd.Parameters.AddWithValue("$id", id.ToString());
+        cmd.CommandText = "SELECT * FROM custom_platforms WHERE id COLLATE NOCASE=$id";
+        cmd.Parameters.AddWithValue("$id", id.ToString("D"));
         using var reader = await cmd.ExecuteReaderAsync();
         return await reader.ReadAsync() ? SqliteRowMapper.ReadCustomPlatform(reader) : null;
     }

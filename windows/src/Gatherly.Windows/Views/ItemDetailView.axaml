@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Gatherly.Windows.ViewModels"
+             xmlns:conv="using:Gatherly.Windows.Views.Converters"
              x:Class="Gatherly.Windows.Views.ItemDetailView"
              x:DataType="vm:MainWindowViewModel">
 
@@ -41,6 +42,48 @@
                     <TextBlock Text="{Binding DisplayBody}"
                                TextWrapping="Wrap" FontSize="14" LineHeight="22" />
                 </Border>
+
+                <!-- Image gallery -->
+                <StackPanel Spacing="4"
+                            IsVisible="{Binding HasImages}">
+                    <TextBlock Text="图片" FontSize="12" Foreground="Gray" />
+                    <ItemsControl ItemsSource="{Binding ImageAssets}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:MediaAssetDisplay">
+                                <StackPanel Spacing="2" Margin="0,0,0,8">
+                                    <Border MaxWidth="400" CornerRadius="4"
+                                            ClipToBounds="True" Background="#F0F0F0">
+                                        <Image Source="{Binding FullPath, Converter={x:Static conv:FilePathToBitmapConverter.Instance}}"
+                                               Stretch="Uniform"
+                                               MaxHeight="300" />
+                                    </Border>
+                                    <TextBlock Text="{Binding FileName}"
+                                               FontSize="11" Foreground="Gray"
+                                               IsVisible="{Binding !FileExists}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- Video list (placeholder, no playback) -->
+                <StackPanel Spacing="4"
+                            IsVisible="{Binding HasVideos}">
+                    <TextBlock Text="视频" FontSize="12" Foreground="Gray" />
+                    <ItemsControl ItemsSource="{Binding VideoAssets}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:MediaAssetDisplay">
+                                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2">
+                                    <TextBlock Text="🎬" FontSize="14" />
+                                    <TextBlock Text="{Binding FileName}"
+                                               FontSize="13" />
+                                    <TextBlock Text="{Binding FileSizeDisplay}"
+                                               FontSize="12" Foreground="Gray" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
 
                 <!-- Remark section with edit -->
                 <StackPanel Spacing="4">

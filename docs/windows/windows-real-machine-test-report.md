@@ -83,6 +83,26 @@ Database / Services / Models / shared / macOS 代码均未修改。
 
 ---
 
+### P1 Bug 修复：GUID 大小写导致媒体资源查询失败
+
+**问题描述：**
+
+首页和详情页看不到图片，数据库有 160 条 media_assets 记录且文件存在。
+
+**根因分析：**
+
+macOS 数据库存储 GUID 为大写（`529F3836-...`），.NET `Guid.ToString()` 返回小写（`529f3836-...`）。SQLite 默认 BINARY 排序大小写敏感，导致 `WHERE item_id = '529f3836-...'` 匹配不到 `'529F3836-...'`。
+
+**修复方式：**
+
+所有 GUID 比较的 SQL 查询统一使用 `COLLATE NOCASE`：
+
+```sql
+SELECT * FROM media_assets WHERE item_id COLLATE NOCASE=$itemId
+```
+
+影响范围：`MediaRepository`、`ItemRepository`、`TrashRepository`、`FolderRepository`、`CustomPlatformRepository`。
+
 ### P1 Bug 修复：Windows 不兼容 macOS 真实 zip 备份结构
 
 **问题描述：**

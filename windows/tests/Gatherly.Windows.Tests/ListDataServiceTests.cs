@@ -87,7 +87,7 @@ public class ListDataServiceTests : IDisposable
         InsertItem("00000000-0000-0000-0000-000000000002", importDate: 1700001000);
         InsertItem("00000000-0000-0000-0000-000000000003", importDate: 1700002000);
 
-        var service = new HomeDataService(new ItemRepository(_connection));
+        var service = new HomeDataService(new ItemRepository(_connection), new MediaRepository(_connection));
         var items = await service.GetRecentItemsAsync();
 
         Assert.Equal(3, items.Count);
@@ -102,7 +102,7 @@ public class ListDataServiceTests : IDisposable
         for (int i = 0; i < 10; i++)
             InsertItem($"00000000-0000-0000-0000-{i:D12}", importDate: 1700000000 + i);
 
-        var service = new HomeDataService(new ItemRepository(_connection));
+        var service = new HomeDataService(new ItemRepository(_connection), new MediaRepository(_connection));
         var items = await service.GetRecentItemsAsync(limit: 3);
 
         Assert.Equal(3, items.Count);
@@ -114,7 +114,7 @@ public class ListDataServiceTests : IDisposable
         InsertItem("00000000-0000-0000-0000-000000000001", importDate: 1700000000);
         InsertItem("00000000-0000-0000-0000-000000000002", importDate: 1700001000, deletedAt: "1700001000");
 
-        var service = new HomeDataService(new ItemRepository(_connection));
+        var service = new HomeDataService(new ItemRepository(_connection), new MediaRepository(_connection));
         var items = await service.GetRecentItemsAsync();
 
         Assert.Single(items);

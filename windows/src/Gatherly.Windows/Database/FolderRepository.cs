@@ -19,8 +19,8 @@ public class FolderRepository
     public async Task<Folder?> GetByIdAsync(Guid id)
     {
         using var cmd = _connection.CreateCommand();
-        cmd.CommandText = "SELECT * FROM folders WHERE id=$id";
-        cmd.Parameters.AddWithValue("$id", id.ToString());
+        cmd.CommandText = "SELECT * FROM folders WHERE id COLLATE NOCASE=$id";
+        cmd.Parameters.AddWithValue("$id", id.ToString("D"));
         using var reader = await cmd.ExecuteReaderAsync();
         return await reader.ReadAsync() ? SqliteRowMapper.ReadFolder(reader) : null;
     }
@@ -36,17 +36,17 @@ public class FolderRepository
     public async Task<List<Folder>> GetByParentIdAsync(Guid parentId)
     {
         using var cmd = _connection.CreateCommand();
-        cmd.CommandText = "SELECT * FROM folders WHERE parent_id=$parentId ORDER BY sort_order, name";
-        cmd.Parameters.AddWithValue("$parentId", parentId.ToString());
+        cmd.CommandText = "SELECT * FROM folders WHERE parent_id COLLATE NOCASE=$parentId ORDER BY sort_order, name";
+        cmd.Parameters.AddWithValue("$parentId", parentId.ToString("D"));
         return await ReadFoldersAsync(cmd);
     }
 
     public async Task<List<Folder>> GetByCustomPlatformIdAsync(Guid customPlatformId)
     {
         using var cmd = _connection.CreateCommand();
-        cmd.CommandText = "SELECT * FROM folders WHERE platform=$platform AND custom_platform_id=$cpId AND parent_id IS NULL ORDER BY sort_order, name";
+        cmd.CommandText = "SELECT * FROM folders WHERE platform=$platform AND custom_platform_id COLLATE NOCASE=$cpId AND parent_id IS NULL ORDER BY sort_order, name";
         cmd.Parameters.AddWithValue("$platform", Platform.custom.ToRawValue());
-        cmd.Parameters.AddWithValue("$cpId", customPlatformId.ToString());
+        cmd.Parameters.AddWithValue("$cpId", customPlatformId.ToString("D"));
         return await ReadFoldersAsync(cmd);
     }
 

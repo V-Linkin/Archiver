@@ -29,4 +29,9 @@ public class Item
     public int Version { get; set; } = 1;
     public DateTimeOffset? DeletedAt { get; set; }
     public Guid? CustomPlatformId { get; set; }
+
+    /// <summary>
+    /// 非数据库字段：首张图片本地完整路径（由 ViewModel 填充）
+    /// </summary>
+    public string? FirstImagePath { get; set; }
 }

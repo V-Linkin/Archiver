@@ -35,8 +35,8 @@ public class TrashRepository
     public async Task<TrashRecord?> GetByItemIdAsync(Guid itemId)
     {
         using var cmd = _connection.CreateCommand();
-        cmd.CommandText = "SELECT * FROM trash_records WHERE item_id=$itemId";
-        cmd.Parameters.AddWithValue("$itemId", itemId.ToString());
+        cmd.CommandText = "SELECT * FROM trash_records WHERE item_id COLLATE NOCASE=$itemId";
+        cmd.Parameters.AddWithValue("$itemId", itemId.ToString("D"));
         using var reader = await cmd.ExecuteReaderAsync();
         return await reader.ReadAsync() ? SqliteRowMapper.ReadTrashRecord(reader) : null;
     }
@@ -66,8 +66,8 @@ public class TrashRepository
     public async Task DeleteByItemIdAsync(Guid itemId)
     {
         using var cmd = _connection.CreateCommand();
-        cmd.CommandText = "DELETE FROM trash_records WHERE item_id=$itemId";
-        cmd.Parameters.AddWithValue("$itemId", itemId.ToString());
+        cmd.CommandText = "DELETE FROM trash_records WHERE item_id COLLATE NOCASE=$itemId";
+        cmd.Parameters.AddWithValue("$itemId", itemId.ToString("D"));
         await cmd.ExecuteNonQueryAsync();
     }
 }

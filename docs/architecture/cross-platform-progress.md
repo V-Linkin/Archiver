@@ -921,6 +921,39 @@ docs/windows/windows-real-machine-test-report.md — Phase 6D 验证报告
 * macOS 项目不受影响
 
 
+### Phase 6F：Windows 媒体展示与 GUID 大小写兼容 ✅
+
+状态：已完成。
+
+改动：
+
+```text
+windows/src/Gatherly.Windows/Database/MediaRepository.cs — GUID COLLATE NOCASE
+windows/src/Gatherly.Windows/Database/ItemRepository.cs — GUID COLLATE NOCASE
+windows/src/Gatherly.Windows/Database/TrashRepository.cs — GUID COLLATE NOCASE
+windows/src/Gatherly.Windows/Database/FolderRepository.cs — GUID COLLATE NOCASE
+windows/src/Gatherly.Windows/Database/CustomPlatformRepository.cs — GUID COLLATE NOCASE
+windows/src/Gatherly.Windows/Models/Item.cs — 新增 FirstImagePath 属性
+windows/src/Gatherly.Windows/Services/HomeDataService.cs — 首图路径加载
+windows/src/Gatherly.Windows/Services/MediaPathHelper.cs — 新增媒体路径解析
+windows/src/Gatherly.Windows/Views/Converters/FilePathToBitmapConverter.cs — 新增路径→Bitmap 转换
+windows/src/Gatherly.Windows/ViewModels/HomeViewModel.cs — 首页首图路径填充
+windows/src/Gatherly.Windows/ViewModels/MainWindowViewModel.cs — 详情页媒体加载
+windows/src/Gatherly.Windows/Views/HomeView.axaml — 首页图片缩略图
+windows/src/Gatherly.Windows/Views/ItemDetailView.axaml — 详情页图片/视频列表
+```
+
+结论：
+
+* 修复 P1：GUID 大小写导致媒体资源查询失败（SQLite BINARY 排序 vs .NET Guid ToString 小写）
+* 修复 P1：首页和详情页图片不显示
+* 首页支持首图缩略图
+* 详情页支持图片列表和视频占位
+* 所有 5 个 Repository 的 GUID 查询统一使用 COLLATE NOCASE
+* 141 个测试全部通过
+* macOS 项目不受影响
+
+
 ---
 
 ## 4. 总体执行原则

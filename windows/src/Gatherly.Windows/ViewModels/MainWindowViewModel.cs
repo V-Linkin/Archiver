@@ -1,7 +1,9 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Gatherly.Windows.Database;
 using Gatherly.Windows.Models;
+using Gatherly.Windows.Models.Enums;
 using Gatherly.Windows.Services;
 using Microsoft.Data.Sqlite;
 
@@ -39,6 +41,19 @@ public partial class MainWindowViewModel : ObservableObject
     public bool HasBackupImportStatus => BackupImportStatus != null;
     public bool HasBackupImportError => BackupImportError != null;
 
+    /// <summary>
+    /// 当前选中 item 的图片资产（本地路径已解析）
+    /// </summary>
+    public ObservableCollection<MediaAssetDisplay> ImageAssets { get; } = new();
+
+    /// <summary>
+    /// 当前选中 item 的视频资产
+    /// </summary>
+    public ObservableCollection<MediaAssetDisplay> VideoAssets { get; } = new();
+
+    public bool HasImages => ImageAssets.Count > 0;
+    public bool HasVideos => VideoAssets.Count > 0;
+
     partial void OnBackupImportStatusChanged(string? value)
     {
         OnPropertyChanged(nameof(HasBackupImportStatus));
@@ -65,6 +80,9 @@ public partial class MainWindowViewModel : ObservableObject
         // Sync editable remark
         EditableRemark = value?.Remark ?? string.Empty;
         IsEditingRemark = false;
+
+        // Load media assets for the selected item
+        _ = LoadMediaAssetsAsync(value?.Id);
     }
 
     public bool HasSelectedItem => SelectedItem != null;
@@ -86,6 +104,7 @@ public partial class MainWindowViewModel : ObservableObject
 
     private readonly ItemService _itemService;
     private readonly BackupImportService _backupImportService;
+    private readonly MediaRepository _mediaRepo;
 
     public MainWindowViewModel(SqliteConnection connection)
     {
@@ -93,11 +112,13 @@ public partial class MainWindowViewModel : ObservableObject
         var folderRepo = new FolderRepository(connection);
         var searchRepo = new SearchRepository(connection);
         var trashRepo = new TrashRepository(connection);
+        var mediaRepo = new MediaRepository(connection);
 
         _itemService = new ItemService(itemRepo, trashRepo);
         _backupImportService = new BackupImportService();
+        _mediaRepo = mediaRepo;
 
-        Home = new HomeViewModel(new HomeDataService(itemRepo));
+        Home = new HomeViewModel(new HomeDataService(itemRepo, mediaRepo));
         ContentList = new ContentListViewModel(new ContentListService(itemRepo, folderRepo));
         Search = new SearchViewModel(new SearchService(searchRepo));
         Trash = new TrashViewModel(new TrashDataService(itemRepo, trashRepo), _itemService);
@@ -235,5 +256,70 @@ public partial class MainWindowViewModel : ObservableObject
         catch
         {
         }
+    }
+
+    /// <summary>
+    /// 加载选中 item 的媒体资产
+    /// </summary>
+    private async Task LoadMediaAssetsAsync(Guid? itemId)
+    {
+        ImageAssets.Clear();
+        VideoAssets.Clear();
+        OnPropertyChanged(nameof(HasImages));
+        OnPropertyChanged(nameof(HasVideos));
+
+        if (itemId == null) return;
+
+        try
+        {
+            var assets = await _mediaRepo.GetByItemIdAsync(itemId.Value);
+            foreach (var asset in assets)
+            {
+                var display = MediaAssetDisplay.FromAsset(asset);
+                if (display == null) continue;
+
+                if (asset.Type == MediaType.image || asset.Type == MediaType.cover)
+                    ImageAssets.Add(display);
+                else if (asset.Type == MediaType.video)
+                    VideoAssets.Add(display);
+            }
+
+            OnPropertyChanged(nameof(HasImages));
+            OnPropertyChanged(nameof(HasVideos));
+        }
+        catch
+        {
+            // 媒体加载失败不影响主流程
+        }
+    }
+}
+
+/// <summary>
+/// 媒体资产展示模型
+/// </summary>
+public class MediaAssetDisplay
+{
+    public string FileName { get; set; } = "";
+    public string? FullPath { get; set; }
+    public bool FileExists { get; set; }
+    public long FileSize { get; set; }
+    public string FileSizeDisplay => FileSize > 1024 * 1024
+        ? $"{FileSize / 1024 / 1024:F1} MB"
+        : $"{FileSize / 1024:F0} KB";
+
+    public static MediaAssetDisplay? FromAsset(MediaAsset asset)
+    {
+        if (string.IsNullOrEmpty(asset.LocalPath)) return null;
+
+        var fullPath = MediaPathHelper.ResolveFullPath(asset.LocalPath);
+        var exists = File.Exists(fullPath);
+
+        return new MediaAssetDisplay
+        {
+            FileName = asset.FileName,
+            FullPath = exists ? fullPath : null,
+            FileExists = exists,
+            FileSize = asset.FileSize
+        };
     }
 }

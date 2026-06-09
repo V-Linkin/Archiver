@@ -29,8 +29,8 @@ public class ItemRepository
     public async Task<Item?> GetByIdAsync(Guid id)
     {
         using var cmd = _connection.CreateCommand();
-        cmd.CommandText = "SELECT * FROM items WHERE id=$id";
-        cmd.Parameters.AddWithValue("$id", id.ToString());
+        cmd.CommandText = "SELECT * FROM items WHERE id COLLATE NOCASE=$id";
+        cmd.Parameters.AddWithValue("$id", id.ToString("D"));
         using var reader = await cmd.ExecuteReaderAsync();
         return await reader.ReadAsync() ? SqliteRowMapper.ReadItem(reader) : null;
     }
@@ -47,8 +47,8 @@ public class ItemRepository
     public async Task<List<Item>> GetByFolderIdAsync(Guid folderId, int limit = 100)
     {
         using var cmd = _connection.CreateCommand();
-        cmd.CommandText = "SELECT * FROM items WHERE deleted_at IS NULL AND folder_id=$folderId ORDER BY import_date DESC LIMIT $limit";
-        cmd.Parameters.AddWithValue("$folderId", folderId.ToString());
+        cmd.CommandText = "SELECT * FROM items WHERE deleted_at IS NULL AND folder_id COLLATE NOCASE=$folderId ORDER BY import_date DESC LIMIT $limit";
+        cmd.Parameters.AddWithValue("$folderId", folderId.ToString("D"));
         cmd.Parameters.AddWithValue("$limit", limit);
         return await ReadItemsAsync(cmd);
     }
@@ -56,8 +56,8 @@ public class ItemRepository
     public async Task<List<Item>> GetByCustomPlatformIdAsync(Guid customPlatformId)
     {
         using var cmd = _connection.CreateCommand();
-        cmd.CommandText = "SELECT * FROM items WHERE deleted_at IS NULL AND custom_platform_id=$cpId ORDER BY import_date DESC";
-        cmd.Parameters.AddWithValue("$cpId", customPlatformId.ToString());
+        cmd.CommandText = "SELECT * FROM items WHERE deleted_at IS NULL AND custom_platform_id COLLATE NOCASE=$cpId ORDER BY import_date DESC";
+        cmd.Parameters.AddWithValue("$cpId", customPlatformId.ToString("D"));
         return await ReadItemsAsync(cmd);
     }
 
@@ -94,8 +94,8 @@ public class ItemRepository
                 media_status=$mediaStatus, cover_asset_id=$coverAssetId,
                 folder_id=$folderId, remark=$remark, is_starred=$isStarred,
                 version=$version, deleted_at=$deletedAt, custom_platform_id=$customPlatformId
-            WHERE id=$id";
-        cmd.Parameters.AddWithValue("$id", item.Id.ToString());
+            WHERE id COLLATE NOCASE=$id";
+        cmd.Parameters.AddWithValue("$id", item.Id.ToString("D"));
         cmd.Parameters.AddWithValue("$title", (object?)item.Title ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$body", (object?)item.Body ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$originalUrl", item.OriginalUrl);
@@ -129,8 +129,8 @@ public class ItemRepository
     public async Task DeleteAsync(Guid itemId)
     {
         using var cmd = _connection.CreateCommand();
-        cmd.CommandText = "DELETE FROM items WHERE id=$id";
-        cmd.Parameters.AddWithValue("$id", itemId.ToString());
+        cmd.CommandText = "DELETE FROM items WHERE id COLLATE NOCASE=$id";
+        cmd.Parameters.AddWithValue("$id", itemId.ToString("D"));
         await cmd.ExecuteNonQueryAsync();
     }
 
