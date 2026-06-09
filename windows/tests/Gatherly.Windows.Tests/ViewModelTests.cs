@@ -214,7 +214,7 @@ public class ViewModelTests : IDisposable
     [Fact]
     public async Task SearchViewModel_EmptyQuery_ReturnsEmpty()
     {
-        var vm = new SearchViewModel(new SearchService(new SearchRepository(_connection)));
+        var vm = new SearchViewModel(new SearchService(new SearchRepository(_connection)), new MediaRepository(_connection));
         vm.Query = "";
         await vm.SearchCommand.ExecuteAsync(null);
 
@@ -224,7 +224,7 @@ public class ViewModelTests : IDisposable
     [Fact]
     public async Task SearchViewModel_WhitespaceQuery_ReturnsEmpty()
     {
-        var vm = new SearchViewModel(new SearchService(new SearchRepository(_connection)));
+        var vm = new SearchViewModel(new SearchService(new SearchRepository(_connection)), new MediaRepository(_connection));
         vm.Query = "   ";
         await vm.SearchCommand.ExecuteAsync(null);
 
@@ -248,7 +248,7 @@ public class ViewModelTests : IDisposable
              'My Special Title', 'My Special Body')";
         ftsCmd.ExecuteNonQuery();
 
-        var vm = new SearchViewModel(new SearchService(new SearchRepository(_connection)));
+        var vm = new SearchViewModel(new SearchService(new SearchRepository(_connection)), new MediaRepository(_connection));
         vm.Query = "Special";
         await vm.SearchCommand.ExecuteAsync(null);
 
@@ -272,7 +272,7 @@ public class ViewModelTests : IDisposable
              'Deleted Item', 'Body')";
         ftsCmd.ExecuteNonQuery();
 
-        var vm = new SearchViewModel(new SearchService(new SearchRepository(_connection)));
+        var vm = new SearchViewModel(new SearchService(new SearchRepository(_connection)), new MediaRepository(_connection));
         vm.Query = "Deleted";
         await vm.SearchCommand.ExecuteAsync(null);
 

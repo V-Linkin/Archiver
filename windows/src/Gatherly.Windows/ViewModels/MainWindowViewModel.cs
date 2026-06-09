@@ -132,7 +132,7 @@ public partial class MainWindowViewModel : ObservableObject
         var customPlatformRepo = new CustomPlatformRepository(connection);
         Home = new HomeViewModel(new HomeDataService(itemRepo, mediaRepo, customPlatformRepo, connection));
         ContentList = new ContentListViewModel(new ContentListService(itemRepo, folderRepo), mediaRepo);
-        Search = new SearchViewModel(new SearchService(searchRepo));
+        Search = new SearchViewModel(new SearchService(searchRepo), mediaRepo);
         Trash = new TrashViewModel(new TrashDataService(itemRepo, trashRepo), _itemService);
 
         // Subscribe to sub-ViewModel selection changes → navigate to detail
