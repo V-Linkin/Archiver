@@ -2,21 +2,26 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Gatherly.Windows.Models;
+using Gatherly.Windows.Models.Enums;
 using Gatherly.Windows.Services;
 
 namespace Gatherly.Windows.ViewModels;
 
 /// <summary>
-/// 首页 ViewModel — 最近导入内容列表 + 首图
+/// 首页 ViewModel — 最近导入内容列表 + 首图 + 平台入口
 /// </summary>
 public partial class HomeViewModel : ViewModelBase
 {
     private readonly HomeDataService _homeService;
 
     public ObservableCollection<Item> RecentItems { get; } = new();
+    public ObservableCollection<PlatformEntryDisplay> PlatformEntries { get; } = new();
 
     [ObservableProperty]
     private Item? _selectedItem;
+
+    public bool HasItems => RecentItems.Count > 0;
+    public bool HasPlatforms => PlatformEntries.Count > 0;
 
     public HomeViewModel(HomeDataService homeService)
     {
@@ -48,6 +53,16 @@ public partial class HomeViewModel : ViewModelBase
             {
                 RecentItems.Add(item);
             }
+            OnPropertyChanged(nameof(HasItems));
+
+            // 加载平台入口
+            var platforms = await _homeService.GetPlatformStatsAsync();
+            PlatformEntries.Clear();
+            foreach (var p in platforms)
+            {
+                PlatformEntries.Add(p);
+            }
+            OnPropertyChanged(nameof(HasPlatforms));
         }
         catch (Exception ex)
         {

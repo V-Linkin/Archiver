@@ -85,7 +85,7 @@ public class ViewModelTests : IDisposable
         InsertItem("00000000-0000-0000-0000-000000000001", importDate: 1700001000);
         InsertItem("00000000-0000-0000-0000-000000000002", importDate: 1700000000);
 
-        var vm = new HomeViewModel(new HomeDataService(new ItemRepository(_connection), new MediaRepository(_connection)));
+        var vm = new HomeViewModel(new HomeDataService(new ItemRepository(_connection), new MediaRepository(_connection), new CustomPlatformRepository(_connection), _connection));
         await vm.LoadCommand.ExecuteAsync(null);
 
         Assert.Equal(2, vm.RecentItems.Count);
@@ -96,7 +96,7 @@ public class ViewModelTests : IDisposable
     [Fact]
     public async Task HomeViewModel_LoadAsync_SetsIsBusyDuringLoad()
     {
-        var vm = new HomeViewModel(new HomeDataService(new ItemRepository(_connection), new MediaRepository(_connection)));
+        var vm = new HomeViewModel(new HomeDataService(new ItemRepository(_connection), new MediaRepository(_connection), new CustomPlatformRepository(_connection), _connection));
 
         // Before load
         Assert.False(vm.IsBusy);
@@ -290,7 +290,8 @@ public class ViewModelTests : IDisposable
                 new TrashRepository(_connection)),
             new ItemService(
                 new ItemRepository(_connection),
-                new TrashRepository(_connection)));
+                new TrashRepository(_connection),
+                new FolderRepository(_connection)));
 
         await vm.LoadCommand.ExecuteAsync(null);
 

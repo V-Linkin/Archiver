@@ -48,6 +48,16 @@ public partial class TrashViewModel : ViewModelBase
             {
                 TrashedItems.Add(item);
             }
+
+            // Load trash records for remaining days
+            TrashRecords.Clear();
+            foreach (var item in items)
+            {
+                var record = await _trashService.GetTrashRecordAsync(item.Id);
+                if (record != null)
+                    TrashRecords[item.Id] = record;
+            }
+            OnPropertyChanged(nameof(TrashRecords));
         }
         catch (Exception ex)
         {
@@ -57,6 +67,25 @@ public partial class TrashViewModel : ViewModelBase
         {
             IsBusy = false;
         }
+    }
+
+    /// <summary>
+    /// item ID → TrashRecord 映射，用于显示剩余天数
+    /// </summary>
+    public Dictionary<Guid, TrashRecord> TrashRecords { get; } = new();
+
+    /// <summary>
+    /// 获取指定 item 的剩余天数显示文本
+    /// </summary>
+    public string GetRemainingDaysText(Guid itemId)
+    {
+        if (!TrashRecords.TryGetValue(itemId, out var record))
+            return "";
+
+        var remaining = record.AutoDeleteAt - DateTimeOffset.UtcNow;
+        var days = (int)remaining.TotalDays;
+        if (days < 0) days = 0;
+        return $"剩余 {days} 天";
     }
 
     [RelayCommand]

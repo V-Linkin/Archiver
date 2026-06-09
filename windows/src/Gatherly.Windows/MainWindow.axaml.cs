@@ -45,6 +45,7 @@ public partial class MainWindow : Window
         HomeViewControl.IsVisible = section == "Home";
         SearchViewControl.IsVisible = section == "Search";
         TrashViewControl.IsVisible = section == "Trash";
+        DetailViewControl.IsVisible = section == "Detail";
     }
 
     private async void ImportBackup_Click(object? sender, RoutedEventArgs e)

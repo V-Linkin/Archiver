@@ -21,6 +21,9 @@ public partial class MainWindowViewModel : ObservableObject
     private string _currentSection = "Home";
 
     [ObservableProperty]
+    private string _previousSection = "Home";
+
+    [ObservableProperty]
     private Item? _selectedItem;
 
     [ObservableProperty]
@@ -114,36 +117,34 @@ public partial class MainWindowViewModel : ObservableObject
         var trashRepo = new TrashRepository(connection);
         var mediaRepo = new MediaRepository(connection);
 
-        _itemService = new ItemService(itemRepo, trashRepo);
+        _itemService = new ItemService(itemRepo, trashRepo, folderRepo);
         _backupImportService = new BackupImportService();
         _mediaRepo = mediaRepo;
 
-        Home = new HomeViewModel(new HomeDataService(itemRepo, mediaRepo));
+        var customPlatformRepo = new CustomPlatformRepository(connection);
+        Home = new HomeViewModel(new HomeDataService(itemRepo, mediaRepo, customPlatformRepo, connection));
         ContentList = new ContentListViewModel(new ContentListService(itemRepo, folderRepo));
         Search = new SearchViewModel(new SearchService(searchRepo));
         Trash = new TrashViewModel(new TrashDataService(itemRepo, trashRepo), _itemService);
 
-        // Subscribe to sub-ViewModel selection changes
+        // Subscribe to sub-ViewModel selection changes → navigate to detail
+        // Note: Trash does NOT navigate to detail (macOS behavior: trash only selects)
         Home.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(HomeViewModel.SelectedItem))
-                SelectedItem = Home.SelectedItem;
+            if (e.PropertyName == nameof(HomeViewModel.SelectedItem) && Home.SelectedItem != null)
+                NavigateToDetail(Home.SelectedItem, "Home");
         };
         ContentList.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(ContentListViewModel.SelectedItem))
-                SelectedItem = ContentList.SelectedItem;
+            if (e.PropertyName == nameof(ContentListViewModel.SelectedItem) && ContentList.SelectedItem != null)
+                NavigateToDetail(ContentList.SelectedItem, "Home");
         };
         Search.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(SearchViewModel.SelectedItem))
-                SelectedItem = Search.SelectedItem;
+            if (e.PropertyName == nameof(SearchViewModel.SelectedItem) && Search.SelectedItem != null)
+                NavigateToDetail(Search.SelectedItem, "Search");
         };
-        Trash.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName == nameof(TrashViewModel.SelectedItem))
-                SelectedItem = Trash.SelectedItem;
-        };
+        // Trash selection stays in trash view — no navigation to detail
 
         // Load home data on startup
         _ = Home.LoadCommand.ExecuteAsync(null);
@@ -169,12 +170,13 @@ public partial class MainWindowViewModel : ObservableObject
 
             BackupImportStatus = "导入成功";
 
-            // Clear selection
+            // Clear selection and go back to Home
             SelectedItem = null;
             Home.SelectedItem = null;
             ContentList.SelectedItem = null;
             Search.SelectedItem = null;
             Trash.SelectedItem = null;
+            CurrentSection = "Home";
 
             // Refresh data
             await Home.LoadCommand.ExecuteAsync(null);
@@ -196,13 +198,48 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void ShowHome() => CurrentSection = "Home";
+    private async Task ShowHomeAsync()
+    {
+        CurrentSection = "Home";
+        await Home.LoadCommand.ExecuteAsync(null);
+    }
 
     [RelayCommand]
-    private void ShowSearch() => CurrentSection = "Search";
+    private void ShowSearch()
+    {
+        CurrentSection = "Search";
+    }
 
     [RelayCommand]
-    private void ShowTrash() => CurrentSection = "Trash";
+    private async Task ShowTrashAsync()
+    {
+        CurrentSection = "Trash";
+        await Trash.LoadCommand.ExecuteAsync(null);
+    }
+
+    /// <summary>
+    /// 进入详情页
+    /// </summary>
+    public void NavigateToDetail(Item item, string fromSection)
+    {
+        PreviousSection = fromSection;
+        SelectedItem = item;
+        CurrentSection = "Detail";
+    }
+
+    /// <summary>
+    /// 从详情页返回
+    /// </summary>
+    [RelayCommand]
+    private void NavigateBack()
+    {
+        // Clear sub-ViewModel selections to avoid stale state
+        Home.SelectedItem = null;
+        Search.SelectedItem = null;
+        Trash.SelectedItem = null;
+
+        CurrentSection = PreviousSection;
+    }
 
     [RelayCommand]
     private async Task TrashSelectedItemAsync()
@@ -213,6 +250,8 @@ public partial class MainWindowViewModel : ObservableObject
         {
             await _itemService.TrashItemAsync(SelectedItem);
 
+            // Navigate back
+            CurrentSection = PreviousSection;
             SelectedItem = null;
             Home.SelectedItem = null;
             ContentList.SelectedItem = null;
@@ -222,8 +261,10 @@ public partial class MainWindowViewModel : ObservableObject
             await Home.LoadCommand.ExecuteAsync(null);
             await Trash.LoadCommand.ExecuteAsync(null);
         }
-        catch
+        catch (Exception ex)
         {
+            // Show error to user via backup status area (reuse existing UI)
+            BackupImportError = $"删除失败：{ex.Message}";
         }
     }
 

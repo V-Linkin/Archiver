@@ -25,6 +25,18 @@ public class FolderRepository
         return await reader.ReadAsync() ? SqliteRowMapper.ReadFolder(reader) : null;
     }
 
+    /// <summary>
+    /// 检查 folder 是否存在（大小写精确匹配）
+    /// </summary>
+    public async Task<bool> ExistsAsync(Guid id)
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM folders WHERE id COLLATE NOCASE=$id";
+        cmd.Parameters.AddWithValue("$id", id.ToString("D"));
+        var count = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+        return count > 0;
+    }
+
     public async Task<List<Folder>> GetByPlatformAsync(Platform platform)
     {
         using var cmd = _connection.CreateCommand();

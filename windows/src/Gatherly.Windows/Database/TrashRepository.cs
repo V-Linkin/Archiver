@@ -47,6 +47,9 @@ public class TrashRepository
     {
         var mediaPathsJson = JsonSerializer.Serialize(record.MediaPaths);
 
+        // Use raw item_id from database to match FK case exactly
+        var itemIdStr = record.RawItemId ?? record.ItemId.ToString();
+
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = @"
             INSERT INTO trash_records (id, item_id, deleted_at, auto_delete_at,
@@ -54,7 +57,7 @@ public class TrashRepository
             VALUES ($id, $itemId, $deletedAt, $autoDeleteAt,
                 $originalFolderId, $originalArchiveStatus, $mediaPaths)";
         cmd.Parameters.AddWithValue("$id", record.Id.ToString());
-        cmd.Parameters.AddWithValue("$itemId", record.ItemId.ToString());
+        cmd.Parameters.AddWithValue("$itemId", itemIdStr);
         cmd.Parameters.AddWithValue("$deletedAt", record.DeletedAt.ToUnixTimeSeconds());
         cmd.Parameters.AddWithValue("$autoDeleteAt", record.AutoDeleteAt.ToUnixTimeSeconds());
         cmd.Parameters.AddWithValue("$originalFolderId", record.OriginalFolderId?.ToString() ?? (object)DBNull.Value);

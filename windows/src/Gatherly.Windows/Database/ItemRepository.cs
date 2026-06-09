@@ -35,6 +35,17 @@ public class ItemRepository
         return await reader.ReadAsync() ? SqliteRowMapper.ReadItem(reader) : null;
     }
 
+    /// <summary>
+    /// 获取 item 在数据库中的原始 id 字符串（保留大小写）
+    /// </summary>
+    public async Task<string?> GetRawIdAsync(Guid id)
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "SELECT id FROM items WHERE id COLLATE NOCASE=$id";
+        cmd.Parameters.AddWithValue("$id", id.ToString("D"));
+        return (string?)await cmd.ExecuteScalarAsync();
+    }
+
     public async Task<List<Item>> GetByPlatformAsync(Platform platform, int limit = 100)
     {
         using var cmd = _connection.CreateCommand();

@@ -24,9 +24,11 @@
                     Spacing="8" Margin="16,8">
             <Button Content="恢复"
                     Command="{Binding RestoreSelectedItemCommand}"
+                    IsEnabled="{Binding HasSelectedTrashItem}"
                     Padding="12,6" FontSize="13" />
             <Button Content="永久删除"
                     Command="{Binding PermanentlyDeleteSelectedItemCommand}"
+                    IsEnabled="{Binding HasSelectedTrashItem}"
                     Padding="12,6" FontSize="13"
                     Foreground="Red" />
         </StackPanel>
@@ -35,8 +37,8 @@
                  SelectedItem="{Binding SelectedItem}"
                  Margin="8,0">
             <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <StackPanel Margin="4,6">
+                <DataTemplate x:DataType="m:Item">
+                    <StackPanel Margin="4,6" Spacing="2">
                         <TextBlock Text="{Binding Title, FallbackValue='未命名内容'}"
                                    FontWeight="SemiBold" />
                         <StackPanel Orientation="Horizontal" Spacing="12">
@@ -45,6 +47,15 @@
                             <TextBlock Text="已删除"
                                        Foreground="Red" FontSize="12" />
                         </StackPanel>
+                        <!-- Remaining days -->
+                        <TextBlock FontSize="11" Foreground="#888">
+                            <TextBlock.Text>
+                                <MultiBinding StringFormat="剩余 {0} 天">
+                                    <Binding Path="DeletedAt"
+                                             Converter="{x:Static vm:RemainingDaysConverter.Instance}" />
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
                     </StackPanel>
                 </DataTemplate>
             </ListBox.ItemTemplate>

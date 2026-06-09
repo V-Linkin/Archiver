@@ -34,6 +34,17 @@ public class TrashViewModelTests : IDisposable
 
     private void InsertTestItem(string id, string? folderId = null, string archiveStatus = "pending")
     {
+        // Insert folder first if folderId is provided (FK constraint)
+        if (folderId != null)
+        {
+            using var folderCmd = _connection.CreateCommand();
+            folderCmd.CommandText = @"
+                INSERT OR IGNORE INTO folders (id, name, platform, created_at, sort_order)
+                VALUES ($id, 'Test Folder', 'bilibili', 1700000000, 0)";
+            folderCmd.Parameters.AddWithValue("$id", folderId);
+            folderCmd.ExecuteNonQuery();
+        }
+
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = @"
             INSERT INTO items (id, original_url, platform, normalized_url,
@@ -50,7 +61,7 @@ public class TrashViewModelTests : IDisposable
     {
         var itemRepo = new ItemRepository(_connection);
         var trashRepo = new TrashRepository(_connection);
-        var service = new ItemService(itemRepo, trashRepo);
+        var service = new ItemService(itemRepo, trashRepo, new FolderRepository(_connection));
         var item = (await itemRepo.GetByIdAsync(Guid.Parse(id)))!;
         await service.TrashItemAsync(item);
     }
@@ -63,7 +74,8 @@ public class TrashViewModelTests : IDisposable
                 new TrashRepository(_connection)),
             new ItemService(
                 new ItemRepository(_connection),
-                new TrashRepository(_connection)));
+                new TrashRepository(_connection),
+                new FolderRepository(_connection)));
     }
 
     // ==================== RestoreItemAsync ====================
@@ -75,7 +87,7 @@ public class TrashViewModelTests : IDisposable
         await TrashItem("00000000-0000-0000-0000-000000000001");
 
         var itemRepo = new ItemRepository(_connection);
-        var service = new ItemService(itemRepo, new TrashRepository(_connection));
+        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection));
         var item = (await itemRepo.GetByIdAsync(Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
 
         await service.RestoreItemAsync(item);
@@ -92,7 +104,7 @@ public class TrashViewModelTests : IDisposable
         await TrashItem("00000000-0000-0000-0000-000000000001");
 
         var itemRepo = new ItemRepository(_connection);
-        var service = new ItemService(itemRepo, new TrashRepository(_connection));
+        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection));
         var item = (await itemRepo.GetByIdAsync(Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
 
         await service.RestoreItemAsync(item);
@@ -109,7 +121,7 @@ public class TrashViewModelTests : IDisposable
         await TrashItem("00000000-0000-0000-0000-000000000001");
 
         var itemRepo = new ItemRepository(_connection);
-        var service = new ItemService(itemRepo, new TrashRepository(_connection));
+        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection));
         var item = (await itemRepo.GetByIdAsync(Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
 
         await service.RestoreItemAsync(item);
@@ -125,7 +137,7 @@ public class TrashViewModelTests : IDisposable
         await TrashItem("00000000-0000-0000-0000-000000000001");
 
         var itemRepo = new ItemRepository(_connection);
-        var service = new ItemService(itemRepo, new TrashRepository(_connection));
+        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection));
         var item = (await itemRepo.GetByIdAsync(Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
 
         await service.RestoreItemAsync(item);
@@ -142,7 +154,7 @@ public class TrashViewModelTests : IDisposable
 
         var itemRepo = new ItemRepository(_connection);
         var trashRepo = new TrashRepository(_connection);
-        var service = new ItemService(itemRepo, trashRepo);
+        var service = new ItemService(itemRepo, trashRepo, new FolderRepository(_connection));
         var item = (await itemRepo.GetByIdAsync(Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
 
         await service.RestoreItemAsync(item);
@@ -161,7 +173,7 @@ public class TrashViewModelTests : IDisposable
 
         var itemRepo = new ItemRepository(_connection);
         var trashRepo = new TrashRepository(_connection);
-        var service = new ItemService(itemRepo, trashRepo);
+        var service = new ItemService(itemRepo, trashRepo, new FolderRepository(_connection));
         var item = (await itemRepo.GetByIdAsync(Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
 
         await service.PermanentlyDeleteItemAsync(item);
@@ -178,7 +190,7 @@ public class TrashViewModelTests : IDisposable
 
         var itemRepo = new ItemRepository(_connection);
         var trashRepo = new TrashRepository(_connection);
-        var service = new ItemService(itemRepo, trashRepo);
+        var service = new ItemService(itemRepo, trashRepo, new FolderRepository(_connection));
         var item = (await itemRepo.GetByIdAsync(Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
 
         await service.PermanentlyDeleteItemAsync(item);
@@ -270,5 +282,133 @@ public class TrashViewModelTests : IDisposable
         var recent = await itemRepo.GetRecentAsync();
         Assert.Single(recent);
         Assert.Null(recent[0].DeletedAt);
+    }
+
+    // ==================== macOS 大写 GUID 场景 ====================
+
+    [Fact]
+    public async Task TrashItem_UppercaseGuid_Succeeds()
+    {
+        // Simulate macOS backup: UPPERCASE id
+        InsertTestItem("EA6BE1CE-FAD5-44CA-8377-975C6232AA0A");
+        var itemRepo = new ItemRepository(_connection);
+        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection));
+
+        var item = (await itemRepo.GetByIdAsync(Guid.Parse("EA6BE1CE-FAD5-44CA-8377-975C6232AA0A")))!;
+        await service.TrashItemAsync(item);
+
+        // Verify trash_records has the record with original case
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "SELECT item_id FROM trash_records WHERE item_id='EA6BE1CE-FAD5-44CA-8377-975C6232AA0A'";
+        var rawItemId = (string?)cmd.ExecuteScalar();
+        Assert.NotNull(rawItemId);
+        Assert.Equal("EA6BE1CE-FAD5-44CA-8377-975C6232AA0A", rawItemId);
+    }
+
+    [Fact]
+    public async Task TrashItem_UppercaseGuid_RestoreSucceeds()
+    {
+        InsertTestItem("EA6BE1CE-FAD5-44CA-8377-975C6232AA0A");
+        var itemRepo = new ItemRepository(_connection);
+        var trashRepo = new TrashRepository(_connection);
+        var service = new ItemService(itemRepo, trashRepo, new FolderRepository(_connection));
+
+        var item = (await itemRepo.GetByIdAsync(Guid.Parse("EA6BE1CE-FAD5-44CA-8377-975C6232AA0A")))!;
+        await service.TrashItemAsync(item);
+        await service.RestoreItemAsync(item);
+
+        var restored = await itemRepo.GetByIdAsync(Guid.Parse("EA6BE1CE-FAD5-44CA-8377-975C6232AA0A"));
+        Assert.NotNull(restored);
+        Assert.Null(restored.DeletedAt);
+    }
+
+    [Fact]
+    public async Task TrashItem_OrphanFolderId_SetsNull()
+    {
+        // Insert item with non-existent folder_id
+        InsertTestItem("00000000-0000-0000-0000-000000000001", folderId: "NONEXISTENT-FOLDER-ID");
+        var itemRepo = new ItemRepository(_connection);
+        var trashRepo = new TrashRepository(_connection);
+        var service = new ItemService(itemRepo, trashRepo, new FolderRepository(_connection));
+
+        var item = (await itemRepo.GetByIdAsync(Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
+        await service.TrashItemAsync(item);
+
+        var record = await trashRepo.GetByItemIdAsync(item.Id);
+        Assert.NotNull(record);
+        Assert.Null(record.OriginalFolderId);
+    }
+
+    // ==================== 历史脏数据兼容 ====================
+
+    [Fact]
+    public async Task RestoreItem_NoTrashRecord_Succeeds()
+    {
+        // Simulate dirty data: item has deleted_at but no trash_record
+        InsertTestItem("00000000-0000-0000-0000-000000000001");
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = "UPDATE items SET deleted_at=1700000000, content_status='trashed' WHERE id='00000000-0000-0000-0000-000000000001'";
+            cmd.ExecuteNonQuery();
+        }
+        // No INSERT into trash_records
+
+        var itemRepo = new ItemRepository(_connection);
+        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection));
+
+        var item = (await itemRepo.GetByIdAsync(Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
+        await service.RestoreItemAsync(item);
+
+        var restored = await itemRepo.GetByIdAsync(Guid.Parse("00000000-0000-0000-0000-000000000001"));
+        Assert.NotNull(restored);
+        Assert.Null(restored.DeletedAt);
+        Assert.Equal(ContentStatus.normal, restored.ContentStatus);
+    }
+
+    [Fact]
+    public async Task PermanentlyDeleteItem_NoTrashRecord_Succeeds()
+    {
+        // Simulate dirty data: item has deleted_at but no trash_record
+        InsertTestItem("00000000-0000-0000-0000-000000000001");
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = "UPDATE items SET deleted_at=1700000000, content_status='trashed' WHERE id='00000000-0000-0000-0000-000000000001'";
+            cmd.ExecuteNonQuery();
+        }
+
+        var itemRepo = new ItemRepository(_connection);
+        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection));
+
+        var item = (await itemRepo.GetByIdAsync(Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
+        await service.PermanentlyDeleteItemAsync(item);
+
+        var deleted = await itemRepo.GetByIdAsync(Guid.Parse("00000000-0000-0000-0000-000000000001"));
+        Assert.Null(deleted);
+    }
+
+    // ==================== 外键检查 ====================
+
+    [Fact]
+    public void ForeignKeys_AreEnabled()
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "PRAGMA foreign_keys";
+        var val = Convert.ToInt64(cmd.ExecuteScalar());
+        Assert.Equal(1, val);
+    }
+
+    [Fact]
+    public async Task ForeignKeyCheck_NoViolations()
+    {
+        InsertTestItem("00000000-0000-0000-0000-000000000001");
+        var itemRepo = new ItemRepository(_connection);
+        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection));
+        var item = (await itemRepo.GetByIdAsync(Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
+        await service.TrashItemAsync(item);
+
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "PRAGMA foreign_key_check";
+        using var reader = await cmd.ExecuteReaderAsync();
+        Assert.False(await reader.ReadAsync(), "foreign_key_check returned violations");
     }
 }

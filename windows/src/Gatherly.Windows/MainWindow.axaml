@@ -4,7 +4,7 @@
         xmlns:views="using:Gatherly.Windows.Views"
         x:Class="Gatherly.Windows.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="Gatherly Windows"
+        Title="拾屿 Gatherly"
         Width="1024" Height="768"
         WindowStartupLocation="CenterScreen">
 
@@ -12,7 +12,7 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <Grid ColumnDefinitions="200,*,300">
+    <Grid ColumnDefinitions="200,*">
 
         <!-- Left Sidebar -->
         <Border Grid.Column="0" Background="#2C2C2C" ClipToBounds="True">
@@ -66,15 +66,13 @@
             </DockPanel>
         </Border>
 
-        <!-- Center Content -->
+        <!-- Main Content Area -->
         <Panel Grid.Column="1">
             <views:HomeView x:Name="HomeViewControl" DataContext="{Binding Home}" />
             <views:SearchView x:Name="SearchViewControl" DataContext="{Binding Search}" IsVisible="False" />
             <views:TrashView x:Name="TrashViewControl" DataContext="{Binding Trash}" IsVisible="False" />
+            <views:ItemDetailView x:Name="DetailViewControl" DataContext="{Binding .}" IsVisible="False" />
         </Panel>
-
-        <!-- Right Detail -->
-        <views:ItemDetailView Grid.Column="2" DataContext="{Binding .}" />
 
     </Grid>
 </Window>

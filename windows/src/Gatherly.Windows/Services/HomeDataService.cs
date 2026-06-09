@@ -1,21 +1,28 @@
 using Gatherly.Windows.Database;
 using Gatherly.Windows.Models;
 using Gatherly.Windows.Models.Enums;
+using Gatherly.Windows.ViewModels;
+using Microsoft.Data.Sqlite;
 
 namespace Gatherly.Windows.Services;
 
 /// <summary>
-/// 首页数据服务 — 读取最近内容及首图路径
+/// 首页数据服务 — 读取最近内容、首图路径、平台统计
 /// </summary>
 public class HomeDataService
 {
     private readonly ItemRepository _itemRepo;
     private readonly MediaRepository _mediaRepo;
+    private readonly CustomPlatformRepository _customPlatformRepo;
+    private readonly SqliteConnection _connection;
 
-    public HomeDataService(ItemRepository itemRepo, MediaRepository mediaRepo)
+    public HomeDataService(ItemRepository itemRepo, MediaRepository mediaRepo,
+        CustomPlatformRepository customPlatformRepo, SqliteConnection connection)
     {
         _itemRepo = itemRepo;
         _mediaRepo = mediaRepo;
+        _customPlatformRepo = customPlatformRepo;
+        _connection = connection;
     }
 
     /// <summary>
@@ -51,5 +58,78 @@ public class HomeDataService
                 result[id] = path;
         }
         return result;
+    }
+
+    /// <summary>
+    /// 获取平台入口统计（自定义平台 + 内置平台 + 全部）
+    /// </summary>
+    public async Task<List<PlatformEntryDisplay>> GetPlatformStatsAsync()
+    {
+        var result = new List<PlatformEntryDisplay>();
+
+        // 全部
+        var totalCount = await GetTotalItemCountAsync();
+        result.Add(new PlatformEntryDisplay { Name = "全部", Count = totalCount });
+
+        // 自定义平台
+        var customPlatforms = await _customPlatformRepo.GetAllAsync();
+        foreach (var cp in customPlatforms)
+        {
+            var count = await GetCustomPlatformItemCountAsync(cp.Id);
+            string? logoFullPath = null;
+            if (!string.IsNullOrEmpty(cp.LogoPath))
+            {
+                logoFullPath = Path.Combine(
+                    Gatherly.Windows.Database.DatabasePaths.DataDirectory,
+                    "platform_logos", cp.LogoPath);
+                if (!File.Exists(logoFullPath)) logoFullPath = null;
+            }
+            result.Add(new PlatformEntryDisplay
+            {
+                Name = cp.Name,
+                Count = count,
+                LogoPath = logoFullPath
+            });
+        }
+
+        // 内置平台
+        foreach (var platform in Enum.GetValues<Platform>())
+        {
+            if (platform == Platform.custom) continue;
+            var count = await GetPlatformItemCountAsync(platform);
+            if (count > 0)
+            {
+                result.Add(new PlatformEntryDisplay
+                {
+                    Name = platform.ToRawValue(),
+                    Count = count
+                });
+            }
+        }
+
+        return result;
+    }
+
+    private async Task<int> GetTotalItemCountAsync()
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM items WHERE deleted_at IS NULL";
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync());
+    }
+
+    private async Task<int> GetCustomPlatformItemCountAsync(Guid platformId)
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM items WHERE custom_platform_id COLLATE NOCASE=$cpId AND deleted_at IS NULL";
+        cmd.Parameters.AddWithValue("$cpId", platformId.ToString("D"));
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync());
+    }
+
+    private async Task<int> GetPlatformItemCountAsync(Platform platform)
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM items WHERE platform=$platform AND deleted_at IS NULL AND custom_platform_id IS NULL";
+        cmd.Parameters.AddWithValue("$platform", platform.ToRawValue());
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync());
     }
 }

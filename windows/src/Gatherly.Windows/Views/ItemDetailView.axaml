@@ -5,66 +5,76 @@
              x:Class="Gatherly.Windows.Views.ItemDetailView"
              x:DataType="vm:MainWindowViewModel">
 
-    <Panel>
-        <!-- Placeholder when no item selected -->
-        <StackPanel IsVisible="{Binding !HasSelectedItem}"
-                    HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
-            <TextBlock Text="📄" FontSize="48" HorizontalAlignment="Center" />
-            <TextBlock Text="选择一个内容以查看详情"
-                       FontSize="16" Foreground="Gray" HorizontalAlignment="Center" />
-        </StackPanel>
+    <DockPanel>
+        <!-- Top bar with back button and actions -->
+        <Border DockPanel.Dock="Top" Background="#FAFAFA"
+                BorderBrush="#E0E0E0" BorderThickness="0,0,0,1"
+                Padding="16,10">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <!-- Back button -->
+                <Button Grid.Column="0" Content="← 返回"
+                        Command="{Binding NavigateBackCommand}"
+                        FontSize="14" Padding="12,6"
+                        Background="Transparent" BorderThickness="0"
+                        VerticalAlignment="Center" />
 
-        <!-- Detail view when item selected -->
-        <ScrollViewer IsVisible="{Binding HasSelectedItem}" Padding="16">
-            <StackPanel Spacing="12">
-                <TextBlock Text="{Binding DisplayTitle}"
-                           FontSize="20" FontWeight="Bold" TextWrapping="Wrap" />
+                <!-- Title -->
+                <TextBlock Grid.Column="1" Text="{Binding DisplayTitle}"
+                           FontSize="16" FontWeight="SemiBold"
+                           TextTrimming="CharacterEllipsis"
+                           VerticalAlignment="Center"
+                           Margin="16,0" />
 
-                <StackPanel Orientation="Horizontal" Spacing="16">
-                    <Border Background="#E8F0FE" CornerRadius="4" Padding="8,4">
-                        <TextBlock Text="{Binding DisplayPlatform}" FontSize="13" />
-                    </Border>
-                    <TextBlock Text="{Binding DisplayAuthor}"
-                               VerticalAlignment="Center" Foreground="Gray" />
+                <!-- Action buttons -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                    <Button Content="编辑备注"
+                            Command="{Binding StartEditRemarkCommand}"
+                            FontSize="12" Padding="10,5"
+                            IsVisible="{Binding !IsEditingRemark}" />
+                    <Button Content="保存备注"
+                            Command="{Binding SaveRemarkCommand}"
+                            FontSize="12" Padding="10,5"
+                            IsVisible="{Binding IsEditingRemark}" />
+                    <Button Content="取消"
+                            Command="{Binding CancelEditRemarkCommand}"
+                            FontSize="12" Padding="10,5"
+                            IsVisible="{Binding IsEditingRemark}" />
+                    <Button Content="移入回收站"
+                            Click="TrashConfirm_Click"
+                            FontSize="12" Padding="10,5"
+                            Foreground="#D32F2F" />
                 </StackPanel>
+            </Grid>
+        </Border>
 
-                <StackPanel Spacing="4">
-                    <TextBlock Text="发布时间" FontSize="12" Foreground="Gray" />
-                    <TextBlock Text="{Binding DisplayPublishDate}" FontSize="13" />
-                </StackPanel>
+        <!-- Content area -->
+        <ScrollViewer>
+            <StackPanel Spacing="20" Margin="24,16,24,24"
+                        MaxWidth="800">
 
-                <StackPanel Spacing="4">
-                    <TextBlock Text="导入时间" FontSize="12" Foreground="Gray" />
-                    <TextBlock Text="{Binding DisplayImportDate}" FontSize="13" />
-                </StackPanel>
-
-                <Border Background="#F5F5F5" CornerRadius="6" Padding="12" Margin="0,4">
-                    <TextBlock Text="{Binding DisplayBody}"
-                               TextWrapping="Wrap" FontSize="14" LineHeight="22" />
-                </Border>
-
-                <!-- Image gallery -->
-                <StackPanel Spacing="4"
+                <!-- Image gallery - large display -->
+                <StackPanel Spacing="8"
                             IsVisible="{Binding HasImages}">
-                    <TextBlock Text="图片" FontSize="12" Foreground="Gray" />
+                    <TextBlock Text="图片" FontSize="14" Foreground="Gray" />
                     <ItemsControl ItemsSource="{Binding ImageAssets}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:MediaAssetDisplay">
-                                <StackPanel Spacing="2" Margin="0,0,0,8">
+                                <StackPanel Spacing="4" Margin="0,0,0,12">
                                     <Button Padding="0" Background="Transparent"
                                             BorderThickness="0" Cursor="Hand"
-                                            MaxWidth="400"
+                                            HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Stretch"
                                             Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).OpenImageViewerCommand}"
                                             CommandParameter="{Binding}">
-                                        <Border CornerRadius="4"
+                                        <Border CornerRadius="8"
                                                 ClipToBounds="True" Background="#F0F0F0">
                                             <Image Source="{Binding FullPath, Converter={x:Static conv:FilePathToBitmapConverter.Instance}}"
                                                    Stretch="Uniform"
-                                                   MaxHeight="300" />
+                                                   MaxHeight="500" />
                                         </Border>
                                     </Button>
                                     <TextBlock Text="{Binding FileName}"
-                                               FontSize="11" Foreground="Gray"
+                                               FontSize="12" Foreground="Gray"
                                                IsVisible="{Binding !FileExists}" />
                                 </StackPanel>
                             </DataTemplate>
@@ -72,89 +82,87 @@
                     </ItemsControl>
                 </StackPanel>
 
+                <!-- Platform / Author / Time -->
+                <StackPanel Orientation="Horizontal" Spacing="16">
+                    <Border Background="#E8F0FE" CornerRadius="4" Padding="10,5">
+                        <TextBlock Text="{Binding DisplayPlatform}" FontSize="13" />
+                    </Border>
+                    <TextBlock Text="{Binding DisplayAuthor}"
+                               VerticalAlignment="Center" Foreground="Gray" FontSize="14" />
+                    <TextBlock Text="{Binding DisplayImportDate}"
+                               VerticalAlignment="Center" Foreground="Gray" FontSize="13" />
+                </StackPanel>
+
+                <!-- Original URL -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="原始链接" FontSize="12" Foreground="Gray" />
+                    <TextBlock Text="{Binding DisplayOriginalUrl}" FontSize="13"
+                               TextDecorations="Underline" Foreground="#1A73E8"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+
+                <!-- Body -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="正文" FontSize="12" Foreground="Gray" />
+                    <Border Background="#F8F8F8" CornerRadius="8" Padding="16">
+                        <TextBlock Text="{Binding DisplayBody}"
+                                   TextWrapping="Wrap" FontSize="14" LineHeight="24" />
+                    </Border>
+                </StackPanel>
+
+                <!-- Remark -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="备注" FontSize="12" Foreground="Gray" />
+                    <StackPanel IsVisible="{Binding !IsEditingRemark}">
+                        <TextBlock Text="{Binding DisplayRemark, FallbackValue='暂无备注'}"
+                                   FontSize="13" FontStyle="Italic"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel IsVisible="{Binding IsEditingRemark}" Spacing="8">
+                        <TextBox Text="{Binding EditableRemark}"
+                                 AcceptsReturn="True"
+                                 MinHeight="80"
+                                 Watermark="输入备注..." />
+                    </StackPanel>
+                </StackPanel>
+
                 <!-- Video list -->
-                <StackPanel Spacing="4"
+                <StackPanel Spacing="8"
                             IsVisible="{Binding HasVideos}">
-                    <TextBlock Text="视频" FontSize="12" Foreground="Gray" />
+                    <TextBlock Text="视频" FontSize="14" Foreground="Gray" />
                     <ItemsControl ItemsSource="{Binding VideoAssets}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:MediaAssetDisplay">
-                                <StackPanel Spacing="4" Margin="0,0,0,8">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <TextBlock Text="🎬" FontSize="14" />
-                                        <TextBlock Text="{Binding FileName}"
-                                                   FontSize="13" />
-                                        <TextBlock Text="{Binding FileSizeDisplay}"
-                                                   FontSize="12" Foreground="Gray" />
+                                <Border CornerRadius="8" Padding="12"
+                                        Background="#F8F8F8" Margin="0,0,0,8">
+                                    <StackPanel Spacing="6">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="🎬" FontSize="16" />
+                                            <TextBlock Text="{Binding FileName}"
+                                                       FontSize="14" />
+                                            <TextBlock Text="{Binding FileSizeDisplay}"
+                                                       FontSize="12" Foreground="Gray"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <Button Content="打开视频"
+                                                    FontSize="12" Padding="10,5"
+                                                    Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).OpenVideoFileCommand}"
+                                                    CommandParameter="{Binding}"
+                                                    IsVisible="{Binding FileExists}" />
+                                            <Button Content="打开所在文件夹"
+                                                    FontSize="12" Padding="10,5"
+                                                    Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).OpenVideoFolderCommand}"
+                                                    CommandParameter="{Binding}" />
+                                        </StackPanel>
                                     </StackPanel>
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <Button Content="打开视频"
-                                                FontSize="12" Padding="8,4"
-                                                Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).OpenVideoFileCommand}"
-                                                CommandParameter="{Binding}"
-                                                IsVisible="{Binding FileExists}" />
-                                        <Button Content="打开所在文件夹"
-                                                FontSize="12" Padding="8,4"
-                                                Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).OpenVideoFolderCommand}"
-                                                CommandParameter="{Binding}" />
-                                    </StackPanel>
-                                </StackPanel>
+                                </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </StackPanel>
 
-                <!-- Remark section with edit -->
-                <StackPanel Spacing="4">
-                    <TextBlock Text="备注" FontSize="12" Foreground="Gray" />
-
-                    <!-- View mode -->
-                    <StackPanel IsVisible="{Binding !IsEditingRemark}" Spacing="4">
-                        <TextBlock Text="{Binding DisplayRemark, FallbackValue='暂无备注'}"
-                                   FontSize="13" FontStyle="Italic"
-                                   TextWrapping="Wrap" />
-                        <Button Content="编辑备注"
-                                Command="{Binding StartEditRemarkCommand}"
-                                HorizontalAlignment="Left"
-                                Padding="8,4" FontSize="12" />
-                    </StackPanel>
-
-                    <!-- Edit mode -->
-                    <StackPanel IsVisible="{Binding IsEditingRemark}" Spacing="4">
-                        <TextBox Text="{Binding EditableRemark}"
-                                 AcceptsReturn="True"
-                                 MinHeight="60"
-                                 Watermark="输入备注..." />
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Button Content="保存"
-                                    Command="{Binding SaveRemarkCommand}"
-                                    Padding="8,4" FontSize="12" />
-                            <Button Content="取消"
-                                    Command="{Binding CancelEditRemarkCommand}"
-                                    Padding="8,4" FontSize="12" />
-                        </StackPanel>
-                    </StackPanel>
-                </StackPanel>
-
-                <StackPanel Spacing="4">
-                    <TextBlock Text="原始 URL" FontSize="12" Foreground="Gray" />
-                    <TextBlock Text="{Binding DisplayOriginalUrl}" FontSize="12"
-                               TextDecorations="Underline" Foreground="#1A73E8" />
-                </StackPanel>
-
-                <StackPanel Spacing="4">
-                    <TextBlock Text="标准化 URL" FontSize="12" Foreground="Gray" />
-                    <TextBlock Text="{Binding DisplayNormalizedUrl}" FontSize="12"
-                               Foreground="Gray" />
-                </StackPanel>
-
-                <!-- Trash action -->
-                <Button Content="移入回收站"
-                        Command="{Binding TrashSelectedItemCommand}"
-                        HorizontalAlignment="Left"
-                        Padding="12,6" FontSize="13"
-                        Margin="0,8,0,0" />
             </StackPanel>
         </ScrollViewer>
-    </Panel>
+    </DockPanel>
 </UserControl>

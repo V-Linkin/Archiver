@@ -12,10 +12,13 @@ public class ItemService
     private readonly ItemRepository _itemRepo;
     private readonly TrashRepository _trashRepo;
 
-    public ItemService(ItemRepository itemRepo, TrashRepository trashRepo)
+    private readonly FolderRepository _folderRepo;
+
+    public ItemService(ItemRepository itemRepo, TrashRepository trashRepo, FolderRepository folderRepo)
     {
         _itemRepo = itemRepo;
         _trashRepo = trashRepo;
+        _folderRepo = folderRepo;
     }
 
     /// <summary>
@@ -49,38 +52,57 @@ public class ItemService
         fresh.ContentStatus = ContentStatus.trashed;
         await _itemRepo.UpdateAsync(fresh);
 
+        // Check if folder exists before referencing it (avoid FK violation)
+        Guid? validFolderId = null;
+        if (fresh.FolderId != null)
+        {
+            var folderExists = await _folderRepo.ExistsAsync(fresh.FolderId.Value);
+            if (folderExists)
+                validFolderId = fresh.FolderId;
+        }
+
+        // Get raw item_id from database to match FK case exactly
+        var rawItemId = await _itemRepo.GetRawIdAsync(fresh.Id);
+
         var record = new TrashRecord
         {
             Id = Guid.NewGuid(),
             ItemId = fresh.Id,
+            RawItemId = rawItemId,
             DeletedAt = now,
             AutoDeleteAt = now.AddDays(30),
-            OriginalFolderId = fresh.FolderId,
+            OriginalFolderId = validFolderId,
             OriginalArchiveStatus = fresh.ArchiveStatus,
             MediaPaths = mediaPaths?.ToList() ?? new List<string>()
         };
+
         await _trashRepo.InsertAsync(record);
     }
 
     /// <summary>
     /// 从回收站恢复内容
     /// 对齐 macOS TrashView.restoreItem() 语义
+    /// 兼容历史脏数据：无 trash_record 时仍可恢复
     /// </summary>
     public async Task RestoreItemAsync(Item item)
     {
-        var record = await _trashRepo.GetByItemIdAsync(item.Id)
-            ?? throw new InvalidOperationException($"TrashRecord not found for item: {item.Id}");
-
         var fresh = await _itemRepo.GetByIdAsync(item.Id)
             ?? throw new InvalidOperationException($"Item not found: {item.Id}");
 
+        var record = await _trashRepo.GetByItemIdAsync(item.Id);
+
         fresh.DeletedAt = null;
         fresh.ContentStatus = ContentStatus.normal;
-        fresh.ArchiveStatus = record.OriginalArchiveStatus;
-        fresh.FolderId = record.OriginalFolderId;
-        await _itemRepo.UpdateAsync(fresh);
 
-        await _trashRepo.DeleteByItemIdAsync(item.Id);
+        // 如果有 trash_record，恢复原始状态
+        if (record != null)
+        {
+            fresh.ArchiveStatus = record.OriginalArchiveStatus;
+            fresh.FolderId = record.OriginalFolderId;
+            await _trashRepo.DeleteByItemIdAsync(item.Id);
+        }
+
+        await _itemRepo.UpdateAsync(fresh);
     }
 
     /// <summary>
@@ -90,12 +112,8 @@ public class ItemService
     /// </summary>
     public async Task PermanentlyDeleteItemAsync(Item item)
     {
-        var record = await _trashRepo.GetByItemIdAsync(item.Id);
-        if (record != null)
-        {
-            await _trashRepo.DeleteByItemIdAsync(item.Id);
-        }
-
+        // Delete trash_record if exists (may not exist for old orphaned data)
+        await _trashRepo.DeleteByItemIdAsync(item.Id);
         await _itemRepo.DeleteAsync(item.Id);
     }
 }
