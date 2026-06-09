@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Gatherly.Windows.ViewModels"
              xmlns:m="using:Gatherly.Windows.Models"
+             xmlns:conv="using:Gatherly.Windows.Views.Converters"
              x:Class="Gatherly.Windows.Views.ContentListView"
              x:DataType="vm:ContentListViewModel">
 
@@ -19,37 +20,50 @@
                    IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                    Foreground="Red" Margin="16,4" />
 
-        <!-- Folders section -->
-        <StackPanel DockPanel.Dock="Top" Margin="8,0,8,4">
-            <TextBlock Text="文件夹" FontWeight="SemiBold" Margin="4,0,4,4"
-                       IsVisible="{Binding Folders.Count}" />
-            <ItemsControl ItemsSource="{Binding Folders}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="m:Folder">
-                        <Border Background="#F0F0F0" CornerRadius="4" Padding="8,4" Margin="0,2">
-                            <TextBlock Text="{Binding Name}" />
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </StackPanel>
+        <!-- Empty state -->
+        <TextBlock DockPanel.Dock="Top"
+                   Text="暂无内容"
+                   IsVisible="{Binding !HasItems}"
+                   Foreground="Gray" FontSize="14" Margin="16,8" />
 
-        <!-- Items section -->
+        <!-- Card grid -->
         <ListBox ItemsSource="{Binding Items}"
                  SelectedItem="{Binding SelectedItem}"
-                 Margin="8,0">
+                 IsVisible="{Binding HasItems}"
+                 Background="Transparent" BorderThickness="0"
+                 Padding="0" Margin="12,0">
+            <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel />
+                </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="m:Item">
-                    <StackPanel Margin="4,6">
-                        <TextBlock Text="{Binding Title, FallbackValue='未命名内容'}"
-                                   FontWeight="SemiBold" />
-                        <StackPanel Orientation="Horizontal" Spacing="12">
-                            <TextBlock Text="{Binding Platform}"
-                                       Foreground="Gray" FontSize="12" />
-                            <TextBlock Text="{Binding Author, FallbackValue=''}"
-                                       Foreground="Gray" FontSize="12" />
+                    <Border Width="200" Margin="0,0,12,12" CornerRadius="8"
+                            ClipToBounds="True" Background="#F8F8F8"
+                            BorderBrush="#E0E0E0" BorderThickness="1">
+                        <StackPanel>
+                            <!-- 封面图 -->
+                            <Border Height="140" Background="#F0F0F0">
+                                <Image Source="{Binding FirstImagePath, Converter={x:Static conv:FilePathToBitmapConverter.Instance}}"
+                                       Stretch="UniformToFill" />
+                            </Border>
+                            <!-- 文字区 -->
+                            <StackPanel Margin="8,6,8,8" Spacing="3">
+                                <TextBlock Text="{Binding Title, FallbackValue='未命名内容'}"
+                                           FontWeight="SemiBold" FontSize="13"
+                                           TextTrimming="CharacterEllipsis"
+                                           MaxLines="2" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="{Binding Platform}"
+                                               FontSize="11" Foreground="#666" />
+                                    <TextBlock Text="{Binding Author, FallbackValue='未知作者'}"
+                                               FontSize="11" Foreground="#999"
+                                               TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </StackPanel>
                         </StackPanel>
-                    </StackPanel>
+                    </Border>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>

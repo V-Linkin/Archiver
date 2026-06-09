@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Gatherly.Windows.Database;
 using Gatherly.Windows.Models;
 using Gatherly.Windows.Models.Enums;
 using Gatherly.Windows.Services;
@@ -13,6 +14,7 @@ namespace Gatherly.Windows.ViewModels;
 public partial class ContentListViewModel : ViewModelBase
 {
     private readonly ContentListService _contentService;
+    private readonly MediaRepository _mediaRepo;
 
     public ObservableCollection<Item> Items { get; } = new();
     public ObservableCollection<Folder> Folders { get; } = new();
@@ -20,9 +22,12 @@ public partial class ContentListViewModel : ViewModelBase
     [ObservableProperty]
     private Item? _selectedItem;
 
-    public ContentListViewModel(ContentListService contentService)
+    public bool HasItems => Items.Count > 0;
+
+    public ContentListViewModel(ContentListService contentService, MediaRepository mediaRepo)
     {
         _contentService = contentService;
+        _mediaRepo = mediaRepo;
     }
 
     public async Task LoadPlatformAsync(Platform platform)
@@ -93,11 +98,21 @@ public partial class ContentListViewModel : ViewModelBase
             var items = await _contentService.GetCustomPlatformItemsAsync(customPlatformId);
             var folders = await _contentService.GetCustomPlatformFoldersAsync(customPlatformId);
 
+            // Load first image paths
+            var imagePaths = await LoadFirstImagePathsAsync(items);
+
             Items.Clear();
-            foreach (var item in items) Items.Add(item);
+            foreach (var item in items)
+            {
+                if (imagePaths.TryGetValue(item.Id, out var path))
+                    item.FirstImagePath = path;
+                Items.Add(item);
+            }
 
             Folders.Clear();
             foreach (var folder in folders) Folders.Add(folder);
+
+            OnPropertyChanged(nameof(HasItems));
         }
         catch (Exception ex)
         {
@@ -121,11 +136,21 @@ public partial class ContentListViewModel : ViewModelBase
             var items = await _contentService.GetUncategorizedItemsAsync();
             var folders = await _contentService.GetUncategorizedFoldersAsync();
 
+            // Load first image paths
+            var imagePaths = await LoadFirstImagePathsAsync(items);
+
             Items.Clear();
-            foreach (var item in items) Items.Add(item);
+            foreach (var item in items)
+            {
+                if (imagePaths.TryGetValue(item.Id, out var path))
+                    item.FirstImagePath = path;
+                Items.Add(item);
+            }
 
             Folders.Clear();
             foreach (var folder in folders) Folders.Add(folder);
+
+            OnPropertyChanged(nameof(HasItems));
         }
         catch (Exception ex)
         {
@@ -135,5 +160,22 @@ public partial class ContentListViewModel : ViewModelBase
         {
             IsBusy = false;
         }
+    }
+
+    private async Task<Dictionary<Guid, string>> LoadFirstImagePathsAsync(List<Item> items)
+    {
+        var result = new Dictionary<Guid, string>();
+        foreach (var item in items)
+        {
+            var assets = await _mediaRepo.GetByItemIdAsync(item.Id);
+            var first = assets.FirstOrDefault(a => a.Type == MediaType.cover || a.Type == MediaType.image);
+            if (first?.LocalPath != null)
+            {
+                var fullPath = MediaPathHelper.ResolveFullPath(first.LocalPath);
+                if (File.Exists(fullPath))
+                    result[item.Id] = fullPath;
+            }
+        }
+        return result;
     }
 }

@@ -105,6 +105,14 @@ public partial class MainWindowViewModel : ObservableObject
     public SearchViewModel Search { get; }
     public TrashViewModel Trash { get; }
 
+    /// <summary>
+    /// Sidebar 平台入口列表
+    /// </summary>
+    public ObservableCollection<PlatformEntryDisplay> SidebarPlatforms { get; } = new();
+
+    [ObservableProperty]
+    private string _platformTitle = "";
+
     private readonly ItemService _itemService;
     private readonly BackupImportService _backupImportService;
     private readonly MediaRepository _mediaRepo;
@@ -123,7 +131,7 @@ public partial class MainWindowViewModel : ObservableObject
 
         var customPlatformRepo = new CustomPlatformRepository(connection);
         Home = new HomeViewModel(new HomeDataService(itemRepo, mediaRepo, customPlatformRepo, connection));
-        ContentList = new ContentListViewModel(new ContentListService(itemRepo, folderRepo));
+        ContentList = new ContentListViewModel(new ContentListService(itemRepo, folderRepo), mediaRepo);
         Search = new SearchViewModel(new SearchService(searchRepo));
         Trash = new TrashViewModel(new TrashDataService(itemRepo, trashRepo), _itemService);
 
@@ -137,7 +145,7 @@ public partial class MainWindowViewModel : ObservableObject
         ContentList.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(ContentListViewModel.SelectedItem) && ContentList.SelectedItem != null)
-                NavigateToDetail(ContentList.SelectedItem, "Home");
+                NavigateToDetail(ContentList.SelectedItem, CurrentSection == "PlatformContent" ? "PlatformContent" : "Home");
         };
         Search.PropertyChanged += (_, e) =>
         {
@@ -146,8 +154,9 @@ public partial class MainWindowViewModel : ObservableObject
         };
         // Trash selection stays in trash view — no navigation to detail
 
-        // Load home data on startup
+        // Load home data and sidebar platforms on startup
         _ = Home.LoadCommand.ExecuteAsync(null);
+        _ = LoadSidebarPlatformsAsync();
     }
 
     /// <summary>
@@ -215,6 +224,42 @@ public partial class MainWindowViewModel : ObservableObject
     {
         CurrentSection = "Trash";
         await Trash.LoadCommand.ExecuteAsync(null);
+    }
+
+    /// <summary>
+    /// 加载 Sidebar 平台入口
+    /// </summary>
+    public async Task LoadSidebarPlatformsAsync()
+    {
+        var platforms = await Home.GetPlatformStatsAsync();
+        SidebarPlatforms.Clear();
+        foreach (var p in platforms)
+            SidebarPlatforms.Add(p);
+    }
+
+    /// <summary>
+    /// 进入自定义平台内容页
+    /// </summary>
+    [RelayCommand]
+    private async Task ShowCustomPlatformAsync(Guid platformId)
+    {
+        var platform = SidebarPlatforms.FirstOrDefault(p => p.Id == platformId);
+        PlatformTitle = platform?.Name ?? "平台内容";
+        PreviousSection = CurrentSection;
+        CurrentSection = "PlatformContent";
+        await ContentList.LoadCustomPlatformAsync(platformId);
+    }
+
+    /// <summary>
+    /// 进入未分类内容页
+    /// </summary>
+    [RelayCommand]
+    private async Task ShowUncategorizedAsync()
+    {
+        PlatformTitle = "未分类内容";
+        PreviousSection = CurrentSection;
+        CurrentSection = "PlatformContent";
+        await ContentList.LoadUncategorizedAsync();
     }
 
     /// <summary>

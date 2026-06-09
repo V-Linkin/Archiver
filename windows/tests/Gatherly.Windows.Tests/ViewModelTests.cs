@@ -119,7 +119,8 @@ public class ViewModelTests : IDisposable
         var vm = new ContentListViewModel(
             new ContentListService(
                 new ItemRepository(_connection),
-                new FolderRepository(_connection)));
+                new FolderRepository(_connection)),
+            new MediaRepository(_connection));
 
         await vm.LoadPlatformAsync(Platform.bilibili);
 
@@ -138,7 +139,8 @@ public class ViewModelTests : IDisposable
         var vm = new ContentListViewModel(
             new ContentListService(
                 new ItemRepository(_connection),
-                new FolderRepository(_connection)));
+                new FolderRepository(_connection)),
+            new MediaRepository(_connection));
 
         await vm.LoadFolderAsync(folderId);
 
@@ -158,7 +160,8 @@ public class ViewModelTests : IDisposable
         var vm = new ContentListViewModel(
             new ContentListService(
                 new ItemRepository(_connection),
-                new FolderRepository(_connection)));
+                new FolderRepository(_connection)),
+            new MediaRepository(_connection));
 
         await vm.LoadCustomPlatformAsync(cpId);
 
@@ -177,7 +180,8 @@ public class ViewModelTests : IDisposable
         var vm = new ContentListViewModel(
             new ContentListService(
                 new ItemRepository(_connection),
-                new FolderRepository(_connection)));
+                new FolderRepository(_connection)),
+            new MediaRepository(_connection));
 
         await vm.LoadUncategorizedAsync();
 
@@ -193,7 +197,8 @@ public class ViewModelTests : IDisposable
         var vm = new ContentListViewModel(
             new ContentListService(
                 new ItemRepository(_connection),
-                new FolderRepository(_connection)));
+                new FolderRepository(_connection)),
+            new MediaRepository(_connection));
 
         // Simulate concurrent loads
         var task1 = vm.LoadPlatformAsync(Platform.bilibili);

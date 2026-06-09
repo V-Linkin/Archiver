@@ -45,7 +45,22 @@ public partial class MainWindow : Window
         HomeViewControl.IsVisible = section == "Home";
         SearchViewControl.IsVisible = section == "Search";
         TrashViewControl.IsVisible = section == "Trash";
+        ContentListViewControl.IsVisible = section == "PlatformContent";
         DetailViewControl.IsVisible = section == "Detail";
+    }
+
+    private async void PlatformEntry_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm) return;
+        if (sender is not Button button) return;
+
+        if (button.DataContext is PlatformEntryDisplay entry)
+        {
+            if (entry.IsUncategorized)
+                await vm.ShowUncategorizedCommand.ExecuteAsync(null);
+            else
+                await vm.ShowCustomPlatformCommand.ExecuteAsync(entry.Id);
+        }
     }
 
     private async void ImportBackup_Click(object? sender, RoutedEventArgs e)

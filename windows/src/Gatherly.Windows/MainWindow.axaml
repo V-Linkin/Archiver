@@ -17,6 +17,7 @@
         <!-- Left Sidebar -->
         <Border Grid.Column="0" Background="#2C2C2C" ClipToBounds="True">
             <DockPanel>
+            <!-- Bottom: Import backup -->
             <StackPanel DockPanel.Dock="Bottom" Margin="12,0,12,12" Spacing="4">
                 <Border Background="#3A3A3A" Height="1" CornerRadius="2" Margin="4,4" />
                 <Button Content="📦 导入备份"
@@ -40,29 +41,58 @@
                 </Border>
             </StackPanel>
 
-            <StackPanel Margin="0,16,0,0" Spacing="2">
-                <TextBlock Text="拾屿"
-                           Foreground="White" FontSize="20" FontWeight="Bold"
-                           HorizontalAlignment="Center" Margin="0,0,0,16" />
+            <!-- Middle: Scrollable nav -->
+            <ScrollViewer>
+                <StackPanel Margin="0,16,0,0" Spacing="2">
+                    <TextBlock Text="拾屿"
+                               Foreground="White" FontSize="20" FontWeight="Bold"
+                               HorizontalAlignment="Center" Margin="0,0,0,16" />
 
-                <Button Content="🏠 首页"
-                        Command="{Binding ShowHomeCommand}"
-                        HorizontalContentAlignment="Left"
-                        Padding="16,10" Background="Transparent"
-                        Foreground="White" BorderThickness="0" />
+                    <!-- Fixed entries -->
+                    <Button Content="🏠 首页"
+                            Command="{Binding ShowHomeCommand}"
+                            HorizontalContentAlignment="Left"
+                            Padding="16,10" Background="Transparent"
+                            Foreground="White" BorderThickness="0" />
 
-                <Button Content="🔍 搜索"
-                        Command="{Binding ShowSearchCommand}"
-                        HorizontalContentAlignment="Left"
-                        Padding="16,10" Background="Transparent"
-                        Foreground="White" BorderThickness="0" />
+                    <Button Content="🔍 搜索"
+                            Command="{Binding ShowSearchCommand}"
+                            HorizontalContentAlignment="Left"
+                            Padding="16,10" Background="Transparent"
+                            Foreground="White" BorderThickness="0" />
 
-                <Button Content="🗑️ 回收站"
-                        Command="{Binding ShowTrashCommand}"
-                        HorizontalContentAlignment="Left"
-                        Padding="16,10" Background="Transparent"
-                        Foreground="White" BorderThickness="0" />
-            </StackPanel>
+                    <!-- Platform entries -->
+                    <Border Background="#3A3A3A" Height="1" CornerRadius="2" Margin="12,8" />
+                    <TextBlock Text="平台" Foreground="#888" FontSize="11"
+                               Margin="16,4,16,4" />
+
+                    <ItemsControl ItemsSource="{Binding SidebarPlatforms}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:PlatformEntryDisplay">
+                                <Button HorizontalContentAlignment="Left"
+                                        Padding="16,8" Background="Transparent"
+                                        Foreground="White" BorderThickness="0"
+                                        Click="PlatformEntry_Click">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="{Binding Name}" FontSize="13"
+                                                   VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding Count}" FontSize="11"
+                                                   Foreground="#888" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Trash -->
+                    <Border Background="#3A3A3A" Height="1" CornerRadius="2" Margin="12,8" />
+                    <Button Content="🗑️ 回收站"
+                            Command="{Binding ShowTrashCommand}"
+                            HorizontalContentAlignment="Left"
+                            Padding="16,10" Background="Transparent"
+                            Foreground="White" BorderThickness="0" />
+                </StackPanel>
+            </ScrollViewer>
             </DockPanel>
         </Border>
 
@@ -71,6 +101,7 @@
             <views:HomeView x:Name="HomeViewControl" DataContext="{Binding Home}" />
             <views:SearchView x:Name="SearchViewControl" DataContext="{Binding Search}" IsVisible="False" />
             <views:TrashView x:Name="TrashViewControl" DataContext="{Binding Trash}" IsVisible="False" />
+            <views:ContentListView x:Name="ContentListViewControl" DataContext="{Binding ContentList}" IsVisible="False" />
             <views:ItemDetailView x:Name="DetailViewControl" DataContext="{Binding .}" IsVisible="False" />
         </Panel>
 

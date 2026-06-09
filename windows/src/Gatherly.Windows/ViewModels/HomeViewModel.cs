@@ -28,6 +28,14 @@ public partial class HomeViewModel : ViewModelBase
         _homeService = homeService;
     }
 
+    /// <summary>
+    /// 获取平台统计数据（供 MainWindowViewModel 的 Sidebar 使用）
+    /// </summary>
+    public async Task<List<PlatformEntryDisplay>> GetPlatformStatsAsync()
+    {
+        return await _homeService.GetPlatformStatsAsync();
+    }
+
     [RelayCommand]
     public async Task LoadAsync()
     {

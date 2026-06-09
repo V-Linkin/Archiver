@@ -67,10 +67,6 @@ public class HomeDataService
     {
         var result = new List<PlatformEntryDisplay>();
 
-        // 全部
-        var totalCount = await GetTotalItemCountAsync();
-        result.Add(new PlatformEntryDisplay { Name = "全部", Count = totalCount });
-
         // 自定义平台
         var customPlatforms = await _customPlatformRepo.GetAllAsync();
         foreach (var cp in customPlatforms)
@@ -86,26 +82,21 @@ public class HomeDataService
             }
             result.Add(new PlatformEntryDisplay
             {
+                Id = cp.Id,
                 Name = cp.Name,
                 Count = count,
                 LogoPath = logoFullPath
             });
         }
 
-        // 内置平台
-        foreach (var platform in Enum.GetValues<Platform>())
+        // 未分类内容（始终显示）
+        var uncategorizedCount = await GetUncategorizedItemCountAsync();
+        result.Add(new PlatformEntryDisplay
         {
-            if (platform == Platform.custom) continue;
-            var count = await GetPlatformItemCountAsync(platform);
-            if (count > 0)
-            {
-                result.Add(new PlatformEntryDisplay
-                {
-                    Name = platform.ToRawValue(),
-                    Count = count
-                });
-            }
-        }
+            Name = "未分类内容",
+            Count = uncategorizedCount,
+            IsUncategorized = true
+        });
 
         return result;
     }
@@ -130,6 +121,13 @@ public class HomeDataService
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = "SELECT COUNT(*) FROM items WHERE platform=$platform AND deleted_at IS NULL AND custom_platform_id IS NULL";
         cmd.Parameters.AddWithValue("$platform", platform.ToRawValue());
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync());
+    }
+
+    private async Task<int> GetUncategorizedItemCountAsync()
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM items WHERE platform='custom' AND custom_platform_id IS NULL AND deleted_at IS NULL";
         return Convert.ToInt32(await cmd.ExecuteScalarAsync());
     }
 }
