@@ -93,7 +93,7 @@ public partial class MainWindowViewModel : ObservableObject
     public string DisplayTitle => SelectedItem?.Title ?? "未命名内容";
     public string DisplayAuthor => SelectedItem?.Author ?? "未知作者";
     public string DisplayBody => SelectedItem?.Body ?? "";
-    public string DisplayPlatform => SelectedItem?.Platform.ToString() ?? "";
+    public string DisplayPlatform => SelectedItem?.Platform.GetDisplayName() ?? "";
     public string DisplayPublishDate => SelectedItem?.PublishDate?.ToString("yyyy-MM-dd HH:mm") ?? "未知";
     public string DisplayImportDate => SelectedItem?.ImportDate.ToString("yyyy-MM-dd HH:mm") ?? "";
     public string DisplayRemark => SelectedItem?.Remark ?? "";
@@ -131,8 +131,8 @@ public partial class MainWindowViewModel : ObservableObject
 
         var customPlatformRepo = new CustomPlatformRepository(connection);
         Home = new HomeViewModel(new HomeDataService(itemRepo, mediaRepo, customPlatformRepo, connection));
-        ContentList = new ContentListViewModel(new ContentListService(itemRepo, folderRepo), mediaRepo);
-        Search = new SearchViewModel(new SearchService(searchRepo), mediaRepo);
+        ContentList = new ContentListViewModel(new ContentListService(itemRepo, folderRepo), mediaRepo, customPlatformRepo);
+        Search = new SearchViewModel(new SearchService(searchRepo), mediaRepo, customPlatformRepo);
         Trash = new TrashViewModel(new TrashDataService(itemRepo, trashRepo), _itemService);
 
         // Subscribe to sub-ViewModel selection changes → navigate to detail

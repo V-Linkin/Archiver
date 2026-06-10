@@ -15,6 +15,7 @@ public partial class SearchViewModel : ViewModelBase
 {
     private readonly SearchService _searchService;
     private readonly MediaRepository _mediaRepo;
+    private readonly CustomPlatformRepository _customPlatformRepo;
 
     [ObservableProperty]
     private string _query = string.Empty;
@@ -26,10 +27,11 @@ public partial class SearchViewModel : ViewModelBase
 
     public bool HasResults => Results.Count > 0;
 
-    public SearchViewModel(SearchService searchService, MediaRepository mediaRepo)
+    public SearchViewModel(SearchService searchService, MediaRepository mediaRepo, CustomPlatformRepository customPlatformRepo)
     {
         _searchService = searchService;
         _mediaRepo = mediaRepo;
+        _customPlatformRepo = customPlatformRepo;
     }
 
     [RelayCommand]
@@ -51,6 +53,18 @@ public partial class SearchViewModel : ViewModelBase
         try
         {
             var items = await _searchService.SearchAsync(trimmed);
+
+            // Fill custom platform names
+            var customPlatforms = await _customPlatformRepo.GetAllAsync();
+            var platformDict = customPlatforms.ToDictionary(cp => cp.Id, cp => cp.Name);
+            foreach (var item in items)
+            {
+                if (item.Platform == Platform.custom && item.CustomPlatformId != null)
+                {
+                    if (platformDict.TryGetValue(item.CustomPlatformId.Value, out var name))
+                        item.CustomPlatformName = name;
+                }
+            }
 
             // Load first image paths
             var imagePaths = new Dictionary<Guid, string>();

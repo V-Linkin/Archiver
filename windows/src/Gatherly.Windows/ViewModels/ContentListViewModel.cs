@@ -15,6 +15,7 @@ public partial class ContentListViewModel : ViewModelBase
 {
     private readonly ContentListService _contentService;
     private readonly MediaRepository _mediaRepo;
+    private readonly CustomPlatformRepository _customPlatformRepo;
 
     public ObservableCollection<Item> Items { get; } = new();
     public ObservableCollection<Folder> Folders { get; } = new();
@@ -24,10 +25,11 @@ public partial class ContentListViewModel : ViewModelBase
 
     public bool HasItems => Items.Count > 0;
 
-    public ContentListViewModel(ContentListService contentService, MediaRepository mediaRepo)
+    public ContentListViewModel(ContentListService contentService, MediaRepository mediaRepo, CustomPlatformRepository customPlatformRepo)
     {
         _contentService = contentService;
         _mediaRepo = mediaRepo;
+        _customPlatformRepo = customPlatformRepo;
     }
 
     public async Task LoadPlatformAsync(Platform platform)
@@ -98,6 +100,9 @@ public partial class ContentListViewModel : ViewModelBase
             var items = await _contentService.GetCustomPlatformItemsAsync(customPlatformId);
             var folders = await _contentService.GetCustomPlatformFoldersAsync(customPlatformId);
 
+            // Fill custom platform names
+            await FillCustomPlatformNamesAsync(items);
+
             // Load first image paths
             var imagePaths = await LoadFirstImagePathsAsync(items);
 
@@ -135,6 +140,9 @@ public partial class ContentListViewModel : ViewModelBase
         {
             var items = await _contentService.GetUncategorizedItemsAsync();
             var folders = await _contentService.GetUncategorizedFoldersAsync();
+
+            // Fill custom platform names
+            await FillCustomPlatformNamesAsync(items);
 
             // Load first image paths
             var imagePaths = await LoadFirstImagePathsAsync(items);
@@ -177,5 +185,20 @@ public partial class ContentListViewModel : ViewModelBase
             }
         }
         return result;
+    }
+
+    private async Task FillCustomPlatformNamesAsync(List<Item> items)
+    {
+        var customPlatforms = await _customPlatformRepo.GetAllAsync();
+        var platformDict = customPlatforms.ToDictionary(cp => cp.Id, cp => cp.Name);
+
+        foreach (var item in items)
+        {
+            if (item.Platform == Platform.custom && item.CustomPlatformId != null)
+            {
+                if (platformDict.TryGetValue(item.CustomPlatformId.Value, out var name))
+                    item.CustomPlatformName = name;
+            }
+        }
     }
 }

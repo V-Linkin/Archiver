@@ -34,4 +34,16 @@ public class Item
     /// 非数据库字段：首张图片本地完整路径（由 ViewModel 填充）
     /// </summary>
     public string? FirstImagePath { get; set; }
+
+    /// <summary>
+    /// 非数据库字段：自定义平台名称（由 ViewModel 填充）
+    /// </summary>
+    public string? CustomPlatformName { get; set; }
+
+    /// <summary>
+    /// 非数据库字段：平台中文显示名
+    /// </summary>
+    public string DisplayPlatform => Platform == Platform.custom
+        ? (CustomPlatformName ?? "自定义")
+        : Platform.GetDisplayName();
 }

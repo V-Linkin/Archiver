@@ -48,6 +48,9 @@ public partial class HomeViewModel : ViewModelBase
         {
             var items = await _homeService.GetRecentItemsAsync();
 
+            // 批量填充自定义平台名称
+            await _homeService.FillCustomPlatformNamesAsync(items);
+
             // 批量加载首图路径，先设置再添加到集合
             var imagePaths = await _homeService.GetFirstImagePathsAsync(items.Select(i => i.Id));
             foreach (var item in items)

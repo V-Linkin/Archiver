@@ -174,7 +174,7 @@ public class ItemDetailSelectionTests : IDisposable
             MediaStatus = MediaStatus.textOnly
         };
 
-        Assert.Equal("douyin", vm.DisplayPlatform);
+        Assert.Equal("抖音", vm.DisplayPlatform);
     }
 
     [Fact]

@@ -42,7 +42,7 @@
                         <TextBlock Text="{Binding Title, FallbackValue='未命名内容'}"
                                    FontWeight="SemiBold" />
                         <StackPanel Orientation="Horizontal" Spacing="12">
-                            <TextBlock Text="{Binding Platform}"
+                            <TextBlock Text="{Binding DisplayPlatform}"
                                        Foreground="Gray" FontSize="12" />
                             <TextBlock Text="已删除"
                                        Foreground="Red" FontSize="12" />

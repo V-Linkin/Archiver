@@ -61,6 +61,24 @@ public class HomeDataService
     }
 
     /// <summary>
+    /// 批量填充 item 的自定义平台名称
+    /// </summary>
+    public async Task FillCustomPlatformNamesAsync(List<Item> items)
+    {
+        var customPlatforms = await _customPlatformRepo.GetAllAsync();
+        var platformDict = customPlatforms.ToDictionary(cp => cp.Id, cp => cp.Name);
+
+        foreach (var item in items)
+        {
+            if (item.Platform == Platform.custom && item.CustomPlatformId != null)
+            {
+                if (platformDict.TryGetValue(item.CustomPlatformId.Value, out var name))
+                    item.CustomPlatformName = name;
+            }
+        }
+    }
+
+    /// <summary>
     /// 获取平台入口统计（自定义平台 + 内置平台 + 全部）
     /// </summary>
     public async Task<List<PlatformEntryDisplay>> GetPlatformStatsAsync()

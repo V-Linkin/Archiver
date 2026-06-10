@@ -61,7 +61,7 @@
                                                    TextTrimming="CharacterEllipsis"
                                                    MaxLines="2" />
                                         <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <TextBlock Text="{Binding Platform}"
+                                            <TextBlock Text="{Binding DisplayPlatform}"
                                                        FontSize="11" Foreground="#666" />
                                             <TextBlock Text="{Binding Author, FallbackValue='未知作者'}"
                                                        FontSize="11" Foreground="#999"

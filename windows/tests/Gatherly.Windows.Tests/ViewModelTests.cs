@@ -120,7 +120,8 @@ public class ViewModelTests : IDisposable
             new ContentListService(
                 new ItemRepository(_connection),
                 new FolderRepository(_connection)),
-            new MediaRepository(_connection));
+            new MediaRepository(_connection),
+            new CustomPlatformRepository(_connection));
 
         await vm.LoadPlatformAsync(Platform.bilibili);
 
@@ -140,7 +141,8 @@ public class ViewModelTests : IDisposable
             new ContentListService(
                 new ItemRepository(_connection),
                 new FolderRepository(_connection)),
-            new MediaRepository(_connection));
+            new MediaRepository(_connection),
+            new CustomPlatformRepository(_connection));
 
         await vm.LoadFolderAsync(folderId);
 
@@ -161,7 +163,8 @@ public class ViewModelTests : IDisposable
             new ContentListService(
                 new ItemRepository(_connection),
                 new FolderRepository(_connection)),
-            new MediaRepository(_connection));
+            new MediaRepository(_connection),
+            new CustomPlatformRepository(_connection));
 
         await vm.LoadCustomPlatformAsync(cpId);
 
@@ -181,7 +184,8 @@ public class ViewModelTests : IDisposable
             new ContentListService(
                 new ItemRepository(_connection),
                 new FolderRepository(_connection)),
-            new MediaRepository(_connection));
+            new MediaRepository(_connection),
+            new CustomPlatformRepository(_connection));
 
         await vm.LoadUncategorizedAsync();
 
@@ -198,7 +202,8 @@ public class ViewModelTests : IDisposable
             new ContentListService(
                 new ItemRepository(_connection),
                 new FolderRepository(_connection)),
-            new MediaRepository(_connection));
+            new MediaRepository(_connection),
+            new CustomPlatformRepository(_connection));
 
         // Simulate concurrent loads
         var task1 = vm.LoadPlatformAsync(Platform.bilibili);
@@ -214,7 +219,7 @@ public class ViewModelTests : IDisposable
     [Fact]
     public async Task SearchViewModel_EmptyQuery_ReturnsEmpty()
     {
-        var vm = new SearchViewModel(new SearchService(new SearchRepository(_connection)), new MediaRepository(_connection));
+        var vm = new SearchViewModel(new SearchService(new SearchRepository(_connection)), new MediaRepository(_connection), new CustomPlatformRepository(_connection));
         vm.Query = "";
         await vm.SearchCommand.ExecuteAsync(null);
 
@@ -224,7 +229,7 @@ public class ViewModelTests : IDisposable
     [Fact]
     public async Task SearchViewModel_WhitespaceQuery_ReturnsEmpty()
     {
-        var vm = new SearchViewModel(new SearchService(new SearchRepository(_connection)), new MediaRepository(_connection));
+        var vm = new SearchViewModel(new SearchService(new SearchRepository(_connection)), new MediaRepository(_connection), new CustomPlatformRepository(_connection));
         vm.Query = "   ";
         await vm.SearchCommand.ExecuteAsync(null);
 
@@ -248,7 +253,7 @@ public class ViewModelTests : IDisposable
              'My Special Title', 'My Special Body')";
         ftsCmd.ExecuteNonQuery();
 
-        var vm = new SearchViewModel(new SearchService(new SearchRepository(_connection)), new MediaRepository(_connection));
+        var vm = new SearchViewModel(new SearchService(new SearchRepository(_connection)), new MediaRepository(_connection), new CustomPlatformRepository(_connection));
         vm.Query = "Special";
         await vm.SearchCommand.ExecuteAsync(null);
 
@@ -272,7 +277,7 @@ public class ViewModelTests : IDisposable
              'Deleted Item', 'Body')";
         ftsCmd.ExecuteNonQuery();
 
-        var vm = new SearchViewModel(new SearchService(new SearchRepository(_connection)), new MediaRepository(_connection));
+        var vm = new SearchViewModel(new SearchService(new SearchRepository(_connection)), new MediaRepository(_connection), new CustomPlatformRepository(_connection));
         vm.Query = "Deleted";
         await vm.SearchCommand.ExecuteAsync(null);
 
