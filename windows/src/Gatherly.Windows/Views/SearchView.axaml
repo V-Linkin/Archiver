@@ -14,7 +14,7 @@
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal"
                     Margin="16,0,16,8" Spacing="8">
             <TextBox Text="{Binding Query}" Watermark="输入关键词..."
-                     Width="300" />
+                     Width="300" KeyDown="SearchTextBox_KeyDown" />
             <Button Content="搜索" Command="{Binding SearchCommand}" />
         </StackPanel>
 

@@ -93,7 +93,7 @@ public partial class MainWindowViewModel : ObservableObject
     public string DisplayTitle => SelectedItem?.Title ?? "未命名内容";
     public string DisplayAuthor => SelectedItem?.Author ?? "未知作者";
     public string DisplayBody => SelectedItem?.Body ?? "";
-    public string DisplayPlatform => SelectedItem?.Platform.GetDisplayName() ?? "";
+    public string DisplayPlatform => SelectedItem?.DisplayPlatform ?? "";
     public string DisplayPublishDate => SelectedItem?.PublishDate?.ToString("yyyy-MM-dd HH:mm") ?? "未知";
     public string DisplayImportDate => SelectedItem?.ImportDate.ToString("yyyy-MM-dd HH:mm") ?? "";
     public string DisplayRemark => SelectedItem?.Remark ?? "";
