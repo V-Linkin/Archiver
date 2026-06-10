@@ -1,7 +1,42 @@
 ﻿# Windows 真机 / exe 运行验证报告
 
-> 验证日期：2026-06-08
-> Phase：6D
+> 验证日期：2026-06-09
+> Phase：6L
+
+---
+
+## Phase 6L 最终回归结果
+
+**基准：** commit 4dcda1c
+
+**验证结果：**
+
+| 项目 | 结果 |
+|------|------|
+| git status | ✅ 干净 |
+| dotnet build | ✅ 0 errors |
+| dotnet test | ✅ 148/148 passed |
+| publish | ✅ |
+| 人工回归 | ✅ 全部通过 |
+| PRAGMA foreign_keys = OFF | ❌ 无 |
+| P0/P1 | ❌ 无 |
+
+**完整人工回归：**
+
+| 功能 | 结果 |
+|------|------|
+| App 启动 | ✅ |
+| macOS 备份导入 | ✅ |
+| 首页卡片 | ✅ |
+| 平台分类 | ✅ |
+| 搜索（含 Enter） | ✅ |
+| 详情页（含 custom_platforms.name） | ✅ |
+| 图片查看器 | ✅ |
+| 视频功能 | ✅ |
+| 回收站 | ✅ |
+| 自定义平台显示 | ✅ |
+
+**结论：** 建议作为 Windows MVP Release Candidate。
 
 ---
 
