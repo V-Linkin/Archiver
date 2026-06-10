@@ -1017,6 +1017,29 @@ macOS 备份导入:      ✅
 * macOS 项目不受影响
 
 
+### Phase 6M：Windows 发布包整理 / Release Notes / 用户安装说明 ✅
+
+状态：已完成。
+
+基于 commit：0a6fee4
+
+新增文档：
+
+```text
+docs/windows/release-notes.md — 发布说明
+docs/windows/windows-user-guide.md — 用户指南
+docs/windows/known-limitations.md — 已知限制
+```
+
+结论：
+
+* Windows MVP RC 发布资料已整理完成
+* 发布说明、用户指南、已知限制文档已创建
+* 不涉及代码修改
+* 148 个测试全部通过
+* macOS 项目不受影响
+
+
 ---
 
 ## 4. 总体执行原则
