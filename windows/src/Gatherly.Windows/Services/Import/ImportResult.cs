@@ -71,4 +71,14 @@ public class ImportResult
         ExtractedUrl = url,
         ErrorMessage = error
     };
+
+    public static ImportResult SuccessImport(Guid itemId, string url, Platform platform, string title) => new()
+    {
+        Status = ImportStatus.SuccessImport,
+        Message = $"已导入 {platform.GetDisplayName()} 内容：{title}",
+        ExtractedUrl = url,
+        Platform = platform,
+        PlatformDisplayName = platform.GetDisplayName(),
+        ImportTaskId = itemId
+    };
 }

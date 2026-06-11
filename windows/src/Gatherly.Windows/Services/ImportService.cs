@@ -8,8 +8,8 @@ using Gatherly.Windows.Services.Url;
 namespace Gatherly.Windows.Services;
 
 /// <summary>
-/// 导入服务 — Phase 7C: 完整导入管道
-/// URL 提取 → 平台识别 → 去重检查 → 创建任务 → Router → Parser
+/// 导入服务 — Phase 7D-1: 支持 GitHub 写入 item
+/// URL 提取 → 平台识别 → 去重检查 → 创建任务 → Router → Parser → 写入 item
 /// </summary>
 public class ImportService
 {
@@ -60,8 +60,18 @@ public class ImportService
             return ImportResult.Duplicate(url, "该链接已存在于归档库中。");
 
         var existingTask = await _taskRepo.GetByNormalizedUrlAsync(normalizedUrl);
-        if (existingTask != null && existingTask.Status != Models.Enums.TaskStatus.failed)
-            return ImportResult.Duplicate(url, "该链接已有导入任务。");
+        if (existingTask != null)
+        {
+            // completed → Duplicate
+            if (existingTask.Status == Models.Enums.TaskStatus.completed)
+                return ImportResult.Duplicate(url, "该链接已有导入任务。");
+
+            // pending 且无 error_message → 真实任务进行中 → Duplicate
+            if (existingTask.Status == Models.Enums.TaskStatus.pending && string.IsNullOrEmpty(existingTask.ErrorMessage))
+                return ImportResult.Duplicate(url, "该链接已有导入任务。");
+
+            // 其它状态（failed, 有 error_message 的 pending）→ 允许重新导入
+        }
 
         // 6. 创建 import_task
         var task = new ImportTask
@@ -85,7 +95,7 @@ public class ImportService
             PlatformContentId = contentId
         });
 
-        // 8. 更新任务状态并返回结果
+        // 8. 处理解析结果
         if (parseResult.Status == ParseStatus.NotImplemented)
         {
             await _taskRepo.UpdateStatusAsync(task.Id, Models.Enums.TaskStatus.pending, "解析器尚未实现");
@@ -98,7 +108,38 @@ public class ImportService
             return ImportResult.Failed(url, parseResult.ErrorMessage ?? "未知错误");
         }
 
-        // 9. 成功（后续 Phase 7D 实现真实写入）
+        // 9. Success: 写入 item
+        if (parseResult.Status == ParseStatus.Success && parseResult.Content != null)
+        {
+            var content = parseResult.Content;
+            var item = new Item
+            {
+                Id = Guid.NewGuid(),
+                Title = content.Title,
+                Body = content.Body,
+                OriginalUrl = content.OriginalUrl ?? url,
+                Platform = platform.Value,
+                PlatformContentId = content.PlatformContentId ?? contentId,
+                NormalizedUrl = content.NormalizedUrl ?? normalizedUrl,
+                Author = content.Author,
+                AuthorId = content.AuthorId,
+                PublishDate = content.PublishDate,
+                ImportDate = DateTimeOffset.UtcNow,
+                ModifyDate = DateTimeOffset.UtcNow,
+                ContentStatus = ContentStatus.normal,
+                ArchiveStatus = ArchiveStatus.pending,
+                MediaStatus = string.IsNullOrEmpty(content.VideoUrl)
+                    ? (content.ImageUrls.Count > 0 ? MediaStatus.complete : MediaStatus.textOnly)
+                    : MediaStatus.complete
+            };
+
+            await _itemRepo.InsertAsync(item);
+            await _taskRepo.UpdateCompletedAsync(task.Id, item.Id);
+
+            return ImportResult.SuccessImport(item.Id, url, platform.Value, content.Title ?? $"{content.Author}/{content.PlatformContentId}");
+        }
+
+        // Fallback
         await _taskRepo.UpdateStatusAsync(task.Id, Models.Enums.TaskStatus.completed);
         return ImportResult.TaskCreated(task.Id, url, platform.Value, contentId);
     }

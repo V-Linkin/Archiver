@@ -50,13 +50,12 @@ public class ImportServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task ProcessImport_GitHubUrl_ReturnsTaskCreated()
+    public async Task ProcessImport_GitHubUrl_ReturnsSuccessImport()
     {
         var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
-        Assert.Equal(ImportStatus.TaskCreated, result.Status);
+        Assert.Equal(ImportStatus.SuccessImport, result.Status);
         Assert.Equal(Platform.github, result.Platform);
         Assert.Contains("GitHub", result.Message);
-        Assert.NotNull(result.ImportTaskId);
     }
 
     [Fact]
@@ -98,21 +97,21 @@ public class ImportServiceTests : IDisposable
     public async Task ProcessImport_MixedText_ExtractsUrl()
     {
         var result = await _service.ProcessImportAsync("看看这个：https://github.com/openai/openai-dotnet");
-        Assert.Equal(ImportStatus.TaskCreated, result.Status);
+        Assert.Equal(ImportStatus.SuccessImport, result.Status);
         Assert.Equal(Platform.github, result.Platform);
     }
 
     [Fact]
     public async Task ProcessImport_DuplicateUrl_ReturnsDuplicate()
     {
-        // First import creates task
+        // First import creates item
         var result1 = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
-        Assert.Equal(ImportStatus.TaskCreated, result1.Status);
+        Assert.Equal(ImportStatus.SuccessImport, result1.Status);
 
         // Second import should be duplicate
         var result2 = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
         Assert.Equal(ImportStatus.Duplicate, result2.Status);
-        Assert.Contains("已有导入任务", result2.Message);
+        Assert.Contains("已存在于归档库中", result2.Message);
     }
 
     [Fact]
@@ -133,30 +132,107 @@ public class ImportServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task ProcessImport_CreatesImportTask()
+    public async Task ProcessImport_ParserNotImplementedTask_AllowsReImport()
+    {
+        // Simulate old Phase 7C task with parser_not_implemented (pending + error_message)
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = @"
+            INSERT INTO import_tasks (id, original_url, normalized_url, platform, status, progress, error_message, created_at, retry_count)
+            VALUES ('00000000-0000-0000-0000-000000000001', 'https://github.com/openai/openai-dotnet',
+                'github://repo/openai/openai-dotnet', 'github', 'pending', 0, '解析器尚未实现', 1700000000, 0)";
+        cmd.ExecuteNonQuery();
+
+        // Should NOT be Duplicate - should allow re-import
+        var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.Equal(ImportStatus.SuccessImport, result.Status);
+    }
+
+    [Fact]
+    public async Task ProcessImport_FailedTask_AllowsReImport()
+    {
+        // Insert a failed task
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = @"
+            INSERT INTO import_tasks (id, original_url, normalized_url, platform, status, progress, error_message, created_at, retry_count)
+            VALUES ('00000000-0000-0000-0000-000000000001', 'https://github.com/openai/openai-dotnet',
+                'github://repo/openai/openai-dotnet', 'github', 'failed', 0, 'HTTP request failed', 1700000000, 0)";
+        cmd.ExecuteNonQuery();
+
+        // Should NOT be Duplicate - should allow re-import
+        var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.Equal(ImportStatus.SuccessImport, result.Status);
+    }
+
+    [Fact]
+    public async Task ProcessImport_CompletedTask_ReturnsDuplicate()
+    {
+        // Insert a completed task
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = @"
+            INSERT INTO import_tasks (id, original_url, normalized_url, platform, status, progress, created_at, retry_count)
+            VALUES ('00000000-0000-0000-0000-000000000001', 'https://github.com/openai/openai-dotnet',
+                'github://repo/openai/openai-dotnet', 'github', 'completed', 1, 1700000000, 0)";
+        cmd.ExecuteNonQuery();
+
+        var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.Equal(ImportStatus.Duplicate, result.Status);
+        Assert.Contains("已有导入任务", result.Message);
+    }
+
+    [Fact]
+    public async Task ProcessImport_PendingTaskWithoutError_ReturnsDuplicate()
+    {
+        // Insert a pending task without error (real task in progress)
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = @"
+            INSERT INTO import_tasks (id, original_url, normalized_url, platform, status, progress, created_at, retry_count)
+            VALUES ('00000000-0000-0000-0000-000000000001', 'https://github.com/openai/openai-dotnet',
+                'github://repo/openai/openai-dotnet', 'github', 'pending', 0, 1700000000, 0)";
+        cmd.ExecuteNonQuery();
+
+        var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.Equal(ImportStatus.Duplicate, result.Status);
+        Assert.Contains("已有导入任务", result.Message);
+    }
+
+    [Fact]
+    public async Task ProcessImport_GitHubWritesItem()
     {
         var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
-        Assert.Equal(ImportStatus.TaskCreated, result.Status);
-        Assert.NotNull(result.ImportTaskId);
+        Assert.Equal(ImportStatus.SuccessImport, result.Status);
 
-        // Verify task exists in database
+        // Verify item exists in database
         using var cmd = _connection.CreateCommand();
-        cmd.CommandText = "SELECT COUNT(*) FROM import_tasks WHERE id COLLATE NOCASE=$id";
-        cmd.Parameters.AddWithValue("$id", result.ImportTaskId!.Value.ToString("D"));
+        cmd.CommandText = "SELECT COUNT(*) FROM items WHERE platform='github'";
         var count = (long)cmd.ExecuteScalar();
         Assert.Equal(1, count);
     }
 
     [Fact]
-    public async Task ProcessImport_TaskHasCorrectStatus()
+    public async Task ProcessImport_GitHubItemHasCorrectFields()
     {
         var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
-        Assert.NotNull(result.ImportTaskId);
+        Assert.Equal(ImportStatus.SuccessImport, result.Status);
 
         using var cmd = _connection.CreateCommand();
-        cmd.CommandText = "SELECT status FROM import_tasks WHERE id COLLATE NOCASE=$id";
-        cmd.Parameters.AddWithValue("$id", result.ImportTaskId!.Value.ToString("D"));
+        cmd.CommandText = "SELECT title, author, platform, original_url, normalized_url FROM items WHERE platform='github' LIMIT 1";
+        using var reader = cmd.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.Equal("github", reader.GetString(reader.GetOrdinal("platform")));
+        Assert.Contains("openai", reader.GetString(reader.GetOrdinal("author")));
+        Assert.Equal("https://github.com/openai/openai-dotnet", reader.GetString(reader.GetOrdinal("original_url")));
+        Assert.Equal("github://repo/openai/openai-dotnet", reader.GetString(reader.GetOrdinal("normalized_url")));
+    }
+
+    [Fact]
+    public async Task ProcessImport_GitHubTaskCompleted()
+    {
+        var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.Equal(ImportStatus.SuccessImport, result.Status);
+
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "SELECT status FROM import_tasks ORDER BY created_at DESC LIMIT 1";
         var status = (string)cmd.ExecuteScalar();
-        Assert.Equal("pending", status);
+        Assert.Equal("completed", status);
     }
 }

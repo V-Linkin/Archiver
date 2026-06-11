@@ -1,7 +1,7 @@
 # 拾屿 Gatherly Windows MVP Release Notes
 
 > 版本：Windows MVP RC
-> 基准 commit：0a852a8
+> 基准 commit：1d4899f
 > 发布日期：2026-06-11
 
 ---
@@ -18,6 +18,7 @@
 |------|------|
 | 粘贴链接识别平台（URL Normalizer） | ✅ |
 | 粘贴链接创建导入任务 | ✅ |
+| GitHub 链接自动导入 | ✅ |
 | macOS 备份 zip 导入 | ✅ |
 | 首页卡片浏览 | ✅ |
 | 平台分类浏览 | ✅ |
@@ -42,7 +43,7 @@
 
 | 功能 | 说明 |
 |------|------|
-| 粘贴链接自动抓取内容 | 已支持平台识别和导入任务创建，Parser + WebView2 后续阶段实现 |
+| 其它平台自动抓取内容 | 仅支持 GitHub，其它平台 Parser 后续阶段实现 |
 | Parser 内容抓取 | 需逐平台实现，高风险阶段 |
 | WebView2 浏览器嵌入 | 依赖 Windows WebView2 SDK |
 | Windows 安装包 (MSI/EXE) | 需打包工具，后续阶段实现 |

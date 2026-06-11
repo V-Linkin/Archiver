@@ -11,5 +11,6 @@ public enum ImportStatus
     Duplicate,
     TaskCreated,
     ParserNotImplemented,
-    Failed
+    Failed,
+    SuccessImport
 }

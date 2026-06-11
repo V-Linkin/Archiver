@@ -1140,6 +1140,41 @@ windows/src/Gatherly.Windows/Database/ItemRepository.cs — 新增 GetByNormaliz
 * macOS 项目不受影响
 
 
+### Phase 7D-1：GitHub Parser ✅
+
+状态：已完成。
+
+基于 commit：1d4899f
+
+新增：
+
+```text
+windows/src/Gatherly.Windows/Services/Parsers/GitHubParser.cs — GitHub 解析器
+windows/tests/Gatherly.Windows.Tests/Services/ImportServiceTests.cs — 扩展测试
+```
+
+改动：
+
+```text
+windows/src/Gatherly.Windows/Services/Parsers/PlatformRouter.cs — 注册 GitHubParser
+windows/src/Gatherly.Windows/Services/ImportService.cs — ParseResult.Success 后写入 item
+windows/src/Gatherly.Windows/Services/Import/ImportStatus.cs — 新增 SuccessImport 状态
+windows/src/Gatherly.Windows/Services/Import/ImportResult.cs — 新增 SuccessImport 工厂方法
+windows/src/Gatherly.Windows/Database/ItemRepository.cs — 新增 InsertAsync
+```
+
+结论：
+
+* GitHub Parser 支持 repo / issue / pull / discussion 页面
+* 使用 HTTP GET + HTML meta 解析（og:title, og:description, og:image）
+* 不依赖 GitHub API token，不使用 WebView2
+* ImportService 支持 ParseResult.Success 后写入 item
+* GitHub 导入可写入 items 并显示到首页
+* 其它平台仍为 NotImplementedParser
+* 235 个测试全部通过
+* macOS 项目不受影响
+
+
 ---
 
 ## 4. 总体执行原则
