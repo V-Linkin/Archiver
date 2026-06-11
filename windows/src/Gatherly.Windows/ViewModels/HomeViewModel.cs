@@ -40,16 +40,27 @@ public partial class HomeViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void ImportLink()
+    private async Task ImportLinkAsync()
     {
         if (IsImporting) return;
 
-        var result = _importService.ProcessImport(ImportUrl);
-        ImportStatusMessage = result.Message;
+        IsImporting = true;
+        try
+        {
+            var result = await _importService.ProcessImportAsync(ImportUrl);
+            ImportStatusMessage = result.Message;
 
-        // 清空输入框
-        if (result.Status != ImportStatus.EmptyInput)
-            ImportUrl = "";
+            if (result.Status != Services.Import.ImportStatus.EmptyInput)
+                ImportUrl = "";
+        }
+        catch (Exception ex)
+        {
+            ImportStatusMessage = $"导入失败：{ex.Message}";
+        }
+        finally
+        {
+            IsImporting = false;
+        }
     }
 
     /// <summary>

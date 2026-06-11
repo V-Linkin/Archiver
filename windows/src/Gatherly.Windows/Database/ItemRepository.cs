@@ -35,6 +35,15 @@ public class ItemRepository
         return await reader.ReadAsync() ? SqliteRowMapper.ReadItem(reader) : null;
     }
 
+    public async Task<Item?> GetByNormalizedUrlAsync(string normalizedUrl)
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "SELECT * FROM items WHERE normalized_url=$url AND deleted_at IS NULL LIMIT 1";
+        cmd.Parameters.AddWithValue("$url", normalizedUrl);
+        using var reader = await cmd.ExecuteReaderAsync();
+        return await reader.ReadAsync() ? SqliteRowMapper.ReadItem(reader) : null;
+    }
+
     /// <summary>
     /// 获取 item 在数据库中的原始 id 字符串（保留大小写）
     /// </summary>

@@ -124,13 +124,14 @@ public partial class MainWindowViewModel : ObservableObject
         var searchRepo = new SearchRepository(connection);
         var trashRepo = new TrashRepository(connection);
         var mediaRepo = new MediaRepository(connection);
+        var importTaskRepo = new ImportTaskRepository(connection);
 
         _itemService = new ItemService(itemRepo, trashRepo, folderRepo);
         _backupImportService = new BackupImportService();
         _mediaRepo = mediaRepo;
 
         var customPlatformRepo = new CustomPlatformRepository(connection);
-        Home = new HomeViewModel(new HomeDataService(itemRepo, mediaRepo, customPlatformRepo, connection), new ImportService());
+        Home = new HomeViewModel(new HomeDataService(itemRepo, mediaRepo, customPlatformRepo, connection), new ImportService(itemRepo, importTaskRepo));
         ContentList = new ContentListViewModel(new ContentListService(itemRepo, folderRepo), mediaRepo, customPlatformRepo);
         Search = new SearchViewModel(new SearchService(searchRepo), mediaRepo, customPlatformRepo);
         Trash = new TrashViewModel(new TrashDataService(itemRepo, trashRepo), _itemService);
