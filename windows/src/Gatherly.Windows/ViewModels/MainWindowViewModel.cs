@@ -131,7 +131,7 @@ public partial class MainWindowViewModel : ObservableObject
         _mediaRepo = mediaRepo;
 
         var customPlatformRepo = new CustomPlatformRepository(connection);
-        Home = new HomeViewModel(new HomeDataService(itemRepo, mediaRepo, customPlatformRepo, connection), new ImportService(itemRepo, importTaskRepo));
+        Home = new HomeViewModel(new HomeDataService(itemRepo, mediaRepo, customPlatformRepo, connection), new ImportService(itemRepo, importTaskRepo, new Services.Media.MediaDownloadService(mediaRepo)));
         ContentList = new ContentListViewModel(new ContentListService(itemRepo, folderRepo), mediaRepo, customPlatformRepo);
         Search = new SearchViewModel(new SearchService(searchRepo), mediaRepo, customPlatformRepo);
         Trash = new TrashViewModel(new TrashDataService(itemRepo, trashRepo), _itemService);

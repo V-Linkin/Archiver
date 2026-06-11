@@ -2,6 +2,7 @@ using Gatherly.Windows.Database;
 using Gatherly.Windows.Models.Enums;
 using Gatherly.Windows.Services;
 using Gatherly.Windows.Services.Import;
+using Gatherly.Windows.Services.Media;
 using Microsoft.Data.Sqlite;
 using Xunit;
 
@@ -17,7 +18,7 @@ public class ImportServiceTests : IDisposable
         _connection = new SqliteConnection("Data Source=:memory:");
         _connection.Open();
         MigrationRunner.RunAll(_connection);
-        _service = new ImportService(new ItemRepository(_connection), new ImportTaskRepository(_connection));
+        _service = new ImportService(new ItemRepository(_connection), new ImportTaskRepository(_connection), new MediaDownloadService(new MediaRepository(_connection)));
     }
 
     public void Dispose()
@@ -59,12 +60,12 @@ public class ImportServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task ProcessImport_BilibiliUrl_ReturnsTaskCreated()
+    public async Task ProcessImport_BilibiliUrl_ReturnsSuccessImport()
     {
+        // BilibiliParser makes real HTTP calls to Bilibili API
         var result = await _service.ProcessImportAsync("https://www.bilibili.com/video/BV1xx411c7mD");
-        Assert.Equal(ImportStatus.TaskCreated, result.Status);
+        Assert.Equal(ImportStatus.SuccessImport, result.Status);
         Assert.Equal(Platform.bilibili, result.Platform);
-        Assert.Contains("B站", result.Message);
     }
 
     [Fact]

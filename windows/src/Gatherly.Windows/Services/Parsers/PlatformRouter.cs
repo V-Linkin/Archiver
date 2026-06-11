@@ -4,17 +4,20 @@ namespace Gatherly.Windows.Services.Parsers;
 
 /// <summary>
 /// 平台路由器 — 根据平台返回对应 Parser
-/// 当前只有 GitHub 有真实 Parser，其它平台返回 NotImplementedParser
+/// 当前 GitHub + Bilibili 有真实 Parser，其它平台返回 NotImplementedParser
 /// </summary>
 public class PlatformRouter
 {
     private readonly NotImplementedParser _notImplemented = new();
     private readonly GitHubParser _github = new();
+    private readonly BilibiliParser _bilibili = new();
 
     public IContentParser GetParser(Platform platform, string url)
     {
         if (platform == Platform.github)
             return _github;
+        if (platform == Platform.bilibili)
+            return _bilibili;
 
         return _notImplemented;
     }

@@ -2,25 +2,28 @@ using Gatherly.Windows.Database;
 using Gatherly.Windows.Models;
 using Gatherly.Windows.Models.Enums;
 using Gatherly.Windows.Services.Import;
+using Gatherly.Windows.Services.Media;
 using Gatherly.Windows.Services.Parsers;
 using Gatherly.Windows.Services.Url;
 
 namespace Gatherly.Windows.Services;
 
 /// <summary>
-/// 导入服务 — Phase 7D-1: 支持 GitHub 写入 item
-/// URL 提取 → 平台识别 → 去重检查 → 创建任务 → Router → Parser → 写入 item
+/// 导入服务 — Phase 7D-2: 支持 B站 写入 item + 下载封面到本地
+/// URL 提取 → 平台识别 → 去重检查 → 创建任务 → Router → Parser → 写入 item → 下载封面
 /// </summary>
 public class ImportService
 {
     private readonly ItemRepository _itemRepo;
     private readonly ImportTaskRepository _taskRepo;
+    private readonly MediaDownloadService _mediaDownload;
     private readonly PlatformRouter _router;
 
-    public ImportService(ItemRepository itemRepo, ImportTaskRepository taskRepo)
+    public ImportService(ItemRepository itemRepo, ImportTaskRepository taskRepo, MediaDownloadService mediaDownload)
     {
         _itemRepo = itemRepo;
         _taskRepo = taskRepo;
+        _mediaDownload = mediaDownload;
         _router = new PlatformRouter();
     }
 
@@ -130,10 +133,18 @@ public class ImportService
                 ArchiveStatus = ArchiveStatus.pending,
                 MediaStatus = string.IsNullOrEmpty(content.VideoUrl)
                     ? (content.ImageUrls.Count > 0 ? MediaStatus.complete : MediaStatus.textOnly)
-                    : MediaStatus.complete
+                    : MediaStatus.complete,
+                CoverUrl = content.CoverUrl
             };
 
             await _itemRepo.InsertAsync(item);
+
+            // 下载封面到本地（失败不影响导入）
+            if (!string.IsNullOrEmpty(content.CoverUrl))
+            {
+                await _mediaDownload.DownloadCoverAsync(item.Id, content.CoverUrl);
+            }
+
             await _taskRepo.UpdateCompletedAsync(task.Id, item.Id);
 
             return ImportResult.SuccessImport(item.Id, url, platform.Value, content.Title ?? $"{content.Author}/{content.PlatformContentId}");

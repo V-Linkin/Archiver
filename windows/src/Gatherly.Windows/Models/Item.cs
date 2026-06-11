@@ -36,6 +36,16 @@ public class Item
     public string? FirstImagePath { get; set; }
 
     /// <summary>
+    /// 非数据库字段：远程封面 URL（由 Parser 导入时填充，用作 FirstImagePath 的 fallback）
+    /// </summary>
+    public string? CoverUrl { get; set; }
+
+    /// <summary>
+    /// 非数据库字段：显示用图片路径（优先本地首图，fallback 到远程封面 URL）
+    /// </summary>
+    public string? DisplayImagePath => FirstImagePath ?? CoverUrl;
+
+    /// <summary>
     /// 非数据库字段：自定义平台名称（由 ViewModel 填充）
     /// </summary>
     public string? CustomPlatformName { get; set; }

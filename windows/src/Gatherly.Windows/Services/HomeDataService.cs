@@ -34,15 +34,21 @@ public class HomeDataService
     }
 
     /// <summary>
-    /// 获取指定 item 的首张图片本地完整路径，无图片返回 null
+    /// 获取指定 item 的首张图片路径（优先本地，fallback 到远程 URL）
     /// </summary>
     public async Task<string?> GetFirstImagePathAsync(Guid itemId)
     {
         var assets = await _mediaRepo.GetByItemIdAsync(itemId);
         var first = assets.FirstOrDefault(a =>
             a.Type == MediaType.cover || a.Type == MediaType.image);
-        if (first?.LocalPath == null) return null;
-        return MediaPathHelper.ResolveFullPath(first.LocalPath);
+        if (first == null) return null;
+        // 优先本地路径
+        if (!string.IsNullOrEmpty(first.LocalPath))
+            return MediaPathHelper.ResolveFullPath(first.LocalPath);
+        // fallback 到远程 URL
+        if (!string.IsNullOrEmpty(first.RemoteUrl))
+            return first.RemoteUrl;
+        return null;
     }
 
     /// <summary>

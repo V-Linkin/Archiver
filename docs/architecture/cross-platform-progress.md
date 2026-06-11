@@ -1175,6 +1175,40 @@ windows/src/Gatherly.Windows/Database/ItemRepository.cs — 新增 InsertAsync
 * macOS 项目不受影响
 
 
+### Phase 7D-2：Bilibili Parser ✅
+
+状态：已完成。
+
+基于 commit：8975f77
+
+新增：
+
+```text
+windows/src/Gatherly.Windows/Services/Parsers/BilibiliParser.cs — B站解析器
+```
+
+改动：
+
+```text
+windows/src/Gatherly.Windows/Services/Parsers/PlatformRouter.cs — 注册 BilibiliParser
+windows/tests/Gatherly.Windows.Tests/Services/ImportServiceTests.cs — 更新 Bilibili 测试
+```
+
+结论：
+
+* BilibiliParser 支持 BV / av 视频链接
+* 使用 Bilibili Web API (api.bilibili.com/x/web-interface/view) 获取视频信息
+* 支持 b23.tv 短链 HTTP redirect 展开
+* API 失败时 fallback 到 HTML meta 解析
+* 可读取标题 / UP 主 / 简介 / 封面 URL / 发布时间
+* 不下载 B站视频，不使用 WebView2
+* 成功导入后写入 item 并刷新首页
+* GitHubParser 仍正常
+* 其它平台仍为 NotImplementedParser
+* 239 个测试全部通过
+* macOS 项目不受影响
+
+
 ---
 
 ## 4. 总体执行原则
