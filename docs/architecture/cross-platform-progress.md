@@ -1040,6 +1040,33 @@ docs/windows/known-limitations.md — 已知限制
 * macOS 项目不受影响
 
 
+### Phase 7A：Windows 原生粘贴链接导入入口 + Import 流程骨架 ✅
+
+状态：已完成。
+
+基于 commit：3a9e7ec
+
+新增/修改：
+
+```text
+windows/src/Gatherly.Windows/Services/ImportService.cs — 新增导入骨架
+windows/src/Gatherly.Windows/ViewModels/HomeViewModel.cs — 新增 ImportUrl/ImportStatusMessage/ImportLinkCommand
+windows/src/Gatherly.Windows/ViewModels/MainWindowViewModel.cs — 传递 ImportService
+windows/src/Gatherly.Windows/Views/HomeView.axaml — 新增"一键归档"入口 UI
+windows/tests/Gatherly.Windows.Tests/ViewModelTests.cs — 适配构造函数变更
+```
+
+结论：
+
+* 首页新增粘贴链接导入入口
+* ImportService 骨架完成输入验证和 URL 检测
+* 当前不做 Parser / WebView2
+* 当前不会真正抓取内容
+* 后续 Phase 7B 迁移 URL Normalizer
+* 148 个测试全部通过
+* macOS 项目不受影响
+
+
 ---
 
 ## 4. 总体执行原则

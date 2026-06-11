@@ -8,11 +8,12 @@ using Gatherly.Windows.Services;
 namespace Gatherly.Windows.ViewModels;
 
 /// <summary>
-/// 首页 ViewModel — 最近导入内容列表 + 首图 + 平台入口
+/// 首页 ViewModel — 最近导入内容列表 + 首图 + 平台入口 + 粘贴链接导入
 /// </summary>
 public partial class HomeViewModel : ViewModelBase
 {
     private readonly HomeDataService _homeService;
+    private readonly ImportService _importService;
 
     public ObservableCollection<Item> RecentItems { get; } = new();
     public ObservableCollection<PlatformEntryDisplay> PlatformEntries { get; } = new();
@@ -20,12 +21,35 @@ public partial class HomeViewModel : ViewModelBase
     [ObservableProperty]
     private Item? _selectedItem;
 
+    [ObservableProperty]
+    private string _importUrl = "";
+
+    [ObservableProperty]
+    private string? _importStatusMessage;
+
+    [ObservableProperty]
+    private bool _isImporting;
+
     public bool HasItems => RecentItems.Count > 0;
     public bool HasPlatforms => PlatformEntries.Count > 0;
 
-    public HomeViewModel(HomeDataService homeService)
+    public HomeViewModel(HomeDataService homeService, ImportService importService)
     {
         _homeService = homeService;
+        _importService = importService;
+    }
+
+    [RelayCommand]
+    private void ImportLink()
+    {
+        if (IsImporting) return;
+
+        var result = _importService.ProcessImport(ImportUrl);
+        ImportStatusMessage = result.Message;
+
+        // 清空输入框
+        if (result.Status != ImportStatus.EmptyInput)
+            ImportUrl = "";
     }
 
     /// <summary>
