@@ -1,3 +1,6 @@
+using Gatherly.Windows.Models.Enums;
+using Gatherly.Windows.Services.Url;
+
 namespace Gatherly.Windows.Services;
 
 /// <summary>
@@ -7,6 +10,7 @@ public enum ImportStatus
 {
     EmptyInput,
     InvalidUrl,
+    UnsupportedPlatform,
     UnsupportedPendingParser,
     DuplicateUrl
 }
@@ -19,6 +23,7 @@ public class ImportResult
     public ImportStatus Status { get; init; }
     public string Message { get; init; } = "";
     public string? DetectedUrl { get; init; }
+    public Platform? DetectedPlatform { get; init; }
 
     public static ImportResult EmptyInput => new()
     {
@@ -32,10 +37,18 @@ public class ImportResult
         Message = "输入的内容不是有效的 URL"
     };
 
-    public static ImportResult UnsupportedPendingParser(string url) => new()
+    public static ImportResult PlatformRecognized(string url, Platform platform) => new()
     {
         Status = ImportStatus.UnsupportedPendingParser,
-        Message = "该链接已识别，Windows 原生解析将在后续 Phase 7B/7C 支持。",
+        Message = $"识别到平台：{platform.GetDisplayName()}。Windows 原生解析将在后续 Phase 7C/7D 支持。",
+        DetectedUrl = url,
+        DetectedPlatform = platform
+    };
+
+    public static ImportResult UnknownPlatform(string url) => new()
+    {
+        Status = ImportStatus.UnsupportedPlatform,
+        Message = "已识别为 URL，但暂不支持该平台。",
         DetectedUrl = url
     };
 
@@ -48,9 +61,8 @@ public class ImportResult
 }
 
 /// <summary>
-/// 导入服务骨架 — Phase 7A
-/// 当前只做输入验证和 URL 检测，不创建真实 item
-/// 后续 Phase 7B/7C 迁移 URLNormalizer + Parser
+/// 导入服务 — Phase 7B: 接入 UrlNormalizer
+/// 从用户输入提取 URL、识别平台，但不抓取内容
 /// </summary>
 public class ImportService
 {
@@ -59,37 +71,24 @@ public class ImportService
     /// </summary>
     public ImportResult ProcessImport(string? input)
     {
-        // 1. 空输入
         if (string.IsNullOrWhiteSpace(input))
             return ImportResult.EmptyInput;
 
         var trimmed = input.Trim();
 
-        // 2. 尝试提取 URL
-        var url = ExtractUrl(trimmed);
+        var url = UrlNormalizer.ExtractFirstUrl(trimmed);
         if (url == null)
-            return ImportResult.InvalidUrl;
-
-        // 3. URL 已识别，但 Parser 尚未实现
-        return ImportResult.UnsupportedPendingParser(url);
-    }
-
-    /// <summary>
-    /// 从输入文本中提取第一个 URL
-    /// </summary>
-    private static string? ExtractUrl(string text)
-    {
-        try
         {
-            var detector = new System.Text.RegularExpressions.Regex(
-                @"https?://[^\s]+",
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-            var match = detector.Match(text);
-            return match.Success ? match.Value : null;
+            if (UrlNormalizer.IsValidUrl(trimmed))
+                url = trimmed;
+            else
+                return ImportResult.InvalidUrl;
         }
-        catch
-        {
-            return null;
-        }
+
+        var platform = UrlNormalizer.RecognizePlatform(url);
+        if (platform.HasValue)
+            return ImportResult.PlatformRecognized(url, platform.Value);
+
+        return ImportResult.UnknownPlatform(url);
     }
 }

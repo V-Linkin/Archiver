@@ -1,17 +1,17 @@
 # 拾屿 Gatherly Windows MVP 已知限制
 
-> 基准：commit 0a6fee4
-> 更新日期：2026-06-09
+> 基准：commit 19b2dce
+> 更新日期：2026-06-11
 
 ---
 
 ## 功能限制
 
-### 1. 不支持原生粘贴链接导入
+### 1. 粘贴链接导入仅识别平台，不抓取内容
 
-Windows 版目前不支持直接粘贴链接导入内容。需要先在 macOS 上导入内容，然后通过备份 zip 传输到 Windows。
+Windows 版支持粘贴链接并识别平台（Phase 7A+7B），但尚不支持自动抓取网页内容。需要先在 macOS 上导入内容，然后通过备份 zip 传输到 Windows。
 
-**原因：** 需要实现 Parser + WebView2，属于高风险阶段。
+**原因：** Parser + WebView2 属于高风险阶段，将在后续 Phase 7C/7D 逐步实现。
 
 ### 2. 不支持内容抓取（Parser）
 

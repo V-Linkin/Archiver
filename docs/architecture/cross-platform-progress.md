@@ -1067,6 +1067,38 @@ windows/tests/Gatherly.Windows.Tests/ViewModelTests.cs — 适配构造函数变
 * macOS 项目不受影响
 
 
+### Phase 7B：URL Normalizer C# 迁移 ✅
+
+状态：已完成。
+
+基于 commit：19b2dce
+
+新增：
+
+```text
+windows/src/Gatherly.Windows/Services/Url/UrlNormalizer.cs — URL 标准化器
+windows/tests/Gatherly.Windows.Tests/Services/Url/UrlNormalizerTests.cs — 87 个测试
+windows/tests/Gatherly.Windows.Tests/Services/ImportServiceTests.cs — 14 个测试
+```
+
+改动：
+
+```text
+windows/src/Gatherly.Windows/Services/ImportService.cs — 接入 UrlNormalizer，升级平台识别提示
+```
+
+结论：
+
+* 从 shared/url 迁移 URL 识别规则到 C#（正则、平台识别、normalize、ID 提取）
+* UrlNormalizer 支持全部 10 个平台：douyin, xiaohongshu, coolapk, bilibili, github, youtube, x, weibo, zhihu, douban
+* 支持混合文本提取 URL、平台识别、自定义 scheme normalize、内容 ID 提取
+* ImportService 接入 UrlNormalizer，首页粘贴链接可显示识别到的平台
+* 当前不做 Parser / WebView2 / 网络抓取
+* 后续 Phase 7C 进入 ImportService 真实导入链路
+* 237 个测试全部通过（新增 101 个测试）
+* macOS 项目不受影响
+
+
 ---
 
 ## 4. 总体执行原则
