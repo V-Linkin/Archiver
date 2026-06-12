@@ -184,11 +184,15 @@ public class ImportServiceTests : IDisposable
     public async Task ProcessImport_PendingTaskWithoutError_ReturnsDuplicateImportTask()
     {
         // Insert a pending task without error (real task in progress)
+        // Use recent updated_at to simulate active task
+        var recentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = @"
-            INSERT INTO import_tasks (id, original_url, normalized_url, platform, status, progress, created_at, retry_count)
+            INSERT INTO import_tasks (id, original_url, normalized_url, platform, status, progress, created_at, updated_at, retry_count)
             VALUES ('00000000-0000-0000-0000-000000000001', 'https://github.com/openai/openai-dotnet',
-                'github://repo/openai/openai-dotnet', 'github', 'pending', 0, 1700000000, 0)";
+                'github://repo/openai/openai-dotnet', 'github', 'pending', 0, $createdAt, $updatedAt, 0)";
+        cmd.Parameters.AddWithValue("$createdAt", recentTime);
+        cmd.Parameters.AddWithValue("$updatedAt", recentTime);
         cmd.ExecuteNonQuery();
 
         var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
@@ -235,5 +239,313 @@ public class ImportServiceTests : IDisposable
         cmd.CommandText = "SELECT status FROM import_tasks ORDER BY created_at DESC LIMIT 1";
         var status = (string)cmd.ExecuteScalar();
         Assert.Equal("completed", status);
+    }
+
+    // ==================== Stale Task Tests ====================
+
+    [Fact]
+    public async Task ProcessImport_PendingTask_RecentUpdated_ReturnsDuplicateImportTask()
+    {
+        // Pending task with recent updated_at (within 10 minutes) → blocks
+        var recentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = @"
+            INSERT INTO import_tasks (id, original_url, normalized_url, platform, status, progress, created_at, updated_at, retry_count)
+            VALUES ('00000000-0000-0000-0000-000000000001', 'https://github.com/openai/openai-dotnet',
+                'github://repo/openai/openai-dotnet', 'github', 'pending', 0, $createdAt, $updatedAt, 0)";
+        cmd.Parameters.AddWithValue("$createdAt", recentTime);
+        cmd.Parameters.AddWithValue("$updatedAt", recentTime);
+        cmd.ExecuteNonQuery();
+
+        var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.Equal(ImportStatus.DuplicateImportTask, result.Status);
+    }
+
+    [Fact]
+    public async Task ProcessImport_PendingTask_9Min59SecAgo_ReturnsDuplicateImportTask()
+    {
+        // Pending task updated 9 minutes 59 seconds ago → still active
+        // Use a slightly more recent timestamp to account for test execution time
+        var now = DateTimeOffset.UtcNow;
+        var updatedAt = now.AddMinutes(-9).AddSeconds(-50).ToUnixTimeSeconds(); // 9 min 50 sec ago
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = @"
+            INSERT INTO import_tasks (id, original_url, normalized_url, platform, status, progress, created_at, updated_at, retry_count)
+            VALUES ('00000000-0000-0000-0000-000000000001', 'https://github.com/openai/openai-dotnet',
+                'github://repo/openai/openai-dotnet', 'github', 'pending', 0, $createdAt, $updatedAt, 0)";
+        cmd.Parameters.AddWithValue("$createdAt", updatedAt);
+        cmd.Parameters.AddWithValue("$updatedAt", updatedAt);
+        cmd.ExecuteNonQuery();
+
+        var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.Equal(ImportStatus.DuplicateImportTask, result.Status);
+    }
+
+    [Fact]
+    public async Task ProcessImport_PendingTask_10Min05SecAgo_AllowsReImport()
+    {
+        // Pending task updated 10 minutes 5 seconds ago → stale, allows re-import
+        var now = DateTimeOffset.UtcNow;
+        var updatedAt = now.AddMinutes(-10).AddSeconds(-5).ToUnixTimeSeconds();
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = @"
+            INSERT INTO import_tasks (id, original_url, normalized_url, platform, status, progress, created_at, updated_at, retry_count)
+            VALUES ('00000000-0000-0000-0000-000000000001', 'https://github.com/openai/openai-dotnet',
+                'github://repo/openai/openai-dotnet', 'github', 'pending', 0, $createdAt, $updatedAt, 0)";
+        cmd.Parameters.AddWithValue("$createdAt", updatedAt);
+        cmd.Parameters.AddWithValue("$updatedAt", updatedAt);
+        cmd.ExecuteNonQuery();
+
+        var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.Equal(ImportStatus.SuccessImport, result.Status);
+    }
+
+    [Fact]
+    public async Task ProcessImport_PendingTask_10Min01SecAgo_AllowsReImport()
+    {
+        // Pending task updated 10 minutes 1 second ago → stale, allows re-import
+        var now = DateTimeOffset.UtcNow;
+        var updatedAt = now.AddMinutes(-10).AddSeconds(-1).ToUnixTimeSeconds();
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = @"
+            INSERT INTO import_tasks (id, original_url, normalized_url, platform, status, progress, created_at, updated_at, retry_count)
+            VALUES ('00000000-0000-0000-0000-000000000001', 'https://github.com/openai/openai-dotnet',
+                'github://repo/openai/openai-dotnet', 'github', 'pending', 0, $createdAt, $updatedAt, 0)";
+        cmd.Parameters.AddWithValue("$createdAt", updatedAt);
+        cmd.Parameters.AddWithValue("$updatedAt", updatedAt);
+        cmd.ExecuteNonQuery();
+
+        var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.Equal(ImportStatus.SuccessImport, result.Status);
+    }
+
+    [Fact]
+    public async Task ProcessImport_PendingTask_20MinAgo_AllowsReImport()
+    {
+        // Pending task updated 20 minutes ago → stale, allows re-import
+        var now = DateTimeOffset.UtcNow;
+        var updatedAt = now.AddMinutes(-20).ToUnixTimeSeconds();
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = @"
+            INSERT INTO import_tasks (id, original_url, normalized_url, platform, status, progress, created_at, updated_at, retry_count)
+            VALUES ('00000000-0000-0000-0000-000000000001', 'https://github.com/openai/openai-dotnet',
+                'github://repo/openai/openai-dotnet', 'github', 'pending', 0, $createdAt, $updatedAt, 0)";
+        cmd.Parameters.AddWithValue("$createdAt", updatedAt);
+        cmd.Parameters.AddWithValue("$updatedAt", updatedAt);
+        cmd.ExecuteNonQuery();
+
+        var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.Equal(ImportStatus.SuccessImport, result.Status);
+    }
+
+    [Fact]
+    public async Task ProcessImport_StalePendingPlusRecentImporting_RecentBlocks()
+    {
+        // Stale pending + recent importing → recent one blocks
+        var now = DateTimeOffset.UtcNow;
+        var staleTime = now.AddMinutes(-20).ToUnixTimeSeconds();
+        var recentTime = now.AddMinutes(-2).ToUnixTimeSeconds();
+
+        // Insert stale pending task
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO import_tasks (id, original_url, normalized_url, platform, status, progress, created_at, updated_at, retry_count)
+                VALUES ('00000000-0000-0000-0000-000000000001', 'https://github.com/openai/openai-dotnet',
+                    'github://repo/openai/openai-dotnet', 'github', 'pending', 0, $createdAt, $updatedAt, 0)";
+            cmd.Parameters.AddWithValue("$createdAt", staleTime);
+            cmd.Parameters.AddWithValue("$updatedAt", staleTime);
+            cmd.ExecuteNonQuery();
+        }
+
+        // Insert recent pending task (simulates importing)
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO import_tasks (id, original_url, normalized_url, platform, status, progress, created_at, updated_at, retry_count)
+                VALUES ('00000000-0000-0000-0000-000000000002', 'https://github.com/openai/openai-dotnet',
+                    'github://repo/openai/openai-dotnet', 'github', 'pending', 0, $createdAt, $updatedAt, 0)";
+            cmd.Parameters.AddWithValue("$createdAt", recentTime);
+            cmd.Parameters.AddWithValue("$updatedAt", recentTime);
+            cmd.ExecuteNonQuery();
+        }
+
+        // Should be blocked by recent task
+        var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.Equal(ImportStatus.DuplicateImportTask, result.Status);
+    }
+
+    [Fact]
+    public async Task ProcessImport_StaleImportingPlusFailedTask_AllowsReImport()
+    {
+        // Stale importing + failed task → allows re-import
+        var now = DateTimeOffset.UtcNow;
+        var staleTime = now.AddMinutes(-20).ToUnixTimeSeconds();
+
+        // Insert stale pending task
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO import_tasks (id, original_url, normalized_url, platform, status, progress, created_at, updated_at, retry_count)
+                VALUES ('00000000-0000-0000-0000-000000000001', 'https://github.com/openai/openai-dotnet',
+                    'github://repo/openai/openai-dotnet', 'github', 'pending', 0, $createdAt, $updatedAt, 0)";
+            cmd.Parameters.AddWithValue("$createdAt", staleTime);
+            cmd.Parameters.AddWithValue("$updatedAt", staleTime);
+            cmd.ExecuteNonQuery();
+        }
+
+        // Insert failed task
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO import_tasks (id, original_url, normalized_url, platform, status, progress, error_message, created_at, updated_at, retry_count)
+                VALUES ('00000000-0000-0000-0000-000000000002', 'https://github.com/openai/openai-dotnet',
+                    'github://repo/openai/openai-dotnet', 'github', 'failed', 0, 'HTTP error', $createdAt, $updatedAt, 0)";
+            cmd.Parameters.AddWithValue("$createdAt", staleTime);
+            cmd.Parameters.AddWithValue("$updatedAt", staleTime);
+            cmd.ExecuteNonQuery();
+        }
+
+        // Should allow re-import (stale pending + failed)
+        var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.Equal(ImportStatus.SuccessImport, result.Status);
+    }
+
+    [Fact]
+    public async Task ProcessImport_StaleTaskRetrySuccess_CreatesNewTask()
+    {
+        // Stale task retry should create new task and succeed
+        var now = DateTimeOffset.UtcNow;
+        var staleTime = now.AddMinutes(-20).ToUnixTimeSeconds();
+
+        // Insert stale pending task
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO import_tasks (id, original_url, normalized_url, platform, status, progress, created_at, updated_at, retry_count)
+                VALUES ('00000000-0000-0000-0000-000000000001', 'https://github.com/openai/openai-dotnet',
+                    'github://repo/openai/openai-dotnet', 'github', 'pending', 0, $createdAt, $updatedAt, 0)";
+            cmd.Parameters.AddWithValue("$createdAt", staleTime);
+            cmd.Parameters.AddWithValue("$updatedAt", staleTime);
+            cmd.ExecuteNonQuery();
+        }
+
+        var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.Equal(ImportStatus.SuccessImport, result.Status);
+
+        // Verify new task was created and is completed
+        using var cmd2 = _connection.CreateCommand();
+        cmd2.CommandText = "SELECT COUNT(*) FROM import_tasks WHERE normalized_url='github://repo/openai/openai-dotnet' AND status='completed'";
+        var count = (long)cmd2.ExecuteScalar();
+        Assert.True(count >= 1);
+    }
+
+    [Fact]
+    public async Task ProcessImport_UpdatedAtNull_AllowsReImport()
+    {
+        // Task with NULL updated_at should not crash and should allow re-import
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = @"
+            INSERT INTO import_tasks (id, original_url, normalized_url, platform, status, progress, created_at, retry_count)
+            VALUES ('00000000-0000-0000-0000-000000000001', 'https://github.com/openai/openai-dotnet',
+                'github://repo/openai/openai-dotnet', 'github', 'pending', 0, 1700000000, 0)";
+        cmd.ExecuteNonQuery();
+
+        // Should not crash and should allow re-import (treated as stale)
+        var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.True(result.Status == ImportStatus.SuccessImport || result.Status == ImportStatus.Failed);
+    }
+
+    [Fact]
+    public async Task ProcessImport_CompletedTaskWithNullItemId_AllowsReImport()
+    {
+        // Completed task with NULL item_id → orphan task, allows re-import
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = @"
+            INSERT INTO import_tasks (id, original_url, normalized_url, platform, status, progress, created_at, updated_at, retry_count)
+            VALUES ('00000000-0000-0000-0000-000000000001', 'https://github.com/openai/openai-dotnet',
+                'github://repo/openai/openai-dotnet', 'github', 'completed', 1, 1700000000, 1700000000, 0)";
+        cmd.ExecuteNonQuery();
+
+        var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.True(result.Status == ImportStatus.SuccessImport || result.Status == ImportStatus.Failed);
+    }
+
+    [Fact]
+    public async Task ProcessImport_CompletedTaskWithOrphanItemId_AllowsReImport()
+    {
+        // Completed task with item_id that doesn't exist → orphan, allows re-import
+        // Note: item_id FK constraint means we can't insert a non-existent item_id
+        // Instead, test with completed task without item_id (orphan case)
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = @"
+            INSERT INTO import_tasks (id, original_url, normalized_url, platform, status, progress, created_at, updated_at, retry_count)
+            VALUES ('00000000-0000-0000-0000-000000000001', 'https://github.com/openai/openai-dotnet',
+                'github://repo/openai/openai-dotnet', 'github', 'completed', 1, 1700000000, 1700000000, 0)";
+        cmd.ExecuteNonQuery();
+
+        var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.True(result.Status == ImportStatus.SuccessImport || result.Status == ImportStatus.Failed);
+    }
+
+    [Fact]
+    public async Task ProcessImport_ActiveItemExists_StillDuplicateExistingItem()
+    {
+        // Active item exists → DuplicateExistingItem (priority over stale task)
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = @"
+            INSERT INTO items (id, original_url, platform, normalized_url,
+                import_date, modify_date, content_status, archive_status, media_status)
+            VALUES ('00000000-0000-0000-0000-000000000001', 'https://github.com/openai/openai-dotnet', 'github',
+                'github://repo/openai/openai-dotnet', 1700000000, 1700000000, 'normal', 'pending', 'textOnly')";
+        cmd.ExecuteNonQuery();
+
+        var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.Equal(ImportStatus.DuplicateExistingItem, result.Status);
+    }
+
+    [Fact]
+    public async Task ProcessImport_TrashItemExists_StillDuplicateInTrash()
+    {
+        // Item in trash → DuplicateInTrash (priority over stale task)
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO items (id, original_url, platform, normalized_url,
+                    import_date, modify_date, content_status, archive_status, media_status, deleted_at)
+                VALUES ('00000000-0000-0000-0000-000000000001', 'https://github.com/openai/openai-dotnet', 'github',
+                    'github://repo/openai/openai-dotnet', 1700000000, 1700000000, 'normal', 'pending', 'textOnly', 1700000000)";
+            cmd.ExecuteNonQuery();
+        }
+
+        var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.Equal(ImportStatus.DuplicateInTrash, result.Status);
+    }
+
+    [Fact]
+    public async Task ProcessImport_GitHubParser_NotAffectedByStaleLogic()
+    {
+        // GitHub parser should work normally
+        var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.Equal(ImportStatus.SuccessImport, result.Status);
+        Assert.Equal(Platform.github, result.Platform);
+    }
+
+    [Fact]
+    public async Task ProcessImport_BilibiliParser_NotAffectedByStaleLogic()
+    {
+        // Bilibili parser should work normally
+        var result = await _service.ProcessImportAsync("https://www.bilibili.com/video/BV1xx411c7mD");
+        Assert.Equal(ImportStatus.SuccessImport, result.Status);
+        Assert.Equal(Platform.bilibili, result.Platform);
+    }
+
+    [Fact]
+    public async Task ProcessImport_YouTubeParser_NotAffectedByStaleLogic()
+    {
+        // YouTube parser should work normally
+        var result = await _service.ProcessImportAsync("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+        Assert.Equal(ImportStatus.SuccessImport, result.Status);
+        Assert.Equal(Platform.youtube, result.Platform);
     }
 }

@@ -18,13 +18,25 @@ public class ImportService
     private readonly ImportTaskRepository _taskRepo;
     private readonly MediaDownloadService _mediaDownload;
     private readonly PlatformRouter _router;
+    private readonly TimeProvider _timeProvider;
+
+    /// <summary>
+    /// 活跃任务窗口：pending/importing 任务在此时间内视为活跃
+    /// </summary>
+    private static readonly TimeSpan ActiveTaskWindow = TimeSpan.FromMinutes(10);
 
     public ImportService(ItemRepository itemRepo, ImportTaskRepository taskRepo, MediaDownloadService mediaDownload)
+        : this(itemRepo, taskRepo, mediaDownload, TimeProvider.System)
+    {
+    }
+
+    public ImportService(ItemRepository itemRepo, ImportTaskRepository taskRepo, MediaDownloadService mediaDownload, TimeProvider timeProvider)
     {
         _itemRepo = itemRepo;
         _taskRepo = taskRepo;
         _mediaDownload = mediaDownload;
         _router = new PlatformRouter();
+        _timeProvider = timeProvider;
     }
 
     /// <summary>
@@ -61,47 +73,54 @@ public class ImportService
         var existingItem = await _itemRepo.GetByNormalizedUrlAsync(normalizedUrl);
         if (existingItem != null)
         {
-            // 检查是否在回收站
-            var trashedItem = await _itemRepo.GetByIdAsync(existingItem.Id);
-            if (trashedItem != null && trashedItem.DeletedAt != null)
-                return ImportResult.DuplicateInTrash(url);
-
             return ImportResult.DuplicateExistingItem(url);
         }
 
-        // 5b. Duplicate 检查 — import_tasks
-        var existingTask = await _taskRepo.GetByNormalizedUrlAsync(normalizedUrl);
-        if (existingTask != null)
+        // 5a. Duplicate 检查 — items in trash (GetByNormalizedUrlAsync filters deleted_at)
+        var trashedItem = await _itemRepo.GetByNormalizedUrlIncludingTrashedAsync(normalizedUrl);
+        if (trashedItem != null && trashedItem.DeletedAt != null)
         {
-            // completed → 检查关联 item 是否存在
-            if (existingTask.Status == Models.Enums.TaskStatus.completed)
+            return ImportResult.DuplicateInTrash(url);
+        }
+
+        // 5b. Duplicate 检查 — import_tasks
+        var existingTasks = await _taskRepo.GetAllByNormalizedUrlAsync(normalizedUrl);
+        if (existingTasks.Count > 0)
+        {
+            // Check if any task has a valid item
+            foreach (var t in existingTasks)
             {
-                if (existingTask.ItemId.HasValue)
+                if (t.Status == Models.Enums.TaskStatus.completed && t.ItemId.HasValue)
                 {
-                    var taskItem = await _itemRepo.GetByIdAsync(existingTask.ItemId.Value);
+                    var taskItem = await _itemRepo.GetByIdAsync(t.ItemId.Value);
                     if (taskItem != null)
                     {
-                        // item 存在但可能在回收站
                         if (taskItem.DeletedAt != null)
                             return ImportResult.DuplicateInTrash(url);
                         return ImportResult.DuplicateExistingItem(url, taskItem.Id);
                     }
-                    // item 不存在但 task completed → orphan task，允许重新导入
-                }
-                else
-                {
-                    // completed 但无 item_id → orphan task，允许重新导入
                 }
             }
 
-            // pending 且无 error_message → 真实任务进行中
-            if (existingTask.Status == Models.Enums.TaskStatus.pending && string.IsNullOrEmpty(existingTask.ErrorMessage))
-                return ImportResult.DuplicateImportTask(url);
+            // Check if any task is recent and active (pending without error)
+            var utcNow = _timeProvider.GetUtcNow();
+            foreach (var t in existingTasks)
+            {
+                if (t.Status == Models.Enums.TaskStatus.pending && string.IsNullOrEmpty(t.ErrorMessage))
+                {
+                    var taskAge = utcNow - t.UpdatedAt;
+                    if (taskAge <= ActiveTaskWindow)
+                    {
+                        return ImportResult.DuplicateImportTask(url);
+                    }
+                }
+            }
 
-            // 其它状态（failed, 有 error_message 的 pending）→ 允许重新导入
+            // All tasks are stale, failed, or orphan → allow re-import
         }
 
         // 6. 创建 import_task
+        var now = _timeProvider.GetUtcNow();
         var task = new ImportTask
         {
             Id = Guid.NewGuid(),
@@ -109,7 +128,8 @@ public class ImportService
             NormalizedUrl = normalizedUrl,
             Platform = platform.Value,
             Status = Models.Enums.TaskStatus.pending,
-            CreatedAt = DateTimeOffset.UtcNow
+            CreatedAt = now,
+            UpdatedAt = now
         };
         await _taskRepo.InsertAsync(task);
 
