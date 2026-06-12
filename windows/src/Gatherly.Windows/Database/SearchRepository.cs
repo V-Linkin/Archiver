@@ -81,7 +81,9 @@ public class SearchRepository
                 remark, is_starred, version, deleted_at, custom_platform_id
             FROM items
             WHERE deleted_at IS NULL
-              AND (title LIKE $pattern OR body LIKE $pattern)
+              AND (title LIKE $pattern OR body LIKE $pattern
+                   OR original_url LIKE $pattern OR normalized_url LIKE $pattern
+                   OR author LIKE $pattern OR platform_content_id LIKE $pattern)
             ORDER BY import_date DESC
             LIMIT $limit";
         cmd.Parameters.AddWithValue("$pattern", pattern);

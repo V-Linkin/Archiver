@@ -61,7 +61,7 @@ public class TrashViewModelTests : IDisposable
     {
         var itemRepo = new ItemRepository(_connection);
         var trashRepo = new TrashRepository(_connection);
-        var service = new ItemService(itemRepo, trashRepo, new FolderRepository(_connection));
+        var service = new ItemService(itemRepo, trashRepo, new FolderRepository(_connection), new MediaRepository(_connection), _connection);
         var item = (await itemRepo.GetByIdAsync(Guid.Parse(id)))!;
         await service.TrashItemAsync(item);
     }
@@ -75,7 +75,7 @@ public class TrashViewModelTests : IDisposable
             new ItemService(
                 new ItemRepository(_connection),
                 new TrashRepository(_connection),
-                new FolderRepository(_connection)));
+                new FolderRepository(_connection), new MediaRepository(_connection), _connection));
     }
 
     // ==================== RestoreItemAsync ====================
@@ -87,7 +87,7 @@ public class TrashViewModelTests : IDisposable
         await TrashItem("00000000-0000-0000-0000-000000000001");
 
         var itemRepo = new ItemRepository(_connection);
-        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection));
+        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection), new MediaRepository(_connection), _connection);
         var item = (await itemRepo.GetByIdAsync(Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
 
         await service.RestoreItemAsync(item);
@@ -104,7 +104,7 @@ public class TrashViewModelTests : IDisposable
         await TrashItem("00000000-0000-0000-0000-000000000001");
 
         var itemRepo = new ItemRepository(_connection);
-        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection));
+        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection), new MediaRepository(_connection), _connection);
         var item = (await itemRepo.GetByIdAsync(Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
 
         await service.RestoreItemAsync(item);
@@ -121,7 +121,7 @@ public class TrashViewModelTests : IDisposable
         await TrashItem("00000000-0000-0000-0000-000000000001");
 
         var itemRepo = new ItemRepository(_connection);
-        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection));
+        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection), new MediaRepository(_connection), _connection);
         var item = (await itemRepo.GetByIdAsync(Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
 
         await service.RestoreItemAsync(item);
@@ -137,7 +137,7 @@ public class TrashViewModelTests : IDisposable
         await TrashItem("00000000-0000-0000-0000-000000000001");
 
         var itemRepo = new ItemRepository(_connection);
-        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection));
+        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection), new MediaRepository(_connection), _connection);
         var item = (await itemRepo.GetByIdAsync(Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
 
         await service.RestoreItemAsync(item);
@@ -154,7 +154,7 @@ public class TrashViewModelTests : IDisposable
 
         var itemRepo = new ItemRepository(_connection);
         var trashRepo = new TrashRepository(_connection);
-        var service = new ItemService(itemRepo, trashRepo, new FolderRepository(_connection));
+        var service = new ItemService(itemRepo, trashRepo, new FolderRepository(_connection), new MediaRepository(_connection), _connection);
         var item = (await itemRepo.GetByIdAsync(Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
 
         await service.RestoreItemAsync(item);
@@ -173,7 +173,7 @@ public class TrashViewModelTests : IDisposable
 
         var itemRepo = new ItemRepository(_connection);
         var trashRepo = new TrashRepository(_connection);
-        var service = new ItemService(itemRepo, trashRepo, new FolderRepository(_connection));
+        var service = new ItemService(itemRepo, trashRepo, new FolderRepository(_connection), new MediaRepository(_connection), _connection);
         var item = (await itemRepo.GetByIdAsync(Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
 
         await service.PermanentlyDeleteItemAsync(item);
@@ -190,7 +190,7 @@ public class TrashViewModelTests : IDisposable
 
         var itemRepo = new ItemRepository(_connection);
         var trashRepo = new TrashRepository(_connection);
-        var service = new ItemService(itemRepo, trashRepo, new FolderRepository(_connection));
+        var service = new ItemService(itemRepo, trashRepo, new FolderRepository(_connection), new MediaRepository(_connection), _connection);
         var item = (await itemRepo.GetByIdAsync(Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
 
         await service.PermanentlyDeleteItemAsync(item);
@@ -292,7 +292,7 @@ public class TrashViewModelTests : IDisposable
         // Simulate macOS backup: UPPERCASE id
         InsertTestItem("EA6BE1CE-FAD5-44CA-8377-975C6232AA0A");
         var itemRepo = new ItemRepository(_connection);
-        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection));
+        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection), new MediaRepository(_connection), _connection);
 
         var item = (await itemRepo.GetByIdAsync(Guid.Parse("EA6BE1CE-FAD5-44CA-8377-975C6232AA0A")))!;
         await service.TrashItemAsync(item);
@@ -311,7 +311,7 @@ public class TrashViewModelTests : IDisposable
         InsertTestItem("EA6BE1CE-FAD5-44CA-8377-975C6232AA0A");
         var itemRepo = new ItemRepository(_connection);
         var trashRepo = new TrashRepository(_connection);
-        var service = new ItemService(itemRepo, trashRepo, new FolderRepository(_connection));
+        var service = new ItemService(itemRepo, trashRepo, new FolderRepository(_connection), new MediaRepository(_connection), _connection);
 
         var item = (await itemRepo.GetByIdAsync(Guid.Parse("EA6BE1CE-FAD5-44CA-8377-975C6232AA0A")))!;
         await service.TrashItemAsync(item);
@@ -329,7 +329,7 @@ public class TrashViewModelTests : IDisposable
         InsertTestItem("00000000-0000-0000-0000-000000000001", folderId: "NONEXISTENT-FOLDER-ID");
         var itemRepo = new ItemRepository(_connection);
         var trashRepo = new TrashRepository(_connection);
-        var service = new ItemService(itemRepo, trashRepo, new FolderRepository(_connection));
+        var service = new ItemService(itemRepo, trashRepo, new FolderRepository(_connection), new MediaRepository(_connection), _connection);
 
         var item = (await itemRepo.GetByIdAsync(Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
         await service.TrashItemAsync(item);
@@ -339,7 +339,7 @@ public class TrashViewModelTests : IDisposable
         Assert.Null(record.OriginalFolderId);
     }
 
-    // ==================== 历史脏数据兼容 ====================
+    // ==================== 历史脏数据兼�?====================
 
     [Fact]
     public async Task RestoreItem_NoTrashRecord_Succeeds()
@@ -354,7 +354,7 @@ public class TrashViewModelTests : IDisposable
         // No INSERT into trash_records
 
         var itemRepo = new ItemRepository(_connection);
-        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection));
+        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection), new MediaRepository(_connection), _connection);
 
         var item = (await itemRepo.GetByIdAsync(Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
         await service.RestoreItemAsync(item);
@@ -377,7 +377,7 @@ public class TrashViewModelTests : IDisposable
         }
 
         var itemRepo = new ItemRepository(_connection);
-        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection));
+        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection), new MediaRepository(_connection), _connection);
 
         var item = (await itemRepo.GetByIdAsync(Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
         await service.PermanentlyDeleteItemAsync(item);
@@ -386,7 +386,7 @@ public class TrashViewModelTests : IDisposable
         Assert.Null(deleted);
     }
 
-    // ==================== 外键检查 ====================
+    // ==================== 外键检�?====================
 
     [Fact]
     public void ForeignKeys_AreEnabled()
@@ -402,7 +402,7 @@ public class TrashViewModelTests : IDisposable
     {
         InsertTestItem("00000000-0000-0000-0000-000000000001");
         var itemRepo = new ItemRepository(_connection);
-        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection));
+        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection), new MediaRepository(_connection), _connection);
         var item = (await itemRepo.GetByIdAsync(Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
         await service.TrashItemAsync(item);
 

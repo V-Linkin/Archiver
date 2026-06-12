@@ -9,7 +9,7 @@ using Gatherly.Windows.Services.Url;
 namespace Gatherly.Windows.Services;
 
 /// <summary>
-/// 导入服务 — Phase 7D-2: 支持 B站 写入 item + 下载封面到本地
+/// 导入服务 — Phase 7D-3: 支持 YouTube 写入 item + 下载封面
 /// URL 提取 → 平台识别 → 去重检查 → 创建任务 → Router → Parser → 写入 item → 下载封面
 /// </summary>
 public class ImportService
@@ -57,21 +57,46 @@ public class ImportService
         var normalizedUrl = UrlNormalizer.Normalize(url, platform.Value);
         var contentId = UrlNormalizer.ExtractContentId(url, platform.Value);
 
-        // 5. Duplicate 检查
+        // 5. Duplicate 检查 — items
         var existingItem = await _itemRepo.GetByNormalizedUrlAsync(normalizedUrl);
         if (existingItem != null)
-            return ImportResult.Duplicate(url, "该链接已存在于归档库中。");
+        {
+            // 检查是否在回收站
+            var trashedItem = await _itemRepo.GetByIdAsync(existingItem.Id);
+            if (trashedItem != null && trashedItem.DeletedAt != null)
+                return ImportResult.DuplicateInTrash(url);
 
+            return ImportResult.DuplicateExistingItem(url);
+        }
+
+        // 5b. Duplicate 检查 — import_tasks
         var existingTask = await _taskRepo.GetByNormalizedUrlAsync(normalizedUrl);
         if (existingTask != null)
         {
-            // completed → Duplicate
+            // completed → 检查关联 item 是否存在
             if (existingTask.Status == Models.Enums.TaskStatus.completed)
-                return ImportResult.Duplicate(url, "该链接已有导入任务。");
+            {
+                if (existingTask.ItemId.HasValue)
+                {
+                    var taskItem = await _itemRepo.GetByIdAsync(existingTask.ItemId.Value);
+                    if (taskItem != null)
+                    {
+                        // item 存在但可能在回收站
+                        if (taskItem.DeletedAt != null)
+                            return ImportResult.DuplicateInTrash(url);
+                        return ImportResult.DuplicateExistingItem(url, taskItem.Id);
+                    }
+                    // item 不存在但 task completed → orphan task，允许重新导入
+                }
+                else
+                {
+                    // completed 但无 item_id → orphan task，允许重新导入
+                }
+            }
 
-            // pending 且无 error_message → 真实任务进行中 → Duplicate
+            // pending 且无 error_message → 真实任务进行中
             if (existingTask.Status == Models.Enums.TaskStatus.pending && string.IsNullOrEmpty(existingTask.ErrorMessage))
-                return ImportResult.Duplicate(url, "该链接已有导入任务。");
+                return ImportResult.DuplicateImportTask(url);
 
             // 其它状态（failed, 有 error_message 的 pending）→ 允许重新导入
         }

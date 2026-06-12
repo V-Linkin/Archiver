@@ -299,10 +299,7 @@ public class ViewModelTests : IDisposable
             new TrashDataService(
                 new ItemRepository(_connection),
                 new TrashRepository(_connection)),
-            new ItemService(
-                new ItemRepository(_connection),
-                new TrashRepository(_connection),
-                new FolderRepository(_connection)));
+            new ItemService(new ItemRepository(_connection), new TrashRepository(_connection), new FolderRepository(_connection), new MediaRepository(_connection), _connection));
 
         await vm.LoadCommand.ExecuteAsync(null);
 

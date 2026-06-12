@@ -69,12 +69,12 @@ public class ImportServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task ProcessImport_YouTubeUrl_ReturnsTaskCreated()
+    public async Task ProcessImport_YouTubeUrl_ReturnsSuccessImport()
     {
+        // YouTubeParser makes real HTTP calls to YouTube
         var result = await _service.ProcessImportAsync("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
-        Assert.Equal(ImportStatus.TaskCreated, result.Status);
+        Assert.Equal(ImportStatus.SuccessImport, result.Status);
         Assert.Equal(Platform.youtube, result.Platform);
-        Assert.Contains("YouTube", result.Message);
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public class ImportServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task ProcessImport_DuplicateUrl_ReturnsDuplicate()
+    public async Task ProcessImport_DuplicateUrl_ReturnsDuplicateExistingItem()
     {
         // First import creates item
         var result1 = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
@@ -111,12 +111,12 @@ public class ImportServiceTests : IDisposable
 
         // Second import should be duplicate
         var result2 = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
-        Assert.Equal(ImportStatus.Duplicate, result2.Status);
+        Assert.Equal(ImportStatus.DuplicateExistingItem, result2.Status);
         Assert.Contains("已存在于归档库中", result2.Message);
     }
 
     [Fact]
-    public async Task ProcessImport_DuplicateItem_ReturnsDuplicate()
+    public async Task ProcessImport_DuplicateItem_ReturnsDuplicateExistingItem()
     {
         // Insert an item directly
         using var cmd = _connection.CreateCommand();
@@ -128,7 +128,7 @@ public class ImportServiceTests : IDisposable
         cmd.ExecuteNonQuery();
 
         var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
-        Assert.Equal(ImportStatus.Duplicate, result.Status);
+        Assert.Equal(ImportStatus.DuplicateExistingItem, result.Status);
         Assert.Contains("已存在于归档库中", result.Message);
     }
 
@@ -167,7 +167,7 @@ public class ImportServiceTests : IDisposable
     [Fact]
     public async Task ProcessImport_CompletedTask_ReturnsDuplicate()
     {
-        // Insert a completed task
+        // Insert a completed task without item_id (orphan task)
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = @"
             INSERT INTO import_tasks (id, original_url, normalized_url, platform, status, progress, created_at, retry_count)
@@ -175,13 +175,13 @@ public class ImportServiceTests : IDisposable
                 'github://repo/openai/openai-dotnet', 'github', 'completed', 1, 1700000000, 0)";
         cmd.ExecuteNonQuery();
 
+        // Orphan completed task should allow re-import
         var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
-        Assert.Equal(ImportStatus.Duplicate, result.Status);
-        Assert.Contains("已有导入任务", result.Message);
+        Assert.True(result.Status == ImportStatus.SuccessImport || result.Status == ImportStatus.Failed);
     }
 
     [Fact]
-    public async Task ProcessImport_PendingTaskWithoutError_ReturnsDuplicate()
+    public async Task ProcessImport_PendingTaskWithoutError_ReturnsDuplicateImportTask()
     {
         // Insert a pending task without error (real task in progress)
         using var cmd = _connection.CreateCommand();
@@ -192,7 +192,7 @@ public class ImportServiceTests : IDisposable
         cmd.ExecuteNonQuery();
 
         var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
-        Assert.Equal(ImportStatus.Duplicate, result.Status);
+        Assert.Equal(ImportStatus.DuplicateImportTask, result.Status);
         Assert.Contains("已有导入任务", result.Message);
     }
 

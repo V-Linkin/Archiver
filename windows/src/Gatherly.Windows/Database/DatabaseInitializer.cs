@@ -51,7 +51,23 @@ public static class DatabaseInitializer
         // 执行 migration
         MigrationRunner.RunAll(connection);
 
+        // 重建 FTS 索引（确保所有 item 都有 FTS 记录）
+        RebuildFts(connection);
+
         return connection;
+    }
+
+    /// <summary>
+    /// 重建 FTS 索引 — 确保所有 item 都有 FTS 记录
+    /// </summary>
+    private static void RebuildFts(SqliteConnection connection)
+    {
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = @"
+            INSERT INTO items_fts(rowid, title, body)
+            SELECT rowid, title, body FROM items
+            WHERE rowid NOT IN (SELECT rowid FROM items_fts)";
+        cmd.ExecuteNonQuery();
     }
 
     /// <summary>

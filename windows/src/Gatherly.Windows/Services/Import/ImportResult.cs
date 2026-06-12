@@ -44,6 +44,28 @@ public class ImportResult
         ExtractedUrl = url
     };
 
+    public static ImportResult DuplicateExistingItem(string url, Guid? itemId = null) => new()
+    {
+        Status = ImportStatus.DuplicateExistingItem,
+        Message = "该内容已存在于归档库中。",
+        ExtractedUrl = url,
+        ImportTaskId = itemId
+    };
+
+    public static ImportResult DuplicateInTrash(string url) => new()
+    {
+        Status = ImportStatus.DuplicateInTrash,
+        Message = "该内容已在回收站中，可前往回收站恢复或彻底删除。",
+        ExtractedUrl = url
+    };
+
+    public static ImportResult DuplicateImportTask(string url) => new()
+    {
+        Status = ImportStatus.DuplicateImportTask,
+        Message = "该链接已有导入任务正在进行。",
+        ExtractedUrl = url
+    };
+
     public static ImportResult TaskCreated(Guid taskId, string url, Platform platform, string? contentId) => new()
     {
         Status = ImportStatus.TaskCreated,

@@ -53,8 +53,9 @@ public partial class HomeViewModel : ViewModelBase
             if (result.Status != Services.Import.ImportStatus.EmptyInput)
                 ImportUrl = "";
 
-            // 导入成功后刷新首页列表
-            if (result.Status == Services.Import.ImportStatus.SuccessImport)
+            // 导入成功或 DuplicateExistingItem 时刷新首页列表
+            if (result.Status == Services.Import.ImportStatus.SuccessImport
+                || result.Status == Services.Import.ImportStatus.DuplicateExistingItem)
                 await LoadAsync();
         }
         catch (Exception ex)

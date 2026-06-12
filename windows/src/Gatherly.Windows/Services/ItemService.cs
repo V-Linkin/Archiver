@@ -1,6 +1,7 @@
 using Gatherly.Windows.Database;
 using Gatherly.Windows.Models;
 using Gatherly.Windows.Models.Enums;
+using Microsoft.Data.Sqlite;
 
 namespace Gatherly.Windows.Services;
 
@@ -11,19 +12,22 @@ public class ItemService
 {
     private readonly ItemRepository _itemRepo;
     private readonly TrashRepository _trashRepo;
-
+    private readonly MediaRepository _mediaRepo;
     private readonly FolderRepository _folderRepo;
+    private readonly SqliteConnection _connection;
 
-    public ItemService(ItemRepository itemRepo, TrashRepository trashRepo, FolderRepository folderRepo)
+    public ItemService(ItemRepository itemRepo, TrashRepository trashRepo,
+        FolderRepository folderRepo, MediaRepository mediaRepo, SqliteConnection connection)
     {
         _itemRepo = itemRepo;
         _trashRepo = trashRepo;
         _folderRepo = folderRepo;
+        _mediaRepo = mediaRepo;
+        _connection = connection;
     }
 
     /// <summary>
     /// 更新备注
-    /// 对齐 macOS ItemService.updateRemark() 语义
     /// </summary>
     public async Task<Item> UpdateRemarkAsync(Item item, string? remark)
     {
@@ -39,7 +43,6 @@ public class ItemService
 
     /// <summary>
     /// 将内容移入回收站
-    /// 对齐 macOS ItemService.trashItem() 语义
     /// </summary>
     public async Task TrashItemAsync(Item item, IReadOnlyList<string>? mediaPaths = null)
     {
@@ -52,7 +55,6 @@ public class ItemService
         fresh.ContentStatus = ContentStatus.trashed;
         await _itemRepo.UpdateAsync(fresh);
 
-        // Check if folder exists before referencing it (avoid FK violation)
         Guid? validFolderId = null;
         if (fresh.FolderId != null)
         {
@@ -61,7 +63,6 @@ public class ItemService
                 validFolderId = fresh.FolderId;
         }
 
-        // Get raw item_id from database to match FK case exactly
         var rawItemId = await _itemRepo.GetRawIdAsync(fresh.Id);
 
         var record = new TrashRecord
@@ -81,8 +82,6 @@ public class ItemService
 
     /// <summary>
     /// 从回收站恢复内容
-    /// 对齐 macOS TrashView.restoreItem() 语义
-    /// 兼容历史脏数据：无 trash_record 时仍可恢复
     /// </summary>
     public async Task RestoreItemAsync(Item item)
     {
@@ -94,7 +93,6 @@ public class ItemService
         fresh.DeletedAt = null;
         fresh.ContentStatus = ContentStatus.normal;
 
-        // 如果有 trash_record，恢复原始状态
         if (record != null)
         {
             fresh.ArchiveStatus = record.OriginalArchiveStatus;
@@ -106,14 +104,55 @@ public class ItemService
     }
 
     /// <summary>
-    /// 永久删除 item
-    /// 依赖外键 cascade 删除 media_assets / trash_records
-    /// 本轮不删除真实媒体文件（macOS 有文件系统删除，Windows 暂未实现）
+    /// 永久删除 item — 按正确顺序清理所有引用
     /// </summary>
     public async Task PermanentlyDeleteItemAsync(Item item)
     {
-        // Delete trash_record if exists (may not exist for old orphaned data)
-        await _trashRepo.DeleteByItemIdAsync(item.Id);
-        await _itemRepo.DeleteAsync(item.Id);
+        var itemId = item.Id;
+
+        // 1. 删除 trash_record（如果有）
+        await _trashRepo.DeleteByItemIdAsync(itemId);
+
+        // 2. 删除 media_assets（手动删除，不依赖 cascade）
+        await _mediaRepo.DeleteByItemIdAsync(itemId);
+
+        // 3. 清理 import_tasks.item_id 引用（保留任务历史，置 NULL）
+        await ClearImportTaskItemRefAsync(itemId);
+
+        // 4. 删除 items_fts 记录
+        await DeleteFtsByRowIdAsync(itemId);
+
+        // 5. 最后删除 items
+        await _itemRepo.DeleteAsync(itemId);
+    }
+
+    /// <summary>
+    /// 清理 import_tasks 中指向该 item 的 item_id（置 NULL，保留任务历史）
+    /// </summary>
+    private async Task ClearImportTaskItemRefAsync(Guid itemId)
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "UPDATE import_tasks SET item_id = NULL WHERE item_id COLLATE NOCASE = $id";
+        cmd.Parameters.AddWithValue("$id", itemId.ToString("D"));
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    /// <summary>
+    /// 删除 items_fts 中对应的记录
+    /// </summary>
+    private async Task DeleteFtsByRowIdAsync(Guid itemId)
+    {
+        // 找到该 item 的 rowid
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "SELECT rowid FROM items WHERE id COLLATE NOCASE = $id";
+        cmd.Parameters.AddWithValue("$id", itemId.ToString("D"));
+        var rowid = await cmd.ExecuteScalarAsync();
+        if (rowid != null)
+        {
+            using var ftsCmd = _connection.CreateCommand();
+            ftsCmd.CommandText = "DELETE FROM items_fts WHERE rowid = $rowid";
+            ftsCmd.Parameters.AddWithValue("$rowid", rowid);
+            await ftsCmd.ExecuteNonQueryAsync();
+        }
     }
 }
