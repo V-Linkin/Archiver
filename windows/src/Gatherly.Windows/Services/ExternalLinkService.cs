@@ -14,6 +14,29 @@ public enum OpenExternalLinkResult
 }
 
 /// <summary>
+/// 外部进程启动器接口 — 用于测试隔离
+/// </summary>
+public interface IExternalProcessLauncher
+{
+    void Open(Uri uri);
+}
+
+/// <summary>
+/// 系统默认浏览器启动器
+/// </summary>
+public sealed class SystemExternalProcessLauncher : IExternalProcessLauncher
+{
+    public void Open(Uri uri)
+    {
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = uri.AbsoluteUri,
+            UseShellExecute = true
+        });
+    }
+}
+
+/// <summary>
 /// 外部链接服务 — 使用系统默认浏览器打开 URL
 /// </summary>
 public interface IExternalLinkService
@@ -26,6 +49,18 @@ public interface IExternalLinkService
 /// </summary>
 public sealed class ExternalLinkService : IExternalLinkService
 {
+    private readonly IExternalProcessLauncher _launcher;
+
+    public ExternalLinkService()
+        : this(new SystemExternalProcessLauncher())
+    {
+    }
+
+    public ExternalLinkService(IExternalProcessLauncher launcher)
+    {
+        _launcher = launcher;
+    }
+
     public OpenExternalLinkResult Open(string? url)
     {
         if (string.IsNullOrWhiteSpace(url))
@@ -40,11 +75,7 @@ public sealed class ExternalLinkService : IExternalLinkService
 
         try
         {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = uri.AbsoluteUri,
-                UseShellExecute = true
-            });
+            _launcher.Open(uri);
             return OpenExternalLinkResult.Success;
         }
         catch
