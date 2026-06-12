@@ -1209,6 +1209,163 @@ windows/tests/Gatherly.Windows.Tests/Services/ImportServiceTests.cs — 更新 B
 * macOS 项目不受影响
 
 
+### Phase 7D-3：YouTube Parser ✅
+
+状态：已完成。
+
+基于 commit：5af1fe3
+
+新增：
+
+```text
+windows/src/Gatherly.Windows/Services/Parsers/YouTubeParser.cs — YouTube 解析器
+```
+
+改动：
+
+```text
+windows/src/Gatherly.Windows/Services/Parsers/PlatformRouter.cs — 注册 YouTubeParser
+windows/tests/Gatherly.Windows.Tests/Services/ImportServiceTests.cs — 更新 YouTube 测试
+```
+
+结论：
+
+* YouTubeParser 支持 watch / youtu.be / shorts 链接
+* 使用 HTML meta + ytInitialPlayerResponse JSON 解析
+* 可读取标题 / 频道 / 简介 / 封面 / 播放量 / 时长
+* 下载封面到本地 media
+* 不下载 YouTube 视频，不使用 API Key，不使用 WebView2
+* 成功导入后写入 item 并刷新首页
+* GitHubParser / BilibiliParser 仍正常
+* 其它平台仍为 NotImplementedParser
+* 239 个测试全部通过
+* macOS 项目不受影响
+
+
+### Phase 7D-3 Fix-A：Duplicate/import_tasks 规则修复 ✅
+
+状态：已完成。
+
+改动：
+
+```text
+windows/src/Gatherly.Windows/Services/ImportService.cs — Duplicate 检查逻辑修复
+windows/tests/Gatherly.Windows.Tests/Services/ImportServiceTests.cs — 新增 orphan task 测试
+```
+
+结论：
+
+* completed/success + item_id NULL 允许重导（orphan task）
+* orphan item_id 允许重导
+* failed / parser_not_implemented 等失败任务允许重导
+* 回收站 item 返回 DuplicateInTrash
+* 彻底删除后允许再次导入
+* macOS 项目不受影响
+
+
+### Phase 7D-3 Fix-A.1：stale pending/importing 修复 ✅
+
+状态：已完成。
+
+基于 commit：8177aeb
+
+新增：
+
+```text
+shared/db/migrations/v3_import_tasks_updated_at.sql — updated_at 列迁移
+```
+
+改动：
+
+```text
+windows/src/Gatherly.Windows/Database/MigrationRunner.cs — 支持 v3 migration，逐语句执行
+windows/src/Gatherly.Windows/Database/ImportTaskRepository.cs — 读写 updated_at
+windows/src/Gatherly.Windows/Models/ImportTask.cs — 新增 UpdatedAt 字段
+windows/src/Gatherly.Windows/Services/ImportService.cs — TimeProvider + stale task 检测
+windows/tests/Gatherly.Windows.Tests/Services/ImportServiceTests.cs — 新增 16 个 stale task 测试
+shared/db/schema.sql — 更新 schema
+shared/model/import_task.schema.json — 更新 JSON schema
+shared/model/model-contract.md — 更新字段映射
+```
+
+结论：
+
+* import_tasks 新增 updated_at 列（v3 migration，幂等）
+* UTC Unix timestamp seconds
+* 10 分钟 active window
+* <=10 分钟 pending/importing 阻止重导
+* >10 分钟视为 stale，允许重试
+* 旧数据 updated_at 回填 created_at
+* MigrationRunner 现在逐语句执行，ALTER TABLE 失败后仍执行 UPDATE 和 CREATE INDEX
+* macOS 项目不受影响（updatedAt 后续需同步）
+
+
+### Phase 7D-3 Fix-B：平台显示与合并修复 ✅
+
+状态：已完成。
+
+基于 commit：e72008d
+
+改动：
+
+```text
+windows/src/Gatherly.Windows/Services/HomeDataService.cs — SupportsMergedPlatform() + count 策略
+windows/src/Gatherly.Windows/Services/ContentListService.cs — GetMergedPlatformItemsAsync/Folders
+windows/src/Gatherly.Windows/ViewModels/ContentListViewModel.cs — LoadMergedPlatformAsync
+windows/src/Gatherly.Windows/ViewModels/MainWindowViewModel.cs — ShowMergedPlatformCommand
+windows/src/Gatherly.Windows/MainWindow.axaml.cs — 路由逻辑
+windows/src/Gatherly.Windows/Database/ItemRepository.cs — COLLATE NOCASE for GUID
+windows/tests/Gatherly.Windows.Tests/ListDataServiceTests.cs — 新增 16 个平台合并测试
+```
+
+结论：
+
+* YouTube 一个入口显示标准 + macOS 备份 custom 内容
+* B站一个入口显示标准 + macOS 备份 custom 内容
+* 小红书保持 custom 查询
+* merged 白名单当前仅 YouTube、B站
+* SQLite GUID 文本大小写敏感问题修复（COLLATE NOCASE）
+* count、Repository、ViewModel、UI 数量保持一致
+* macOS 项目不受影响
+
+
+### Phase 7D-3 Fix-C：详情页交互修复 ✅
+
+状态：已完成。
+
+基于 commit：ac48159
+
+新增：
+
+```text
+windows/src/Gatherly.Windows/Services/ContentParser.cs — URL 解析器
+windows/src/Gatherly.Windows/Services/ContentSegment.cs — 正文片段模型
+windows/src/Gatherly.Windows/Services/ExternalLinkService.cs — 外部链接服务
+windows/src/Gatherly.Windows/ViewModels/ContentLinkDisplay.cs — 链接展示模型
+windows/tests/Gatherly.Windows.Tests/Services/ContentParserTests.cs — 14 个 URL 解析测试
+windows/tests/Gatherly.Windows.Tests/Services/ExternalLinkServiceTests.cs — 10 个链接安全测试
+```
+
+改动：
+
+```text
+windows/src/Gatherly.Windows/Views/ItemDetailView.axaml — 正文改用 SelectableTextBlock
+windows/src/Gatherly.Windows/Views/ItemDetailView.axaml.cs — 添加链接点击处理
+windows/src/Gatherly.Windows/ViewModels/MainWindowViewModel.cs — 添加链接解析和打开命令
+```
+
+结论：
+
+* 正文由 TextBlock 改为 SelectableTextBlock
+* 支持鼠标选择、Ctrl+C、右键复制、全选
+* 正文 URL 解析（http/https）
+* 正文链接在正文下方独立区域展示
+* 原始链接可点击、可复制
+* 仅允许 http/https，使用系统默认浏览器
+* javascript/file/data/ftp 被拒绝
+* macOS 项目不受影响
+
+
 ---
 
 ## 4. 总体执行原则
