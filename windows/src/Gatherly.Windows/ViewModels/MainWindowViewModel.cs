@@ -54,6 +54,13 @@ public partial class MainWindowViewModel : ObservableObject
     /// </summary>
     public ObservableCollection<MediaAssetDisplay> VideoAssets { get; } = new();
 
+    /// <summary>
+    /// 正文中的链接列表
+    /// </summary>
+    public ObservableCollection<ContentLinkDisplay> DisplayBodyLinks { get; } = new();
+
+    public bool HasDisplayBodyLinks => DisplayBodyLinks.Count > 0;
+
     public bool HasImages => ImageAssets.Count > 0;
     public bool HasVideos => VideoAssets.Count > 0;
 
@@ -84,8 +91,28 @@ public partial class MainWindowViewModel : ObservableObject
         EditableRemark = value?.Remark ?? string.Empty;
         IsEditingRemark = false;
 
+        // Parse body links
+        ParseBodyLinks(value?.Body);
+
         // Load media assets for the selected item
         _ = LoadMediaAssetsAsync(value?.Id);
+    }
+
+    /// <summary>
+    /// 解析正文中的链接
+    /// </summary>
+    private void ParseBodyLinks(string? body)
+    {
+        DisplayBodyLinks.Clear();
+        if (string.IsNullOrWhiteSpace(body)) return;
+
+        var segments = ContentParser.ParseSegments(body);
+        foreach (var segment in segments)
+        {
+            if (segment.IsLink && segment.Url != null)
+                DisplayBodyLinks.Add(new ContentLinkDisplay(segment.Url));
+        }
+        OnPropertyChanged(nameof(HasDisplayBodyLinks));
     }
 
     public bool HasSelectedItem => SelectedItem != null;
@@ -490,6 +517,30 @@ public partial class MainWindowViewModel : ObservableObject
         {
             // 打开失败不影响主流程
         }
+    }
+
+    /// <summary>
+    /// 外部链接服务
+    /// </summary>
+    private readonly IExternalLinkService _externalLinkService = new ExternalLinkService();
+
+    /// <summary>
+    /// 打开外部链接
+    /// </summary>
+    [RelayCommand]
+    private void OpenExternalLink(string? url)
+    {
+        _externalLinkService.Open(url);
+    }
+
+    /// <summary>
+    /// 打开原始链接
+    /// </summary>
+    [RelayCommand]
+    private void OpenOriginalUrl()
+    {
+        if (SelectedItem?.OriginalUrl != null)
+            _externalLinkService.Open(SelectedItem.OriginalUrl);
     }
 }
 

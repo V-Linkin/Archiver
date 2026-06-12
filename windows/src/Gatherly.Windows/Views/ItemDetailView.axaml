@@ -135,16 +135,30 @@
                     <TextBlock Text="原始链接" FontSize="12" Foreground="Gray" />
                     <TextBlock Text="{Binding DisplayOriginalUrl}" FontSize="13"
                                TextDecorations="Underline" Foreground="#1A73E8"
-                               TextWrapping="Wrap" />
+                               TextWrapping="Wrap" Cursor="Hand"
+                               PointerPressed="OriginalUrl_PointerPressed" />
                 </StackPanel>
 
                 <!-- Body -->
                 <StackPanel Spacing="4">
                     <TextBlock Text="正文" FontSize="12" Foreground="Gray" />
                     <Border Background="#F8F8F8" CornerRadius="8" Padding="16">
-                        <TextBlock Text="{Binding DisplayBody}"
+                        <SelectableTextBlock Text="{Binding DisplayBody}"
                                    TextWrapping="Wrap" FontSize="14" LineHeight="24" />
                     </Border>
+                    <!-- Body links -->
+                    <ItemsControl ItemsSource="{Binding DisplayBodyLinks}"
+                                  IsVisible="{Binding HasDisplayBodyLinks}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ContentLinkDisplay">
+                                <TextBlock Text="{Binding Url}" FontSize="12"
+                                           TextDecorations="Underline" Foreground="#1A73E8"
+                                           Cursor="Hand" Margin="0,2"
+                                           PointerPressed="BodyLink_PointerPressed"
+                                           Tag="{Binding Url}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                 </StackPanel>
 
                 <!-- Remark -->
