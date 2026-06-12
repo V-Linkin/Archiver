@@ -126,7 +126,7 @@ public partial class MainWindowViewModel : ObservableObject
         var mediaRepo = new MediaRepository(connection);
         var importTaskRepo = new ImportTaskRepository(connection);
 
-        _itemService = new ItemService(itemRepo, trashRepo, folderRepo);
+        _itemService = new ItemService(itemRepo, trashRepo, folderRepo, mediaRepo, connection);
         _backupImportService = new BackupImportService();
         _mediaRepo = mediaRepo;
 
@@ -249,6 +249,30 @@ public partial class MainWindowViewModel : ObservableObject
         PreviousSection = CurrentSection;
         CurrentSection = "PlatformContent";
         await ContentList.LoadCustomPlatformAsync(platformId);
+    }
+
+    /// <summary>
+    /// 进入标准平台内容页
+    /// </summary>
+    [RelayCommand]
+    private async Task ShowStandardPlatformAsync(Platform platform)
+    {
+        PlatformTitle = platform.GetDisplayName();
+        PreviousSection = CurrentSection;
+        CurrentSection = "PlatformContent";
+        await ContentList.LoadPlatformAsync(platform);
+    }
+
+    /// <summary>
+    /// 进入合并平台内容页（标准平台 + macOS 备份的自定义平台）
+    /// </summary>
+    [RelayCommand]
+    private async Task ShowMergedPlatformAsync(PlatformEntryDisplay entry)
+    {
+        PlatformTitle = entry.Name;
+        PreviousSection = CurrentSection;
+        CurrentSection = "PlatformContent";
+        await ContentList.LoadMergedPlatformAsync(entry.StandardPlatform!.Value, entry.CustomPlatformIds);
     }
 
     /// <summary>

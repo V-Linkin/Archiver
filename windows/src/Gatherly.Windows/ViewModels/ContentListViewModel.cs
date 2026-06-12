@@ -88,6 +88,45 @@ public partial class ContentListViewModel : ViewModelBase
         }
     }
 
+    public async Task LoadMergedPlatformAsync(Platform platform, List<Guid> customPlatformIds)
+    {
+        if (IsBusy) return;
+
+        IsBusy = true;
+        ClearError();
+
+        try
+        {
+            var items = await _contentService.GetMergedPlatformItemsAsync(platform, customPlatformIds);
+            var folders = await _contentService.GetMergedPlatformFoldersAsync(platform, customPlatformIds);
+
+            await FillCustomPlatformNamesAsync(items);
+
+            var imagePaths = await LoadFirstImagePathsAsync(items);
+
+            Items.Clear();
+            foreach (var item in items)
+            {
+                if (imagePaths.TryGetValue(item.Id, out var path))
+                    item.FirstImagePath = path;
+                Items.Add(item);
+            }
+
+            Folders.Clear();
+            foreach (var folder in folders) Folders.Add(folder);
+
+            OnPropertyChanged(nameof(HasItems));
+        }
+        catch (Exception ex)
+        {
+            SetError(ex.Message);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
     public async Task LoadCustomPlatformAsync(Guid customPlatformId)
     {
         if (IsBusy) return;

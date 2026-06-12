@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using Avalonia.Interactivity;
+using Gatherly.Windows.Models.Enums;
 using Gatherly.Windows.ViewModels;
 
 namespace Gatherly.Windows;
@@ -57,10 +58,34 @@ public partial class MainWindow : Window
         if (button.DataContext is PlatformEntryDisplay entry)
         {
             if (entry.IsUncategorized)
+            {
                 await vm.ShowUncategorizedCommand.ExecuteAsync(null);
+            }
+            else if (entry.IsStandardPlatform && entry.StandardPlatform.HasValue
+                     && SupportsMergedPlatform(entry.StandardPlatform.Value)
+                     && entry.CustomPlatformIds.Count > 0)
+            {
+                await vm.ShowMergedPlatformCommand.ExecuteAsync(entry);
+            }
+            else if (entry.IsStandardPlatform && entry.StandardPlatform.HasValue
+                     && entry.CustomPlatformIds.Count == 0)
+            {
+                await vm.ShowStandardPlatformCommand.ExecuteAsync(entry.StandardPlatform.Value);
+            }
+            else if (entry.CustomPlatformIds.Count == 1)
+            {
+                await vm.ShowCustomPlatformCommand.ExecuteAsync(entry.CustomPlatformIds[0]);
+            }
             else
+            {
                 await vm.ShowCustomPlatformCommand.ExecuteAsync(entry.Id);
+            }
         }
+    }
+
+    private static bool SupportsMergedPlatform(Platform platform)
+    {
+        return platform == Platform.youtube || platform == Platform.bilibili;
     }
 
     private async void ImportBackup_Click(object? sender, RoutedEventArgs e)
