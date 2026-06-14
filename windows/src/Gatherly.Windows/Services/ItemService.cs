@@ -88,6 +88,13 @@ public class ItemService
         var fresh = await _itemRepo.GetByIdAsync(item.Id)
             ?? throw new InvalidOperationException($"Item not found: {item.Id}");
 
+        // 恢复冲突检查：如果归档库中已存在相同 URL 的活跃 item，阻止恢复
+        var existingActive = await _itemRepo.GetByNormalizedUrlAsync(fresh.NormalizedUrl);
+        if (existingActive != null && existingActive.Id != fresh.Id)
+        {
+            throw new InvalidOperationException("归档库中已存在相同内容，请先删除现有内容后再恢复。");
+        }
+
         var record = await _trashRepo.GetByItemIdAsync(item.Id);
 
         fresh.DeletedAt = null;

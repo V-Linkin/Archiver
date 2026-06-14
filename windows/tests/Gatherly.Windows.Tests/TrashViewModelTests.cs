@@ -339,7 +339,7 @@ public class TrashViewModelTests : IDisposable
         Assert.Null(record.OriginalFolderId);
     }
 
-    // ==================== 历史脏数据兼�?====================
+    // ==================== 历史脏数据兼�?====================
 
     [Fact]
     public async Task RestoreItem_NoTrashRecord_Succeeds()
@@ -386,7 +386,7 @@ public class TrashViewModelTests : IDisposable
         Assert.Null(deleted);
     }
 
-    // ==================== 外键检�?====================
+    // ==================== 外键检�?====================
 
     [Fact]
     public void ForeignKeys_AreEnabled()
@@ -410,5 +410,218 @@ public class TrashViewModelTests : IDisposable
         cmd.CommandText = "PRAGMA foreign_key_check";
         using var reader = await cmd.ExecuteReaderAsync();
         Assert.False(await reader.ReadAsync(), "foreign_key_check returned violations");
+    }
+
+    // ==================== Restore Conflict Tests ====================
+
+    [Fact]
+    public async Task RestoreItem_WithActiveDuplicateUrl_ThrowsConflict()
+    {
+        // Active item with same URL exists → restore should be blocked
+        var itemRepo = new ItemRepository(_connection);
+        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection), new MediaRepository(_connection), _connection);
+
+        // Insert active item
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO items (id, original_url, platform, normalized_url,
+                    import_date, modify_date, content_status, archive_status, media_status)
+                VALUES ('00000000-0000-0000-0000-000000000001', 'https://github.com/openai/openai-dotnet', 'github',
+                    'github://repo/openai/openai-dotnet', 1700000000, 1700000000, 'normal', 'pending', 'textOnly')";
+            cmd.ExecuteNonQuery();
+        }
+
+        // Insert trashed item with same URL
+        var trashedItemId = Guid.NewGuid();
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO items (id, original_url, platform, normalized_url,
+                    import_date, modify_date, content_status, archive_status, media_status, deleted_at)
+                VALUES ($id, 'https://github.com/openai/openai-dotnet', 'github',
+                    'github://repo/openai/openai-dotnet', 1700000000, 1700000000, 'trashed', 'pending', 'textOnly', 1700000000)";
+            cmd.Parameters.AddWithValue("$id", trashedItemId.ToString("D"));
+            cmd.ExecuteNonQuery();
+        }
+
+        // Insert trash record for trashed item
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO trash_records (id, item_id, deleted_at, auto_delete_at, original_archive_status, media_paths)
+                VALUES ('00000000-0000-0000-0000-000000000099', $itemId, 1700000000, 1700300000, 'pending', '[]')";
+            cmd.Parameters.AddWithValue("$itemId", trashedItemId.ToString("D"));
+            cmd.ExecuteNonQuery();
+        }
+
+        var trashedItem = (await itemRepo.GetByIdAsync(trashedItemId))!;
+
+        // Restore should throw conflict
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.RestoreItemAsync(trashedItem));
+        Assert.Contains("归档库中已存在相同内容", ex.Message);
+
+        // Old item still in trash
+        using var checkCmd = _connection.CreateCommand();
+        checkCmd.CommandText = "SELECT deleted_at FROM items WHERE id=$id";
+        checkCmd.Parameters.AddWithValue("$id", trashedItemId.ToString("D"));
+        var deletedAt = await checkCmd.ExecuteScalarAsync();
+        Assert.NotNull(deletedAt);
+    }
+
+    [Fact]
+    public async Task RestoreItem_WithActiveDuplicateUrl_ActiveItemUnchanged()
+    {
+        // Active item with same URL exists → active item should not be affected
+        var itemRepo = new ItemRepository(_connection);
+        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection), new MediaRepository(_connection), _connection);
+
+        // Insert active item
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO items (id, original_url, platform, normalized_url,
+                    import_date, modify_date, content_status, archive_status, media_status)
+                VALUES ('00000000-0000-0000-0000-000000000001', 'https://github.com/openai/openai-dotnet', 'github',
+                    'github://repo/openai/openai-dotnet', 1700000000, 1700000000, 'normal', 'pending', 'textOnly')";
+            cmd.ExecuteNonQuery();
+        }
+
+        // Insert trashed item with same URL
+        var trashedItemId = Guid.NewGuid();
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO items (id, original_url, platform, normalized_url,
+                    import_date, modify_date, content_status, archive_status, media_status, deleted_at)
+                VALUES ($id, 'https://github.com/openai/openai-dotnet', 'github',
+                    'github://repo/openai/openai-dotnet', 1700000000, 1700000000, 'trashed', 'pending', 'textOnly', 1700000000)";
+            cmd.Parameters.AddWithValue("$id", trashedItemId.ToString("D"));
+            cmd.ExecuteNonQuery();
+        }
+
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO trash_records (id, item_id, deleted_at, auto_delete_at, original_archive_status, media_paths)
+                VALUES ('00000000-0000-0000-0000-000000000099', $itemId, 1700000000, 1700300000, 'pending', '[]')";
+            cmd.Parameters.AddWithValue("$itemId", trashedItemId.ToString("D"));
+            cmd.ExecuteNonQuery();
+        }
+
+        var trashedItem = (await itemRepo.GetByIdAsync(trashedItemId))!;
+
+        // Restore throws
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.RestoreItemAsync(trashedItem));
+
+        // Active item unchanged
+        using var cmd2 = _connection.CreateCommand();
+        cmd2.CommandText = "SELECT deleted_at FROM items WHERE id='00000000-0000-0000-0000-000000000001'";
+        using var reader = cmd2.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.True(reader.IsDBNull(reader.GetOrdinal("deleted_at")));
+    }
+
+    [Fact]
+    public async Task RestoreItem_NoActiveDuplicate_AllowsRestore()
+    {
+        // No active item with same URL → restore should succeed
+        var itemRepo = new ItemRepository(_connection);
+        var service = new ItemService(itemRepo, new TrashRepository(_connection), new FolderRepository(_connection), new MediaRepository(_connection), _connection);
+
+        // Insert trashed item only (no active duplicate)
+        var trashedItemId = Guid.NewGuid();
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO items (id, original_url, platform, normalized_url,
+                    import_date, modify_date, content_status, archive_status, media_status, deleted_at)
+                VALUES ($id, 'https://github.com/openai/openai-dotnet', 'github',
+                    'github://repo/openai/openai-dotnet', 1700000000, 1700000000, 'trashed', 'pending', 'textOnly', 1700000000)";
+            cmd.Parameters.AddWithValue("$id", trashedItemId.ToString("D"));
+            cmd.ExecuteNonQuery();
+        }
+
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO trash_records (id, item_id, deleted_at, auto_delete_at, original_archive_status, media_paths)
+                VALUES ('00000000-0000-0000-0000-000000000099', $itemId, 1700000000, 1700300000, 'pending', '[]')";
+            cmd.Parameters.AddWithValue("$itemId", trashedItemId.ToString("D"));
+            cmd.ExecuteNonQuery();
+        }
+
+        var trashedItem = (await itemRepo.GetByIdAsync(trashedItemId))!;
+
+        // Restore should succeed
+        await service.RestoreItemAsync(trashedItem);
+
+        // Item is now active
+        using var checkCmd = _connection.CreateCommand();
+        checkCmd.CommandText = "SELECT deleted_at, content_status FROM items WHERE id=$id";
+        checkCmd.Parameters.AddWithValue("$id", trashedItemId.ToString("D"));
+        using var reader = checkCmd.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.True(reader.IsDBNull(reader.GetOrdinal("deleted_at")));
+        Assert.Equal("normal", reader.GetString(reader.GetOrdinal("content_status")));
+    }
+
+    [Fact]
+    public async Task RestoreItem_AfterDeletingActiveDuplicate_AllowsRestore()
+    {
+        // After deleting the active duplicate, restore should be allowed
+        var itemRepo = new ItemRepository(_connection);
+        var trashRepo = new TrashRepository(_connection);
+        var mediaRepo = new MediaRepository(_connection);
+        var service = new ItemService(itemRepo, trashRepo, new FolderRepository(_connection), mediaRepo, _connection);
+
+        // Insert active item
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO items (id, original_url, platform, normalized_url,
+                    import_date, modify_date, content_status, archive_status, media_status)
+                VALUES ('00000000-0000-0000-0000-000000000001', 'https://github.com/openai/openai-dotnet', 'github',
+                    'github://repo/openai/openai-dotnet', 1700000000, 1700000000, 'normal', 'pending', 'textOnly')";
+            cmd.ExecuteNonQuery();
+        }
+
+        // Insert trashed item with same URL
+        var trashedItemId = Guid.NewGuid();
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO items (id, original_url, platform, normalized_url,
+                    import_date, modify_date, content_status, archive_status, media_status, deleted_at)
+                VALUES ($id, 'https://github.com/openai/openai-dotnet', 'github',
+                    'github://repo/openai/openai-dotnet', 1700000000, 1700000000, 'trashed', 'pending', 'textOnly', 1700000000)";
+            cmd.Parameters.AddWithValue("$id", trashedItemId.ToString("D"));
+            cmd.ExecuteNonQuery();
+        }
+
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO trash_records (id, item_id, deleted_at, auto_delete_at, original_archive_status, media_paths)
+                VALUES ('00000000-0000-0000-0000-000000000099', $itemId, 1700000000, 1700300000, 'pending', '[]')";
+            cmd.Parameters.AddWithValue("$itemId", trashedItemId.ToString("D"));
+            cmd.ExecuteNonQuery();
+        }
+
+        // Permanently delete the active item
+        var activeItem = (await itemRepo.GetByIdAsync(Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
+        await service.PermanentlyDeleteItemAsync(activeItem);
+
+        // Now restore should succeed
+        var trashedItem = (await itemRepo.GetByIdAsync(trashedItemId))!;
+        await service.RestoreItemAsync(trashedItem);
+
+        // Item is now active
+        using var checkCmd = _connection.CreateCommand();
+        checkCmd.CommandText = "SELECT deleted_at FROM items WHERE id=$id";
+        checkCmd.Parameters.AddWithValue("$id", trashedItemId.ToString("D"));
+        using var reader = checkCmd.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.True(reader.IsDBNull(reader.GetOrdinal("deleted_at")));
     }
 }

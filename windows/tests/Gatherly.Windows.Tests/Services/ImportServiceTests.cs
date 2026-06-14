@@ -505,21 +505,341 @@ public class ImportServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task ProcessImport_TrashItemExists_StillDuplicateInTrash()
+    public async Task ProcessImport_TrashItemExists_AllowsReImport()
     {
-        // Item in trash → DuplicateInTrash (priority over stale task)
+        // Item in trash → should allow re-import (not DuplicateInTrash)
         using (var cmd = _connection.CreateCommand())
         {
             cmd.CommandText = @"
                 INSERT INTO items (id, original_url, platform, normalized_url,
                     import_date, modify_date, content_status, archive_status, media_status, deleted_at)
                 VALUES ('00000000-0000-0000-0000-000000000001', 'https://github.com/openai/openai-dotnet', 'github',
-                    'github://repo/openai/openai-dotnet', 1700000000, 1700000000, 'normal', 'pending', 'textOnly', 1700000000)";
+                    'github://repo/openai/openai-dotnet', 1700000000, 1700000000, 'trashed', 'pending', 'textOnly', 1700000000)";
             cmd.ExecuteNonQuery();
         }
 
         var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
-        Assert.Equal(ImportStatus.DuplicateInTrash, result.Status);
+        Assert.Equal(ImportStatus.SuccessImport, result.Status);
+    }
+
+    [Fact]
+    public async Task ProcessImport_TrashItemReimport_CreatesNewItem()
+    {
+        // Item in trash → reimport should create a NEW item with different ID
+        var trashedItemId = Guid.NewGuid();
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO items (id, original_url, platform, normalized_url,
+                    title, author, import_date, modify_date, content_status, archive_status, media_status, deleted_at)
+                VALUES ($id, 'https://github.com/openai/openai-dotnet', 'github',
+                    'github://repo/openai/openai-dotnet', 'Old Title', 'Old Author', 1700000000, 1700000000, 'trashed', 'pending', 'textOnly', 1700000000)";
+            cmd.Parameters.AddWithValue("$id", trashedItemId.ToString("D"));
+            cmd.ExecuteNonQuery();
+        }
+
+        var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.Equal(ImportStatus.SuccessImport, result.Status);
+        Assert.NotNull(result.ImportTaskId);
+
+        // New item ID must differ from old trash item ID
+        Assert.NotEqual(trashedItemId, result.ImportTaskId);
+
+        // New item is active
+        using var checkCmd = _connection.CreateCommand();
+        checkCmd.CommandText = "SELECT deleted_at, content_status FROM items WHERE id=$id";
+        checkCmd.Parameters.AddWithValue("$id", result.ImportTaskId.Value.ToString("D"));
+        using var reader = checkCmd.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.True(reader.IsDBNull(reader.GetOrdinal("deleted_at")));
+        Assert.Equal("normal", reader.GetString(reader.GetOrdinal("content_status")));
+    }
+
+    [Fact]
+    public async Task ProcessImport_TrashItemReimport_OldItemStaysInTrash()
+    {
+        // Item in trash → reimport should leave old item in trash
+        var trashedItemId = Guid.NewGuid();
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO items (id, original_url, platform, normalized_url,
+                    import_date, modify_date, content_status, archive_status, media_status, deleted_at)
+                VALUES ($id, 'https://github.com/openai/openai-dotnet', 'github',
+                    'github://repo/openai/openai-dotnet', 1700000000, 1700000000, 'trashed', 'pending', 'textOnly', 1700000000)";
+            cmd.Parameters.AddWithValue("$id", trashedItemId.ToString("D"));
+            cmd.ExecuteNonQuery();
+        }
+
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO trash_records (id, item_id, deleted_at, auto_delete_at, original_archive_status, media_paths)
+                VALUES ('00000000-0000-0000-0000-000000000099', $itemId, 1700000000, 1700300000, 'pending', '[]')";
+            cmd.Parameters.AddWithValue("$itemId", trashedItemId.ToString("D"));
+            cmd.ExecuteNonQuery();
+        }
+
+        var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.Equal(ImportStatus.SuccessImport, result.Status);
+
+        // Old item still in trash
+        using var oldCmd = _connection.CreateCommand();
+        oldCmd.CommandText = "SELECT deleted_at, content_status FROM items WHERE id=$id";
+        oldCmd.Parameters.AddWithValue("$id", trashedItemId.ToString("D"));
+        using var reader = oldCmd.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.False(reader.IsDBNull(reader.GetOrdinal("deleted_at")));
+        Assert.Equal("trashed", reader.GetString(reader.GetOrdinal("content_status")));
+
+        // Old trash_record still exists
+        using var trashCmd = _connection.CreateCommand();
+        trashCmd.CommandText = "SELECT COUNT(*) FROM trash_records WHERE item_id=$id";
+        trashCmd.Parameters.AddWithValue("$id", trashedItemId.ToString("D"));
+        var count = (long)trashCmd.ExecuteScalar();
+        Assert.Equal(1, count);
+    }
+
+    [Fact]
+    public async Task ProcessImport_TrashItemReimport_ImportTaskPointsToNewItem()
+    {
+        // Item in trash → reimport should link import_task to NEW item
+        var trashedItemId = Guid.NewGuid();
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO items (id, original_url, platform, normalized_url,
+                    import_date, modify_date, content_status, archive_status, media_status, deleted_at)
+                VALUES ($id, 'https://github.com/openai/openai-dotnet', 'github',
+                    'github://repo/openai/openai-dotnet', 1700000000, 1700000000, 'trashed', 'pending', 'textOnly', 1700000000)";
+            cmd.Parameters.AddWithValue("$id", trashedItemId.ToString("D"));
+            cmd.ExecuteNonQuery();
+        }
+
+        var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.Equal(ImportStatus.SuccessImport, result.Status);
+
+        // import_task.item_id points to NEW item
+        using var taskCmd = _connection.CreateCommand();
+        taskCmd.CommandText = "SELECT item_id, status FROM import_tasks WHERE normalized_url='github://repo/openai/openai-dotnet' ORDER BY created_at DESC LIMIT 1";
+        using var reader = taskCmd.ExecuteReader();
+        Assert.True(reader.Read());
+        var taskItemId = reader.GetString(reader.GetOrdinal("item_id"));
+        Assert.NotEqual(trashedItemId.ToString("D"), taskItemId);
+        Assert.Equal("completed", reader.GetString(reader.GetOrdinal("status")));
+    }
+
+    [Fact]
+    public async Task ProcessImport_TrashItemReimport_NewContentApplied()
+    {
+        // Item in trash → reimport should create new item with new content
+        var trashedItemId = Guid.NewGuid();
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO items (id, original_url, platform, normalized_url,
+                    title, author, import_date, modify_date, content_status, archive_status, media_status, deleted_at)
+                VALUES ($id, 'https://github.com/openai/openai-dotnet', 'github',
+                    'github://repo/openai/openai-dotnet', 'Old Title', 'Old Author', 1700000000, 1700000000, 'trashed', 'pending', 'textOnly', 1700000000)";
+            cmd.Parameters.AddWithValue("$id", trashedItemId.ToString("D"));
+            cmd.ExecuteNonQuery();
+        }
+
+        var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.Equal(ImportStatus.SuccessImport, result.Status);
+
+        // New item has new content
+        using var cmd2 = _connection.CreateCommand();
+        cmd2.CommandText = "SELECT title, author FROM items WHERE id=$id";
+        cmd2.Parameters.AddWithValue("$id", result.ImportTaskId.Value.ToString("D"));
+        using var reader = cmd2.ExecuteReader();
+        Assert.True(reader.Read());
+        var title = reader.GetString(reader.GetOrdinal("title"));
+        var author = reader.GetString(reader.GetOrdinal("author"));
+        Assert.NotEqual("Old Title", title);
+        Assert.NotEqual("Old Author", author);
+
+        // Old item still has old content
+        using var oldCmd = _connection.CreateCommand();
+        oldCmd.CommandText = "SELECT title, author FROM items WHERE id=$id";
+        oldCmd.Parameters.AddWithValue("$id", trashedItemId.ToString("D"));
+        using var oldReader = oldCmd.ExecuteReader();
+        Assert.True(oldReader.Read());
+        Assert.Equal("Old Title", oldReader.GetString(oldReader.GetOrdinal("title")));
+        Assert.Equal("Old Author", oldReader.GetString(oldReader.GetOrdinal("author")));
+    }
+
+    [Fact]
+    public async Task ProcessImport_TrashItemReimport_FtsForNewItem()
+    {
+        // Item in trash → reimport should create FTS for new item only
+        var trashedItemId = Guid.NewGuid();
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO items (id, original_url, platform, normalized_url,
+                    title, body, import_date, modify_date, content_status, archive_status, media_status, deleted_at)
+                VALUES ($id, 'https://github.com/openai/openai-dotnet', 'github',
+                    'github://repo/openai/openai-dotnet', 'Old Title', 'Old Body', 1700000000, 1700000000, 'trashed', 'pending', 'textOnly', 1700000000)";
+            cmd.Parameters.AddWithValue("$id", trashedItemId.ToString("D"));
+            cmd.ExecuteNonQuery();
+        }
+
+        // Insert FTS for old content
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = "INSERT INTO items_fts(rowid, title, body) VALUES ((SELECT rowid FROM items WHERE id=$id), 'Old Title', 'Old Body')";
+            cmd.Parameters.AddWithValue("$id", trashedItemId.ToString("D"));
+            cmd.ExecuteNonQuery();
+        }
+
+        var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.Equal(ImportStatus.SuccessImport, result.Status);
+
+        // FTS should contain new content (from new item's InsertAsync)
+        using var searchCmd = _connection.CreateCommand();
+        searchCmd.CommandText = "SELECT COUNT(*) FROM items_fts WHERE items_fts MATCH 'openai'";
+        var count = (long)searchCmd.ExecuteScalar();
+        Assert.True(count > 0);
+    }
+
+    [Fact]
+    public async Task ProcessImport_TrashItemParserFails_NoNewItem()
+    {
+        // Item in trash + parser fails → no new active item created
+        var trashedItemId = Guid.NewGuid();
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO items (id, original_url, platform, normalized_url,
+                    import_date, modify_date, content_status, archive_status, media_status, deleted_at)
+                VALUES ($id, 'https://www.xiaohongshu.com/explore/test123', 'xiaohongshu',
+                    'xiaohongshu://explore/test123', 1700000000, 1700000000, 'trashed', 'pending', 'textOnly', 1700000000)";
+            cmd.Parameters.AddWithValue("$id", trashedItemId.ToString("D"));
+            cmd.ExecuteNonQuery();
+        }
+
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO trash_records (id, item_id, deleted_at, auto_delete_at, original_archive_status, media_paths)
+                VALUES ('00000000-0000-0000-0000-000000000099', $itemId, 1700000000, 1700300000, 'pending', '[]')";
+            cmd.Parameters.AddWithValue("$itemId", trashedItemId.ToString("D"));
+            cmd.ExecuteNonQuery();
+        }
+
+        // xiaohongshu parser returns TaskCreated (not implemented yet)
+        var result = await _service.ProcessImportAsync("https://www.xiaohongshu.com/explore/test123");
+        Assert.Equal(ImportStatus.TaskCreated, result.Status);
+
+        // No new active item created
+        using var activeCmd = _connection.CreateCommand();
+        activeCmd.CommandText = "SELECT COUNT(*) FROM items WHERE normalized_url='xiaohongshu://explore/test123' AND deleted_at IS NULL";
+        var activeCount = (long)activeCmd.ExecuteScalar();
+        Assert.Equal(0, activeCount);
+
+        // Old item still in trash
+        using var checkCmd = _connection.CreateCommand();
+        checkCmd.CommandText = "SELECT deleted_at FROM items WHERE id=$id";
+        checkCmd.Parameters.AddWithValue("$id", trashedItemId.ToString("D"));
+        var deletedAt = await checkCmd.ExecuteScalarAsync();
+        Assert.NotNull(deletedAt);
+
+        // Old trash_record still exists
+        using var trashCmd = _connection.CreateCommand();
+        trashCmd.CommandText = "SELECT COUNT(*) FROM trash_records WHERE item_id=$id";
+        trashCmd.Parameters.AddWithValue("$id", trashedItemId.ToString("D"));
+        var trashCount = (long)trashCmd.ExecuteScalar();
+        Assert.Equal(1, trashCount);
+    }
+
+    [Fact]
+    public async Task ProcessImport_AfterTrashReimport_DuplicateExists()
+    {
+        // After successful trash reimport, same URL → DuplicateExistingItem
+        var trashedItemId = Guid.NewGuid();
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO items (id, original_url, platform, normalized_url,
+                    import_date, modify_date, content_status, archive_status, media_status, deleted_at)
+                VALUES ($id, 'https://github.com/openai/openai-dotnet', 'github',
+                    'github://repo/openai/openai-dotnet', 1700000000, 1700000000, 'trashed', 'pending', 'textOnly', 1700000000)";
+            cmd.Parameters.AddWithValue("$id", trashedItemId.ToString("D"));
+            cmd.ExecuteNonQuery();
+        }
+
+        // First import: reimport from trash
+        var result1 = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.Equal(ImportStatus.SuccessImport, result1.Status);
+
+        // Second import: DuplicateExistingItem (new active item exists)
+        var result2 = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.Equal(ImportStatus.DuplicateExistingItem, result2.Status);
+    }
+
+    [Fact]
+    public async Task ProcessImport_TrashItemReimport_OneActiveAndOneTrash()
+    {
+        // After trash reimport: 1 active + 1 trash
+        var trashedItemId = Guid.NewGuid();
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO items (id, original_url, platform, normalized_url,
+                    import_date, modify_date, content_status, archive_status, media_status, deleted_at)
+                VALUES ($id, 'https://github.com/openai/openai-dotnet', 'github',
+                    'github://repo/openai/openai-dotnet', 1700000000, 1700000000, 'trashed', 'pending', 'textOnly', 1700000000)";
+            cmd.Parameters.AddWithValue("$id", trashedItemId.ToString("D"));
+            cmd.ExecuteNonQuery();
+        }
+
+        var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.Equal(ImportStatus.SuccessImport, result.Status);
+
+        // 1 active item
+        using var activeCmd = _connection.CreateCommand();
+        activeCmd.CommandText = "SELECT COUNT(*) FROM items WHERE normalized_url='github://repo/openai/openai-dotnet' AND deleted_at IS NULL";
+        var activeCount = (long)activeCmd.ExecuteScalar();
+        Assert.Equal(1, activeCount);
+
+        // 1 trashed item
+        using var trashCmd = _connection.CreateCommand();
+        trashCmd.CommandText = "SELECT COUNT(*) FROM items WHERE normalized_url='github://repo/openai/openai-dotnet' AND deleted_at IS NOT NULL";
+        var trashCount = (long)trashCmd.ExecuteScalar();
+        Assert.Equal(1, trashCount);
+    }
+
+    [Fact]
+    public async Task ProcessImport_CompletedTaskPointingToTrash_AllowsReImport()
+    {
+        // Completed task pointing to trash item → should not block re-import
+        var trashedItemId = Guid.NewGuid();
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO items (id, original_url, platform, normalized_url,
+                    import_date, modify_date, content_status, archive_status, media_status, deleted_at)
+                VALUES ($id, 'https://github.com/openai/openai-dotnet', 'github',
+                    'github://repo/openai/openai-dotnet', 1700000000, 1700000000, 'trashed', 'pending', 'textOnly', 1700000000)";
+            cmd.Parameters.AddWithValue("$id", trashedItemId.ToString("D"));
+            cmd.ExecuteNonQuery();
+        }
+
+        // Insert completed task pointing to trash item
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO import_tasks (id, original_url, normalized_url, platform, status, progress, item_id, created_at, updated_at, retry_count)
+                VALUES ('00000000-0000-0000-0000-000000000001', 'https://github.com/openai/openai-dotnet',
+                    'github://repo/openai/openai-dotnet', 'github', 'completed', 1, $itemId, 1700000000, 1700000000, 0)";
+            cmd.Parameters.AddWithValue("$itemId", trashedItemId.ToString("D"));
+            cmd.ExecuteNonQuery();
+        }
+
+        // Should allow re-import (task points to trashed item)
+        var result = await _service.ProcessImportAsync("https://github.com/openai/openai-dotnet");
+        Assert.Equal(ImportStatus.SuccessImport, result.Status);
     }
 
     [Fact]

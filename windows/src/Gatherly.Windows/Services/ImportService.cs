@@ -69,36 +69,28 @@ public class ImportService
         var normalizedUrl = UrlNormalizer.Normalize(url, platform.Value);
         var contentId = UrlNormalizer.ExtractContentId(url, platform.Value);
 
-        // 5. Duplicate 检查 — items
+        // 5. Duplicate 检查 — items（仅检查活跃 item，回收站中的同 URL 不阻止导入）
         var existingItem = await _itemRepo.GetByNormalizedUrlAsync(normalizedUrl);
         if (existingItem != null)
         {
             return ImportResult.DuplicateExistingItem(url);
         }
 
-        // 5a. Duplicate 检查 — items in trash (GetByNormalizedUrlAsync filters deleted_at)
-        var trashedItem = await _itemRepo.GetByNormalizedUrlIncludingTrashedAsync(normalizedUrl);
-        if (trashedItem != null && trashedItem.DeletedAt != null)
-        {
-            return ImportResult.DuplicateInTrash(url);
-        }
-
         // 5b. Duplicate 检查 — import_tasks
         var existingTasks = await _taskRepo.GetAllByNormalizedUrlAsync(normalizedUrl);
         if (existingTasks.Count > 0)
         {
-            // Check if any task has a valid item
+            // Check if any task has a valid active item
             foreach (var t in existingTasks)
             {
                 if (t.Status == Models.Enums.TaskStatus.completed && t.ItemId.HasValue)
                 {
                     var taskItem = await _itemRepo.GetByIdAsync(t.ItemId.Value);
-                    if (taskItem != null)
+                    if (taskItem != null && taskItem.DeletedAt == null)
                     {
-                        if (taskItem.DeletedAt != null)
-                            return ImportResult.DuplicateInTrash(url);
                         return ImportResult.DuplicateExistingItem(url, taskItem.Id);
                     }
+                    // task points to trashed item → skip, allow re-import
                 }
             }
 
@@ -156,7 +148,7 @@ public class ImportService
             return ImportResult.Failed(url, parseResult.ErrorMessage ?? "未知错误");
         }
 
-        // 9. Success: 写入 item
+        // 9. Success: 创建新 item（标准流程，始终使用新 ID）
         if (parseResult.Status == ParseStatus.Success && parseResult.Content != null)
         {
             var content = parseResult.Content;
