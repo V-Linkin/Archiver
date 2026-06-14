@@ -64,8 +64,16 @@
 
                     <!-- Platform entries -->
                     <Border Background="#3A3A3A" Height="1" CornerRadius="2" Margin="12,8" />
-                    <TextBlock Text="平台" Foreground="#888" FontSize="11"
-                               Margin="16,4,16,4" />
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0" Text="平台" Foreground="#888" FontSize="11"
+                                   Margin="16,4,16,4" VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Content="管理"
+                                Command="{Binding OpenPlatformManagementCommand}"
+                                FontSize="11" Padding="8,2"
+                                Background="Transparent" Foreground="#888"
+                                BorderThickness="0" Cursor="Hand"
+                                ToolTip.Tip="管理自定义平台" />
+                    </Grid>
 
                     <ItemsControl ItemsSource="{Binding SidebarPlatforms}">
                         <ItemsControl.ItemTemplate>

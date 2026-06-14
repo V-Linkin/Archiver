@@ -1,0 +1,110 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Gatherly.Windows.ViewModels"
+        xmlns:m="using:Gatherly.Windows.Models"
+        x:Class="Gatherly.Windows.Views.PlatformManagementWindow"
+        x:DataType="vm:PlatformManagementViewModel"
+        Title="平台管理"
+        Width="560" Height="520"
+        MinWidth="400" MinHeight="350"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True">
+
+    <DockPanel>
+        <!-- Header -->
+        <Border DockPanel.Dock="Top" Background="#FAFAFA"
+                BorderBrush="#E0E0E0" BorderThickness="0,0,0,1"
+                Padding="16,12">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0" Text="平台管理"
+                           FontSize="16" FontWeight="SemiBold"
+                           VerticalAlignment="Center" />
+                <Button Grid.Column="1" Content="新建平台"
+                        Command="{Binding BeginCreateCommand}"
+                        Padding="12,6" FontSize="13" />
+            </Grid>
+        </Border>
+
+        <!-- Content -->
+        <DockPanel>
+            <!-- Empty State -->
+            <StackPanel DockPanel.Dock="Top"
+                        IsVisible="{Binding IsEmpty}"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="8" Margin="0,40">
+                <TextBlock Text="📁" FontSize="32" HorizontalAlignment="Center" />
+                <TextBlock Text="还没有自定义平台" FontSize="14" HorizontalAlignment="Center"
+                           Foreground="#666" />
+                <TextBlock Text="创建平台后可在侧边栏中管理内容" FontSize="12"
+                           HorizontalAlignment="Center" Foreground="#999" />
+            </StackPanel>
+
+            <!-- Loading State -->
+            <TextBlock DockPanel.Dock="Top"
+                       Text="加载中..." IsVisible="{Binding IsLoading}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       FontSize="14" Foreground="#666" Margin="0,40" />
+
+            <!-- Create Form -->
+            <Border DockPanel.Dock="Top"
+                    IsVisible="{Binding IsCreating}"
+                    Background="#F8F8F8" BorderBrush="#E0E0E0"
+                    BorderThickness="0,0,0,1" Padding="16,12">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="新建平台" FontSize="14" FontWeight="SemiBold" />
+                    <TextBox Text="{Binding NewPlatformName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             Watermark="输入平台名称"
+                             MinWidth="200" />
+                    <TextBlock Text="{Binding ErrorMessage}"
+                               Foreground="#D32F2F" FontSize="12"
+                               IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="保存"
+                                Command="{Binding SaveCreateCommand}"
+                                IsEnabled="{Binding CanSave}"
+                                Padding="16,6" />
+                        <Button Content="取消"
+                                Command="{Binding CancelCreateCommand}"
+                                Padding="16,6" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Platform List -->
+            <ScrollViewer>
+                <ItemsControl ItemsSource="{Binding Platforms}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="m:CustomPlatform">
+                            <Border Padding="12,10" Margin="0,1"
+                                    Background="White">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <Border Width="32" Height="32"
+                                            Background="#F0F0F0" CornerRadius="6"
+                                            VerticalAlignment="Center">
+                                        <TextBlock Text="📁" FontSize="16"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center" />
+                                    </Border>
+                                    <TextBlock Text="{Binding Name}"
+                                               FontSize="14" FontWeight="SemiBold"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </DockPanel>
+
+        <!-- Footer -->
+        <Border DockPanel.Dock="Bottom" Background="#FAFAFA"
+                BorderBrush="#E0E0E0" BorderThickness="0,1,0,0"
+                Padding="16,10">
+            <Button Content="关闭"
+                    HorizontalAlignment="Right"
+                    Padding="16,6" FontSize="13"
+                    Click="CloseButton_Click" />
+        </Border>
+    </DockPanel>
+</Window>

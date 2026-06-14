@@ -153,6 +153,7 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly ItemService _itemService;
     private readonly BackupImportService _backupImportService;
     private readonly MediaRepository _mediaRepo;
+    private readonly CustomPlatformRepository _customPlatformRepo;
 
     public MainWindowViewModel(SqliteConnection connection)
     {
@@ -168,6 +169,7 @@ public partial class MainWindowViewModel : ObservableObject
         _mediaRepo = mediaRepo;
 
         var customPlatformRepo = new CustomPlatformRepository(connection);
+        _customPlatformRepo = customPlatformRepo;
         Home = new HomeViewModel(new HomeDataService(itemRepo, mediaRepo, customPlatformRepo, connection), new ImportService(itemRepo, importTaskRepo, new Services.Media.MediaDownloadService(mediaRepo)));
         ContentList = new ContentListViewModel(new ContentListService(itemRepo, folderRepo), mediaRepo, customPlatformRepo);
         Search = new SearchViewModel(new SearchService(searchRepo), mediaRepo, customPlatformRepo);
@@ -293,6 +295,34 @@ public partial class MainWindowViewModel : ObservableObject
         SidebarPlatforms.Clear();
         foreach (var p in platforms)
             SidebarPlatforms.Add(p);
+    }
+
+    /// <summary>
+    /// 打开平台管理窗口
+    /// </summary>
+    [RelayCommand]
+    private void OpenPlatformManagement()
+    {
+        var platformService = new Services.CustomPlatformService(_customPlatformRepo);
+        var vm = new PlatformManagementViewModel(platformService);
+        vm.OnPlatformCreated = RefreshAllPlatformViewsAsync;
+
+        var window = new Views.PlatformManagementWindow
+        {
+            DataContext = vm
+        };
+
+        window.Show();
+        _ = vm.LoadCommand.ExecuteAsync(null);
+    }
+
+    /// <summary>
+    /// 统一刷新所有平台视图（Sidebar + 首页平台入口）
+    /// </summary>
+    private async Task RefreshAllPlatformViewsAsync()
+    {
+        await LoadSidebarPlatformsAsync();
+        await Home.LoadCommand.ExecuteAsync(null);
     }
 
     /// <summary>

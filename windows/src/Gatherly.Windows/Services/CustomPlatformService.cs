@@ -24,6 +24,14 @@ public class CustomPlatformService
     }
 
     /// <summary>
+    /// 获取全部用户自定义平台
+    /// </summary>
+    public async Task<List<CustomPlatform>> GetAllPlatformsAsync()
+    {
+        return await _repo.GetAllAsync();
+    }
+
+    /// <summary>
     /// 校验平台名称
     /// </summary>
     public async Task<ValidateNameResult> ValidateNameAsync(string name, Guid? excludeId = null)

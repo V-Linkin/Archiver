@@ -132,11 +132,11 @@ public class ItemRepository
         using var cmd = _connection.CreateCommand();
         // 未分类 = 没有显式用户分类 AND 没有被可见平台入口认领
         // 排除: custom_platform_id 非空（有显式分类）
-        // 排除: platform=youtube/bilibili（被 merged 平台认领）
+        // 排除: platform=youtube/bilibili/github（被 merged 平台认领）
         cmd.CommandText = @"SELECT * FROM items 
             WHERE deleted_at IS NULL 
               AND custom_platform_id IS NULL 
-              AND lower(platform) NOT IN ('youtube', 'bilibili')
+              AND lower(platform) NOT IN ('youtube', 'bilibili', 'github')
             ORDER BY import_date DESC";
         return await ReadItemsAsync(cmd);
     }

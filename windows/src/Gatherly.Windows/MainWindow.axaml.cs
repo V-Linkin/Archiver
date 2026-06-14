@@ -62,14 +62,15 @@ public partial class MainWindow : Window
                 await vm.ShowUncategorizedCommand.ExecuteAsync(null);
             }
             else if (entry.IsStandardPlatform && entry.StandardPlatform.HasValue
-                     && SupportsMergedPlatform(entry.StandardPlatform.Value)
                      && entry.CustomPlatformIds.Count > 0)
             {
+                // 有标准平台且有自定义平台 ID → 合并查询
                 await vm.ShowMergedPlatformCommand.ExecuteAsync(entry);
             }
             else if (entry.IsStandardPlatform && entry.StandardPlatform.HasValue
                      && entry.CustomPlatformIds.Count == 0)
             {
+                // 仅有标准平台，无自定义平台 ID → 标准查询
                 await vm.ShowStandardPlatformCommand.ExecuteAsync(entry.StandardPlatform.Value);
             }
             else if (entry.CustomPlatformIds.Count == 1)

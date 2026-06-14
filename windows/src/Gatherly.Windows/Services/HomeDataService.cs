@@ -167,8 +167,8 @@ public class HomeDataService
             }
             else if (customIds.Count > 0)
             {
-                // 小红书/微博等：只统计自定义平台（点击后走 Custom path）
-                totalCount = await GetCustomPlatformItemCountAsync(customIds[0]);
+                // 有自定义平台的标准平台：统计自定义平台 + 标准平台 items
+                totalCount = await GetPlatformItemCountAsync(p, customIds);
             }
             else
             {
@@ -199,25 +199,22 @@ public class HomeDataService
                 continue;
 
             var count = await GetCustomPlatformItemCountAsync(cp.Id);
-            if (count > 0)
+            string? logoFullPath = null;
+            if (!string.IsNullOrEmpty(cp.LogoPath))
             {
-                string? logoFullPath = null;
-                if (!string.IsNullOrEmpty(cp.LogoPath))
-                {
-                    logoFullPath = Path.Combine(
-                        Gatherly.Windows.Database.DatabasePaths.DataDirectory,
-                        "platform_logos", cp.LogoPath);
-                    if (!File.Exists(logoFullPath)) logoFullPath = null;
-                }
-                result.Add(new PlatformEntryDisplay
-                {
-                    Id = cp.Id,
-                    Name = cp.Name,
-                    Count = count,
-                    LogoPath = logoFullPath,
-                    CustomPlatformIds = new List<Guid> { cp.Id }
-                });
+                logoFullPath = Path.Combine(
+                    Gatherly.Windows.Database.DatabasePaths.DataDirectory,
+                    "platform_logos", cp.LogoPath);
+                if (!File.Exists(logoFullPath)) logoFullPath = null;
             }
+            result.Add(new PlatformEntryDisplay
+            {
+                Id = cp.Id,
+                Name = cp.Name,
+                Count = count,
+                LogoPath = logoFullPath,
+                CustomPlatformIds = new List<Guid> { cp.Id }
+            });
 
             processedCanonicalKeys.Add(key);
         }
@@ -284,7 +281,7 @@ public class HomeDataService
         cmd.CommandText = @"SELECT COUNT(*) FROM items 
             WHERE custom_platform_id IS NULL 
               AND deleted_at IS NULL
-              AND lower(platform) NOT IN ('youtube', 'bilibili')";
+              AND lower(platform) NOT IN ('youtube', 'bilibili', 'github')";
         return Convert.ToInt32(await cmd.ExecuteScalarAsync());
     }
 }
