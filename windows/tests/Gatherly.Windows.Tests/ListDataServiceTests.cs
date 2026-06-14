@@ -1344,4 +1344,179 @@ public class ListDataServiceTests : IDisposable
         Assert.Contains(cpIdBili, bilibili!.CustomPlatformIds);
         Assert.DoesNotContain(cpIdOther, bilibili!.CustomPlatformIds);
     }
+
+    // ==================== CustomPlatform CRUD Tests ====================
+
+    [Fact]
+    public async Task CustomPlatform_CreateAsync_Success()
+    {
+        var repo = new CustomPlatformRepository(_connection);
+        var platform = await repo.CreateAsync("Test Platform");
+
+        Assert.NotEqual(Guid.Empty, platform.Id);
+        Assert.Equal("Test Platform", platform.Name);
+        Assert.Null(platform.LogoPath);
+        Assert.True(platform.SortOrder > 0);
+    }
+
+    [Fact]
+    public async Task CustomPlatform_CreateAsync_TrimName()
+    {
+        var repo = new CustomPlatformRepository(_connection);
+        var platform = await repo.CreateAsync("  Test Platform  ");
+
+        Assert.Equal("Test Platform", platform.Name);
+    }
+
+    [Fact]
+    public async Task CustomPlatform_CreateAsync_EmptyName_Throws()
+    {
+        var repo = new CustomPlatformRepository(_connection);
+        await Assert.ThrowsAsync<ArgumentException>(() => repo.CreateAsync(""));
+    }
+
+    [Fact]
+    public async Task CustomPlatform_CreateAsync_WhiteSpaceName_Throws()
+    {
+        var repo = new CustomPlatformRepository(_connection);
+        await Assert.ThrowsAsync<ArgumentException>(() => repo.CreateAsync("   "));
+    }
+
+    [Fact]
+    public async Task CustomPlatform_CreateAsync_ReservedName_Throws()
+    {
+        var service = new CustomPlatformService(new CustomPlatformRepository(_connection));
+        await Assert.ThrowsAsync<ArgumentException>(() => service.CreatePlatformAsync("未分类"));
+    }
+
+    [Fact]
+    public async Task CustomPlatform_CreateAsync_DuplicateName_Throws()
+    {
+        var service = new CustomPlatformService(new CustomPlatformRepository(_connection));
+        await service.CreatePlatformAsync("Test Platform");
+        await Assert.ThrowsAsync<ArgumentException>(() => service.CreatePlatformAsync("Test Platform"));
+    }
+
+    [Fact]
+    public async Task CustomPlatform_CreateAsync_CaseInsensitiveDuplicate_Throws()
+    {
+        var service = new CustomPlatformService(new CustomPlatformRepository(_connection));
+        await service.CreatePlatformAsync("Test Platform");
+        await Assert.ThrowsAsync<ArgumentException>(() => service.CreatePlatformAsync("test platform"));
+    }
+
+    [Fact]
+    public async Task CustomPlatform_CreateAsync_WithLogoPath()
+    {
+        var service = new CustomPlatformService(new CustomPlatformRepository(_connection));
+        var platform = await service.CreatePlatformAsync("Test Platform", "platform_logos/test.png");
+
+        Assert.Equal("platform_logos/test.png", platform.LogoPath);
+    }
+
+    [Fact]
+    public async Task CustomPlatform_CreateAsync_AbsolutePath_Throws()
+    {
+        var service = new CustomPlatformService(new CustomPlatformRepository(_connection));
+        await Assert.ThrowsAsync<ArgumentException>(() => service.CreatePlatformAsync("Test", @"C:\logo.png"));
+    }
+
+    [Fact]
+    public async Task CustomPlatform_CreateAsync_PathTraversal_Throws()
+    {
+        var service = new CustomPlatformService(new CustomPlatformRepository(_connection));
+        await Assert.ThrowsAsync<ArgumentException>(() => service.CreatePlatformAsync("Test", "../logo.png"));
+    }
+
+    [Fact]
+    public async Task CustomPlatform_UpdateAsync_Success()
+    {
+        var repo = new CustomPlatformRepository(_connection);
+        var platform = await repo.CreateAsync("Original Name");
+
+        var updated = await repo.UpdateAsync(platform.Id, name: "Updated Name");
+        Assert.NotNull(updated);
+        Assert.Equal("Updated Name", updated!.Name);
+        Assert.Equal(platform.Id, updated.Id);
+        // CreatedAt may have precision differences due to Unix timestamp conversion
+        Assert.True(Math.Abs((platform.CreatedAt - updated.CreatedAt).TotalSeconds) < 1);
+    }
+
+    [Fact]
+    public async Task CustomPlatform_UpdateAsync_NotFound_ReturnsNull()
+    {
+        var repo = new CustomPlatformRepository(_connection);
+        var result = await repo.UpdateAsync(Guid.NewGuid(), name: "Test");
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task CustomPlatform_DeleteAsync_NoItems_Success()
+    {
+        var repo = new CustomPlatformRepository(_connection);
+        var platform = await repo.CreateAsync("Test Platform");
+
+        var result = await repo.DeleteAsync(platform.Id);
+
+        Assert.True(result.Success);
+        Assert.Equal(platform.Id, result.DeletedPlatformId);
+        Assert.Equal(0, result.AffectedItemCount);
+
+        var deleted = await repo.GetByIdAsync(platform.Id);
+        Assert.Null(deleted);
+    }
+
+    [Fact]
+    public async Task CustomPlatform_DeleteAsync_WithItems_UpdatesCustomPlatformId()
+    {
+        var repo = new CustomPlatformRepository(_connection);
+        var platform = await repo.CreateAsync("Test Platform");
+
+        // Insert item referencing this platform using the platform ID directly
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                INSERT INTO items (id, original_url, platform, normalized_url,
+                    import_date, modify_date, content_status, archive_status, media_status, custom_platform_id)
+                VALUES ('00000000-0000-0000-0000-000000000001', 'https://example.com', 'custom',
+                    'https://example.com', 1700000000, 1700000000, 'normal', 'pending', 'textOnly', $cpId)";
+            cmd.Parameters.AddWithValue("$cpId", platform.Id.ToString("D"));
+            cmd.ExecuteNonQuery();
+        }
+
+        // Verify item was inserted with custom_platform_id
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = "SELECT custom_platform_id FROM items WHERE id='00000000-0000-0000-0000-000000000001'";
+            var beforeDelete = cmd.ExecuteScalar()?.ToString();
+            Assert.NotNull(beforeDelete);
+            Assert.NotEmpty(beforeDelete!);
+        }
+
+        var result = await repo.DeleteAsync(platform.Id);
+
+        Assert.True(result.Success);
+        Assert.Equal(1, result.AffectedItemCount);
+
+        // Verify item's custom_platform_id is now NULL or empty
+        using (var cmd = _connection.CreateCommand())
+        {
+            cmd.CommandText = "SELECT custom_platform_id FROM items WHERE id='00000000-0000-0000-0000-000000000001'";
+            var afterDelete = cmd.ExecuteScalar();
+            // In SQLite, NULL and empty string are different
+            // The UPDATE SET custom_platform_id=NULL should set it to NULL
+            Assert.True(afterDelete == null || afterDelete?.ToString() == "",
+                "custom_platform_id should be NULL or empty after deletion");
+        }
+    }
+
+    [Fact]
+    public async Task CustomPlatform_DeleteAsync_NotFound_ReturnsNotFound()
+    {
+        var repo = new CustomPlatformRepository(_connection);
+        var result = await repo.DeleteAsync(Guid.NewGuid());
+
+        Assert.False(result.Success);
+        Assert.True(result.PlatformNotFound);
+    }
 }
