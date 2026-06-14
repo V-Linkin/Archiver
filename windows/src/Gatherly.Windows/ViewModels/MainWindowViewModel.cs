@@ -185,6 +185,9 @@ public partial class MainWindowViewModel : ObservableObject
         // Load home data and sidebar platforms on startup
         _ = Home.LoadCommand.ExecuteAsync(null);
         _ = LoadSidebarPlatformsAsync();
+
+        // 订阅导入成功回调，刷新 Sidebar
+        Home.OnImportSuccess = LoadSidebarPlatformsAsync;
     }
 
     /// <summary>
