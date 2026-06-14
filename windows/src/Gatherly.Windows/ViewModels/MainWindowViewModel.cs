@@ -64,6 +64,16 @@ public partial class MainWindowViewModel : ObservableObject
     public bool HasImages => ImageAssets.Count > 0;
     public bool HasVideos => VideoAssets.Count > 0;
 
+    /// <summary>
+    /// 回收站操作成功后的回调（由 MainWindowViewModel 订阅以刷新 Sidebar）
+    /// </summary>
+    public Func<Task>? OnTrashOperationSuccess { get; set; }
+
+    /// <summary>
+    /// 内容变更后的回调（刷新 Sidebar 和当前平台页）
+    /// </summary>
+    public Func<Task>? OnContentChanged { get; set; }
+
     partial void OnBackupImportStatusChanged(string? value)
     {
         OnPropertyChanged(nameof(HasBackupImportStatus));
@@ -187,7 +197,23 @@ public partial class MainWindowViewModel : ObservableObject
         _ = LoadSidebarPlatformsAsync();
 
         // 订阅导入成功回调，刷新 Sidebar
-        Home.OnImportSuccess = LoadSidebarPlatformsAsync;
+        Home.OnImportSuccess = async () =>
+        {
+            await LoadSidebarPlatformsAsync();
+            if (CurrentSection == "PlatformContent")
+                await ContentList.ReloadCurrentContentAsync();
+        };
+
+        // 订阅回收站操作成功回调，刷新 Sidebar
+        Trash.OnTrashOperationSuccess = LoadSidebarPlatformsAsync;
+
+        // 订阅内容变更回调，刷新 Sidebar 和平台页
+        OnContentChanged = async () =>
+        {
+            await LoadSidebarPlatformsAsync();
+            if (CurrentSection == "PlatformContent")
+                await ContentList.ReloadCurrentContentAsync();
+        };
     }
 
     /// <summary>
@@ -351,6 +377,7 @@ public partial class MainWindowViewModel : ObservableObject
             await _itemService.TrashItemAsync(SelectedItem);
 
             // Navigate back
+            var previousSection = PreviousSection;
             CurrentSection = PreviousSection;
             SelectedItem = null;
             Home.SelectedItem = null;
@@ -360,6 +387,11 @@ public partial class MainWindowViewModel : ObservableObject
 
             await Home.LoadCommand.ExecuteAsync(null);
             await Trash.LoadCommand.ExecuteAsync(null);
+            await LoadSidebarPlatformsAsync();
+
+            // 刷新当前平台页内容
+            if (OnContentChanged != null)
+                await OnContentChanged();
         }
         catch (Exception ex)
         {
