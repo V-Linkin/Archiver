@@ -103,6 +103,7 @@
 | `itemID` | `item_id` |
 | `createdAt` | `created_at` |
 | `completedAt` | `completed_at` |
+| `updatedAt` | `updated_at` |
 | `retryCount` | `retry_count` |
 
 ### TrashRecord → trash_records
@@ -160,6 +161,7 @@
 | CustomPlatform | `createdAt` | 创建时间，NOT NULL |
 | ImportTask | `createdAt` | 创建时间，NOT NULL |
 | ImportTask | `completedAt` | 完成时间，可为 NULL |
+| ImportTask | `updatedAt` | 最后更新时间，可为 NULL。用于 stale task 检测（10 分钟窗口） |
 | TrashRecord | `deletedAt` | 删除时间，NOT NULL |
 | TrashRecord | `autoDeleteAt` | 自动删除时间，NOT NULL |
 

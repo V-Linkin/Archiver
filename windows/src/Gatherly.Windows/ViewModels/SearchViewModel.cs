@@ -17,6 +17,9 @@ public partial class SearchViewModel : ViewModelBase
     private readonly MediaRepository _mediaRepo;
     private readonly CustomPlatformRepository _customPlatformRepo;
 
+    private CancellationTokenSource? _searchCts;
+    private int _searchGeneration;
+
     [ObservableProperty]
     private string _query = string.Empty;
 
@@ -34,6 +37,22 @@ public partial class SearchViewModel : ViewModelBase
         _customPlatformRepo = customPlatformRepo;
     }
 
+    /// <summary>
+    /// 重置搜索状态（离开搜索页时调用）
+    /// </summary>
+    public void Reset()
+    {
+        _searchGeneration++;
+        _searchCts?.Cancel();
+        _searchCts = null;
+        Query = string.Empty;
+        Results.Clear();
+        SelectedItem = null;
+        ClearError();
+        IsBusy = false;
+        OnPropertyChanged(nameof(HasResults));
+    }
+
     [RelayCommand]
     public async Task SearchAsync()
     {
@@ -47,12 +66,21 @@ public partial class SearchViewModel : ViewModelBase
             return;
         }
 
+        // Cancel any previous search
+        _searchCts?.Cancel();
+        _searchCts = new CancellationTokenSource();
+        var currentGeneration = ++_searchGeneration;
+
         IsBusy = true;
         ClearError();
 
         try
         {
             var items = await _searchService.SearchAsync(trimmed);
+
+            // Check if this search is still current
+            if (currentGeneration != _searchGeneration)
+                return;
 
             // Fill custom platform names
             var customPlatforms = await _customPlatformRepo.GetAllAsync();
@@ -88,6 +116,10 @@ public partial class SearchViewModel : ViewModelBase
                 Results.Add(item);
             }
             OnPropertyChanged(nameof(HasResults));
+        }
+        catch (OperationCanceledException)
+        {
+            // Search was cancelled, don't update results
         }
         catch (Exception ex)
         {

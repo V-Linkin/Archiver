@@ -51,6 +51,11 @@
       "format": "date-time",
       "description": "完成时间，ISO 8601。SQLite 存储为 REAL (Unix timestamp seconds)"
     },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "最后更新时间，ISO 8601。SQLite 存储为 REAL (Unix timestamp seconds)。用于 stale task 检测"
+    },
     "retryCount": {
       "type": "integer",
       "description": "重试次数",

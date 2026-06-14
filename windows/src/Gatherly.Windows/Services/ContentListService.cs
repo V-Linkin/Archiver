@@ -51,6 +51,28 @@ public class ContentListService
     }
 
     /// <summary>
+    /// 获取合并平台的 items（标准 platform + custom_platforms，去重）
+    /// </summary>
+    public async Task<List<Item>> GetMergedPlatformItemsAsync(Platform platform, List<Guid> customPlatformIds, int limit = 100)
+    {
+        return await _itemRepo.GetByPlatformWithCustomAsync(platform, customPlatformIds, limit);
+    }
+
+    /// <summary>
+    /// 获取合并平台的顶层文件夹（标准 platform + custom_platforms）
+    /// </summary>
+    public async Task<List<Folder>> GetMergedPlatformFoldersAsync(Platform platform, List<Guid> customPlatformIds)
+    {
+        var standardFolders = await _folderRepo.GetByPlatformAsync(platform);
+        var customFolders = new List<Folder>();
+        foreach (var cpId in customPlatformIds)
+        {
+            customFolders.AddRange(await _folderRepo.GetByCustomPlatformIdAsync(cpId));
+        }
+        return standardFolders.Concat(customFolders).ToList();
+    }
+
+    /// <summary>
     /// 获取指定自定义平台的 items
     /// </summary>
     public async Task<List<Item>> GetCustomPlatformItemsAsync(Guid customPlatformId)

@@ -53,4 +53,12 @@ public class MediaRepository
         cmd.Parameters.AddWithValue("$createdAt", asset.CreatedAt.ToUnixTimeSeconds());
         await cmd.ExecuteNonQueryAsync();
     }
+
+    public async Task DeleteByItemIdAsync(Guid itemId)
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "DELETE FROM media_assets WHERE item_id COLLATE NOCASE = $id";
+        cmd.Parameters.AddWithValue("$id", itemId.ToString("D"));
+        await cmd.ExecuteNonQueryAsync();
+    }
 }

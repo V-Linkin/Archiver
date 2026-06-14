@@ -30,6 +30,11 @@ public partial class HomeViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isImporting;
 
+    /// <summary>
+    /// 导入成功后的回调（由 MainWindowViewModel 订阅以刷新 Sidebar）
+    /// </summary>
+    public Func<Task>? OnImportSuccess { get; set; }
+
     public bool HasItems => RecentItems.Count > 0;
     public bool HasPlatforms => PlatformEntries.Count > 0;
 
@@ -53,9 +58,16 @@ public partial class HomeViewModel : ViewModelBase
             if (result.Status != Services.Import.ImportStatus.EmptyInput)
                 ImportUrl = "";
 
-            // 导入成功后刷新首页列表
-            if (result.Status == Services.Import.ImportStatus.SuccessImport)
+            // 导入成功或 DuplicateExistingItem 时刷新首页列表
+            if (result.Status == Services.Import.ImportStatus.SuccessImport
+                || result.Status == Services.Import.ImportStatus.DuplicateExistingItem)
+            {
                 await LoadAsync();
+
+                // 通知 MainWindowViewModel 刷新 Sidebar
+                if (OnImportSuccess != null)
+                    await OnImportSuccess();
+            }
         }
         catch (Exception ex)
         {

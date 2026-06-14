@@ -54,8 +54,25 @@ public partial class MainWindowViewModel : ObservableObject
     /// </summary>
     public ObservableCollection<MediaAssetDisplay> VideoAssets { get; } = new();
 
+    /// <summary>
+    /// 正文中的链接列表
+    /// </summary>
+    public ObservableCollection<ContentLinkDisplay> DisplayBodyLinks { get; } = new();
+
+    public bool HasDisplayBodyLinks => DisplayBodyLinks.Count > 0;
+
     public bool HasImages => ImageAssets.Count > 0;
     public bool HasVideos => VideoAssets.Count > 0;
+
+    /// <summary>
+    /// 回收站操作成功后的回调（由 MainWindowViewModel 订阅以刷新 Sidebar）
+    /// </summary>
+    public Func<Task>? OnTrashOperationSuccess { get; set; }
+
+    /// <summary>
+    /// 内容变更后的回调（刷新 Sidebar 和当前平台页）
+    /// </summary>
+    public Func<Task>? OnContentChanged { get; set; }
 
     partial void OnBackupImportStatusChanged(string? value)
     {
@@ -84,8 +101,28 @@ public partial class MainWindowViewModel : ObservableObject
         EditableRemark = value?.Remark ?? string.Empty;
         IsEditingRemark = false;
 
+        // Parse body links
+        ParseBodyLinks(value?.Body);
+
         // Load media assets for the selected item
         _ = LoadMediaAssetsAsync(value?.Id);
+    }
+
+    /// <summary>
+    /// 解析正文中的链接
+    /// </summary>
+    private void ParseBodyLinks(string? body)
+    {
+        DisplayBodyLinks.Clear();
+        if (string.IsNullOrWhiteSpace(body)) return;
+
+        var segments = ContentParser.ParseSegments(body);
+        foreach (var segment in segments)
+        {
+            if (segment.IsLink && segment.Url != null)
+                DisplayBodyLinks.Add(new ContentLinkDisplay(segment.Url));
+        }
+        OnPropertyChanged(nameof(HasDisplayBodyLinks));
     }
 
     public bool HasSelectedItem => SelectedItem != null;
@@ -126,7 +163,7 @@ public partial class MainWindowViewModel : ObservableObject
         var mediaRepo = new MediaRepository(connection);
         var importTaskRepo = new ImportTaskRepository(connection);
 
-        _itemService = new ItemService(itemRepo, trashRepo, folderRepo);
+        _itemService = new ItemService(itemRepo, trashRepo, folderRepo, mediaRepo, connection);
         _backupImportService = new BackupImportService();
         _mediaRepo = mediaRepo;
 
@@ -158,6 +195,25 @@ public partial class MainWindowViewModel : ObservableObject
         // Load home data and sidebar platforms on startup
         _ = Home.LoadCommand.ExecuteAsync(null);
         _ = LoadSidebarPlatformsAsync();
+
+        // 订阅导入成功回调，刷新 Sidebar
+        Home.OnImportSuccess = async () =>
+        {
+            await LoadSidebarPlatformsAsync();
+            if (CurrentSection == "PlatformContent")
+                await ContentList.ReloadCurrentContentAsync();
+        };
+
+        // 订阅回收站操作成功回调，刷新 Sidebar
+        Trash.OnTrashOperationSuccess = LoadSidebarPlatformsAsync;
+
+        // 订阅内容变更回调，刷新 Sidebar 和平台页
+        OnContentChanged = async () =>
+        {
+            await LoadSidebarPlatformsAsync();
+            if (CurrentSection == "PlatformContent")
+                await ContentList.ReloadCurrentContentAsync();
+        };
     }
 
     /// <summary>
@@ -211,6 +267,7 @@ public partial class MainWindowViewModel : ObservableObject
     private async Task ShowHomeAsync()
     {
         CurrentSection = "Home";
+        Search.Reset();
         await Home.LoadCommand.ExecuteAsync(null);
     }
 
@@ -249,6 +306,30 @@ public partial class MainWindowViewModel : ObservableObject
         PreviousSection = CurrentSection;
         CurrentSection = "PlatformContent";
         await ContentList.LoadCustomPlatformAsync(platformId);
+    }
+
+    /// <summary>
+    /// 进入标准平台内容页
+    /// </summary>
+    [RelayCommand]
+    private async Task ShowStandardPlatformAsync(Platform platform)
+    {
+        PlatformTitle = platform.GetDisplayName();
+        PreviousSection = CurrentSection;
+        CurrentSection = "PlatformContent";
+        await ContentList.LoadPlatformAsync(platform);
+    }
+
+    /// <summary>
+    /// 进入合并平台内容页（标准平台 + macOS 备份的自定义平台）
+    /// </summary>
+    [RelayCommand]
+    private async Task ShowMergedPlatformAsync(PlatformEntryDisplay entry)
+    {
+        PlatformTitle = entry.Name;
+        PreviousSection = CurrentSection;
+        CurrentSection = "PlatformContent";
+        await ContentList.LoadMergedPlatformAsync(entry.StandardPlatform!.Value, entry.CustomPlatformIds);
     }
 
     /// <summary>
@@ -297,6 +378,7 @@ public partial class MainWindowViewModel : ObservableObject
             await _itemService.TrashItemAsync(SelectedItem);
 
             // Navigate back
+            var previousSection = PreviousSection;
             CurrentSection = PreviousSection;
             SelectedItem = null;
             Home.SelectedItem = null;
@@ -306,6 +388,11 @@ public partial class MainWindowViewModel : ObservableObject
 
             await Home.LoadCommand.ExecuteAsync(null);
             await Trash.LoadCommand.ExecuteAsync(null);
+            await LoadSidebarPlatformsAsync();
+
+            // 刷新当前平台页内容
+            if (OnContentChanged != null)
+                await OnContentChanged();
         }
         catch (Exception ex)
         {
@@ -466,6 +553,30 @@ public partial class MainWindowViewModel : ObservableObject
         {
             // 打开失败不影响主流程
         }
+    }
+
+    /// <summary>
+    /// 外部链接服务
+    /// </summary>
+    private readonly IExternalLinkService _externalLinkService = new ExternalLinkService();
+
+    /// <summary>
+    /// 打开外部链接
+    /// </summary>
+    [RelayCommand]
+    private void OpenExternalLink(string? url)
+    {
+        _externalLinkService.Open(url);
+    }
+
+    /// <summary>
+    /// 打开原始链接
+    /// </summary>
+    [RelayCommand]
+    private void OpenOriginalUrl()
+    {
+        if (SelectedItem?.OriginalUrl != null)
+            _externalLinkService.Open(SelectedItem.OriginalUrl);
     }
 }
 

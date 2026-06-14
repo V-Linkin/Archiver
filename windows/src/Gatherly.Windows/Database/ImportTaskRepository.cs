@@ -25,6 +25,23 @@ public class ImportTaskRepository
         return await reader.ReadAsync() ? ReadImportTask(reader) : null;
     }
 
+    /// <summary>
+    /// 获取指定 URL 的所有导入任务
+    /// </summary>
+    public async Task<List<ImportTask>> GetAllByNormalizedUrlAsync(string normalizedUrl)
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "SELECT * FROM import_tasks WHERE normalized_url=$url ORDER BY updated_at DESC";
+        cmd.Parameters.AddWithValue("$url", normalizedUrl);
+        using var reader = await cmd.ExecuteReaderAsync();
+        var tasks = new List<ImportTask>();
+        while (await reader.ReadAsync())
+        {
+            tasks.Add(ReadImportTask(reader));
+        }
+        return tasks;
+    }
+
     public async Task<ImportTask?> GetByOriginalUrlAsync(string originalUrl)
     {
         using var cmd = _connection.CreateCommand();
@@ -38,8 +55,8 @@ public class ImportTaskRepository
     {
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = @"
-            INSERT INTO import_tasks (id, original_url, normalized_url, platform, status, progress, error_message, item_id, created_at, completed_at, retry_count)
-            VALUES ($id, $originalUrl, $normalizedUrl, $platform, $status, $progress, $errorMessage, $itemId, $createdAt, $completedAt, $retryCount)";
+            INSERT INTO import_tasks (id, original_url, normalized_url, platform, status, progress, error_message, item_id, created_at, completed_at, updated_at, retry_count)
+            VALUES ($id, $originalUrl, $normalizedUrl, $platform, $status, $progress, $errorMessage, $itemId, $createdAt, $completedAt, $updatedAt, $retryCount)";
         cmd.Parameters.AddWithValue("$id", task.Id.ToString("D"));
         cmd.Parameters.AddWithValue("$originalUrl", task.OriginalUrl);
         cmd.Parameters.AddWithValue("$normalizedUrl", task.NormalizedUrl);
@@ -50,6 +67,7 @@ public class ImportTaskRepository
         cmd.Parameters.AddWithValue("$itemId", task.ItemId?.ToString() ?? (object)DBNull.Value);
         cmd.Parameters.AddWithValue("$createdAt", task.CreatedAt.ToUnixTimeSeconds());
         cmd.Parameters.AddWithValue("$completedAt", task.CompletedAt?.ToUnixTimeSeconds() ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("$updatedAt", task.UpdatedAt.ToUnixTimeSeconds());
         cmd.Parameters.AddWithValue("$retryCount", task.RetryCount);
         await cmd.ExecuteNonQueryAsync();
         return task;
@@ -58,21 +76,23 @@ public class ImportTaskRepository
     public async Task UpdateStatusAsync(Guid taskId, Models.Enums.TaskStatus status, string? errorMessage = null)
     {
         using var cmd = _connection.CreateCommand();
-        cmd.CommandText = "UPDATE import_tasks SET status=$status, error_message=$errorMessage WHERE id COLLATE NOCASE=$id";
+        cmd.CommandText = "UPDATE import_tasks SET status=$status, error_message=$errorMessage, updated_at=$updatedAt WHERE id COLLATE NOCASE=$id";
         cmd.Parameters.AddWithValue("$id", taskId.ToString("D"));
         cmd.Parameters.AddWithValue("$status", status.ToRawValue());
         cmd.Parameters.AddWithValue("$errorMessage", (object?)errorMessage ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$updatedAt", DateTimeOffset.UtcNow.ToUnixTimeSeconds());
         await cmd.ExecuteNonQueryAsync();
     }
 
     public async Task UpdateCompletedAsync(Guid taskId, Guid itemId)
     {
         using var cmd = _connection.CreateCommand();
-        cmd.CommandText = "UPDATE import_tasks SET status=$status, item_id=$itemId, completed_at=$completedAt WHERE id COLLATE NOCASE=$id";
+        cmd.CommandText = "UPDATE import_tasks SET status=$status, item_id=$itemId, completed_at=$completedAt, updated_at=$updatedAt WHERE id COLLATE NOCASE=$id";
         cmd.Parameters.AddWithValue("$id", taskId.ToString("D"));
         cmd.Parameters.AddWithValue("$status", Models.Enums.TaskStatus.completed.ToRawValue());
         cmd.Parameters.AddWithValue("$itemId", itemId.ToString("D"));
         cmd.Parameters.AddWithValue("$completedAt", DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+        cmd.Parameters.AddWithValue("$updatedAt", DateTimeOffset.UtcNow.ToUnixTimeSeconds());
         await cmd.ExecuteNonQueryAsync();
     }
 
@@ -98,6 +118,9 @@ public class ImportTaskRepository
             CompletedAt = reader.IsDBNull(reader.GetOrdinal("completed_at"))
                 ? null
                 : DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64(reader.GetOrdinal("completed_at"))),
+            UpdatedAt = reader.IsDBNull(reader.GetOrdinal("updated_at"))
+                ? DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64(reader.GetOrdinal("created_at")))
+                : DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64(reader.GetOrdinal("updated_at"))),
             RetryCount = reader.GetInt32(reader.GetOrdinal("retry_count"))
         };
     }

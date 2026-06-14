@@ -21,6 +21,11 @@ public partial class TrashViewModel : ViewModelBase
 
     public bool HasSelectedTrashItem => SelectedItem != null;
 
+    /// <summary>
+    /// 回收站操作成功后的回调（由 MainWindowViewModel 订阅以刷新 Sidebar）
+    /// </summary>
+    public Func<Task>? OnTrashOperationSuccess { get; set; }
+
     partial void OnSelectedItemChanged(Item? value)
     {
         OnPropertyChanged(nameof(HasSelectedTrashItem));
@@ -98,6 +103,9 @@ public partial class TrashViewModel : ViewModelBase
             await _itemService.RestoreItemAsync(SelectedItem);
             SelectedItem = null;
             await LoadAsync();
+
+            if (OnTrashOperationSuccess != null)
+                await OnTrashOperationSuccess();
         }
         catch (Exception ex)
         {
@@ -115,6 +123,9 @@ public partial class TrashViewModel : ViewModelBase
             await _itemService.PermanentlyDeleteItemAsync(SelectedItem);
             SelectedItem = null;
             await LoadAsync();
+
+            if (OnTrashOperationSuccess != null)
+                await OnTrashOperationSuccess();
         }
         catch (Exception ex)
         {

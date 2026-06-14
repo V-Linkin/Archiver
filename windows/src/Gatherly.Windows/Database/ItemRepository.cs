@@ -45,6 +45,18 @@ public class ItemRepository
     }
 
     /// <summary>
+    /// 获取 item（包括回收站中的）
+    /// </summary>
+    public async Task<Item?> GetByNormalizedUrlIncludingTrashedAsync(string normalizedUrl)
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "SELECT * FROM items WHERE normalized_url=$url LIMIT 1";
+        cmd.Parameters.AddWithValue("$url", normalizedUrl);
+        using var reader = await cmd.ExecuteReaderAsync();
+        return await reader.ReadAsync() ? SqliteRowMapper.ReadItem(reader) : null;
+    }
+
+    /// <summary>
     /// 获取 item 在数据库中的原始 id 字符串（保留大小写）
     /// </summary>
     public async Task<string?> GetRawIdAsync(Guid id)
@@ -62,6 +74,40 @@ public class ItemRepository
         cmd.Parameters.AddWithValue("$platform", platform.ToRawValue());
         cmd.Parameters.AddWithValue("$limit", limit);
         return await ReadItemsAsync(cmd);
+    }
+
+    /// <summary>
+    /// 获取平台 items，同时包含标准 platform 和匹配名称的 custom_platforms
+    /// 用于合并显示：platform=youtube + custom_platforms.name LIKE '%youtube%' 等
+    /// </summary>
+    public async Task<List<Item>> GetByPlatformWithCustomAsync(Platform platform, IEnumerable<Guid> customPlatformIds, int limit = 100)
+    {
+        var ids = customPlatformIds.ToList();
+        using var cmd = _connection.CreateCommand();
+
+        if (ids.Count > 0)
+        {
+            var idConditions = string.Join(" OR ", ids.Select((_, i) => $"custom_platform_id COLLATE NOCASE = $cp{i}"));
+            cmd.CommandText = $@"
+                SELECT * FROM items
+                WHERE deleted_at IS NULL
+                  AND (platform=$platform OR {idConditions})
+                ORDER BY import_date DESC
+                LIMIT $limit";
+            cmd.Parameters.AddWithValue("$platform", platform.ToRawValue());
+            cmd.Parameters.AddWithValue("$limit", limit);
+            for (int i = 0; i < ids.Count; i++)
+                cmd.Parameters.AddWithValue($"$cp{i}", ids[i].ToString("D"));
+        }
+        else
+        {
+            cmd.CommandText = "SELECT * FROM items WHERE deleted_at IS NULL AND platform=$platform ORDER BY import_date DESC LIMIT $limit";
+            cmd.Parameters.AddWithValue("$platform", platform.ToRawValue());
+            cmd.Parameters.AddWithValue("$limit", limit);
+        }
+
+        var result = await ReadItemsAsync(cmd);
+        return result;
     }
 
     public async Task<List<Item>> GetByFolderIdAsync(Guid folderId, int limit = 100)
@@ -84,8 +130,14 @@ public class ItemRepository
     public async Task<List<Item>> GetUncategorizedItemsAsync()
     {
         using var cmd = _connection.CreateCommand();
-        cmd.CommandText = "SELECT * FROM items WHERE deleted_at IS NULL AND platform=$platform AND custom_platform_id IS NULL ORDER BY import_date DESC";
-        cmd.Parameters.AddWithValue("$platform", Platform.custom.ToRawValue());
+        // 未分类 = 没有显式用户分类 AND 没有被可见平台入口认领
+        // 排除: custom_platform_id 非空（有显式分类）
+        // 排除: platform=youtube/bilibili（被 merged 平台认领）
+        cmd.CommandText = @"SELECT * FROM items 
+            WHERE deleted_at IS NULL 
+              AND custom_platform_id IS NULL 
+              AND lower(platform) NOT IN ('youtube', 'bilibili')
+            ORDER BY import_date DESC";
         return await ReadItemsAsync(cmd);
     }
 
@@ -97,7 +149,7 @@ public class ItemRepository
     }
 
     /// <summary>
-    /// 插入新 item
+    /// 插入新 item 并同步 FTS
     /// </summary>
     public async Task InsertAsync(Item item)
     {
@@ -134,6 +186,16 @@ public class ItemRepository
         cmd.Parameters.AddWithValue("$deletedAt", item.DeletedAt?.ToUnixTimeSeconds() ?? (object)DBNull.Value);
         cmd.Parameters.AddWithValue("$customPlatformId", item.CustomPlatformId?.ToString() ?? (object)DBNull.Value);
         await cmd.ExecuteNonQueryAsync();
+
+        // 同步 FTS — 使用 last_insert_rowid() 获取刚插入的 rowid
+        using var ftsCmd = _connection.CreateCommand();
+        ftsCmd.CommandText = "SELECT last_insert_rowid()";
+        var rowid = (long)(await ftsCmd.ExecuteScalarAsync()!);
+        ftsCmd.CommandText = "INSERT INTO items_fts(rowid, title, body) VALUES ($rowid, $title, $body)";
+        ftsCmd.Parameters.AddWithValue("$rowid", rowid);
+        ftsCmd.Parameters.AddWithValue("$title", (object?)item.Title ?? DBNull.Value);
+        ftsCmd.Parameters.AddWithValue("$body", (object?)item.Body ?? DBNull.Value);
+        await ftsCmd.ExecuteNonQueryAsync();
     }
 
     // ==================== Write ====================

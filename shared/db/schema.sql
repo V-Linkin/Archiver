@@ -109,11 +109,13 @@ CREATE TABLE IF NOT EXISTS import_tasks (
     item_id TEXT REFERENCES items(id),
     created_at REAL NOT NULL,
     completed_at REAL,
+    updated_at REAL,
     retry_count INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON import_tasks(status);
 CREATE INDEX IF NOT EXISTS idx_tasks_created ON import_tasks(created_at);
+CREATE INDEX IF NOT EXISTS idx_tasks_updated ON import_tasks(updated_at);
 
 -- ============================================================
 -- custom_platforms — 自定义平台

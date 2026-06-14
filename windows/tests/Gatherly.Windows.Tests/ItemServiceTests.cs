@@ -67,7 +67,7 @@ public class ItemServiceTests : IDisposable
         var service = new ItemService(
             new ItemRepository(_connection),
             new TrashRepository(_connection),
-            new FolderRepository(_connection));
+            new FolderRepository(_connection), new MediaRepository(_connection), _connection);
 
         var item = (await new ItemRepository(_connection).GetByIdAsync(
             Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
@@ -86,7 +86,7 @@ public class ItemServiceTests : IDisposable
         var service = new ItemService(
             new ItemRepository(_connection),
             new TrashRepository(_connection),
-            new FolderRepository(_connection));
+            new FolderRepository(_connection), new MediaRepository(_connection), _connection);
 
         var item = (await new ItemRepository(_connection).GetByIdAsync(
             Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
@@ -105,7 +105,7 @@ public class ItemServiceTests : IDisposable
         var service = new ItemService(
             new ItemRepository(_connection),
             new TrashRepository(_connection),
-            new FolderRepository(_connection));
+            new FolderRepository(_connection), new MediaRepository(_connection), _connection);
 
         var item = (await new ItemRepository(_connection).GetByIdAsync(
             Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
@@ -125,7 +125,7 @@ public class ItemServiceTests : IDisposable
         var service = new ItemService(
             new ItemRepository(_connection),
             new TrashRepository(_connection),
-            new FolderRepository(_connection));
+            new FolderRepository(_connection), new MediaRepository(_connection), _connection);
 
         var item = (await new ItemRepository(_connection).GetByIdAsync(
             Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
@@ -144,7 +144,7 @@ public class ItemServiceTests : IDisposable
         var service = new ItemService(
             new ItemRepository(_connection),
             new TrashRepository(_connection),
-            new FolderRepository(_connection));
+            new FolderRepository(_connection), new MediaRepository(_connection), _connection);
 
         var item = (await new ItemRepository(_connection).GetByIdAsync(
             Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
@@ -163,7 +163,7 @@ public class ItemServiceTests : IDisposable
         var service = new ItemService(
             new ItemRepository(_connection),
             new TrashRepository(_connection),
-            new FolderRepository(_connection));
+            new FolderRepository(_connection), new MediaRepository(_connection), _connection);
 
         var item = (await new ItemRepository(_connection).GetByIdAsync(
             Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
@@ -184,7 +184,7 @@ public class ItemServiceTests : IDisposable
         var service = new ItemService(
             new ItemRepository(_connection),
             new TrashRepository(_connection),
-            new FolderRepository(_connection));
+            new FolderRepository(_connection), new MediaRepository(_connection), _connection);
 
         var item = (await new ItemRepository(_connection).GetByIdAsync(
             Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
@@ -204,7 +204,7 @@ public class ItemServiceTests : IDisposable
         var service = new ItemService(
             new ItemRepository(_connection),
             new TrashRepository(_connection),
-            new FolderRepository(_connection));
+            new FolderRepository(_connection), new MediaRepository(_connection), _connection);
 
         var item = (await new ItemRepository(_connection).GetByIdAsync(
             Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
@@ -224,7 +224,7 @@ public class ItemServiceTests : IDisposable
         var service = new ItemService(
             new ItemRepository(_connection),
             new TrashRepository(_connection),
-            new FolderRepository(_connection));
+            new FolderRepository(_connection), new MediaRepository(_connection), _connection);
 
         var item = (await new ItemRepository(_connection).GetByIdAsync(
             Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
@@ -244,7 +244,7 @@ public class ItemServiceTests : IDisposable
         var service = new ItemService(
             new ItemRepository(_connection),
             new TrashRepository(_connection),
-            new FolderRepository(_connection));
+            new FolderRepository(_connection), new MediaRepository(_connection), _connection);
 
         var item1 = (await new ItemRepository(_connection).GetByIdAsync(
             Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
@@ -318,7 +318,7 @@ public class ItemServiceTests : IDisposable
         var service = new ItemService(
             new ItemRepository(_connection),
             new TrashRepository(_connection),
-            new FolderRepository(_connection));
+            new FolderRepository(_connection), new MediaRepository(_connection), _connection);
 
         var item = (await new ItemRepository(_connection).GetByIdAsync(
             Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
@@ -339,7 +339,7 @@ public class ItemServiceTests : IDisposable
         var service = new ItemService(
             new ItemRepository(_connection),
             new TrashRepository(_connection),
-            new FolderRepository(_connection));
+            new FolderRepository(_connection), new MediaRepository(_connection), _connection);
 
         var item = (await new ItemRepository(_connection).GetByIdAsync(
             Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
@@ -359,7 +359,7 @@ public class ItemServiceTests : IDisposable
         var service = new ItemService(
             new ItemRepository(_connection),
             new TrashRepository(_connection),
-            new FolderRepository(_connection));
+            new FolderRepository(_connection), new MediaRepository(_connection), _connection);
 
         var item = (await new ItemRepository(_connection).GetByIdAsync(
             Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
@@ -376,7 +376,7 @@ public class ItemServiceTests : IDisposable
         var service = new ItemService(
             new ItemRepository(_connection),
             new TrashRepository(_connection),
-            new FolderRepository(_connection));
+            new FolderRepository(_connection), new MediaRepository(_connection), _connection);
 
         var item = (await new ItemRepository(_connection).GetByIdAsync(
             Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
@@ -396,7 +396,7 @@ public class ItemServiceTests : IDisposable
         var service = new ItemService(
             new ItemRepository(_connection),
             new TrashRepository(_connection),
-            new FolderRepository(_connection));
+            new FolderRepository(_connection), new MediaRepository(_connection), _connection);
 
         var item = (await new ItemRepository(_connection).GetByIdAsync(
             Guid.Parse("00000000-0000-0000-0000-000000000001")))!;

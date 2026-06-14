@@ -23,6 +23,17 @@ public partial class ContentListViewModel : ViewModelBase
     [ObservableProperty]
     private Item? _selectedItem;
 
+    /// <summary>
+    /// 当前查看的平台类型
+    /// </summary>
+    private enum PlatformViewType { None, Standard, Merged, Custom, Uncategorized, Folder }
+
+    private PlatformViewType _currentViewType = PlatformViewType.None;
+    private Platform? _currentPlatform;
+    private List<Guid>? _currentCustomPlatformIds;
+    private Guid? _currentCustomPlatformId;
+    private Guid? _currentFolderId;
+
     public bool HasItems => Items.Count > 0;
 
     public ContentListViewModel(ContentListService contentService, MediaRepository mediaRepo, CustomPlatformRepository customPlatformRepo)
@@ -41,6 +52,12 @@ public partial class ContentListViewModel : ViewModelBase
 
         try
         {
+            _currentViewType = PlatformViewType.Standard;
+            _currentPlatform = platform;
+            _currentCustomPlatformIds = null;
+            _currentCustomPlatformId = null;
+            _currentFolderId = null;
+
             var items = await _contentService.GetPlatformItemsAsync(platform);
             var folders = await _contentService.GetPlatformFoldersAsync(platform);
 
@@ -88,6 +105,51 @@ public partial class ContentListViewModel : ViewModelBase
         }
     }
 
+    public async Task LoadMergedPlatformAsync(Platform platform, List<Guid> customPlatformIds)
+    {
+        if (IsBusy) return;
+
+        IsBusy = true;
+        ClearError();
+
+        try
+        {
+            _currentViewType = PlatformViewType.Merged;
+            _currentPlatform = platform;
+            _currentCustomPlatformIds = customPlatformIds;
+            _currentCustomPlatformId = null;
+            _currentFolderId = null;
+
+            var items = await _contentService.GetMergedPlatformItemsAsync(platform, customPlatformIds);
+            var folders = await _contentService.GetMergedPlatformFoldersAsync(platform, customPlatformIds);
+
+            await FillCustomPlatformNamesAsync(items);
+
+            var imagePaths = await LoadFirstImagePathsAsync(items);
+
+            Items.Clear();
+            foreach (var item in items)
+            {
+                if (imagePaths.TryGetValue(item.Id, out var path))
+                    item.FirstImagePath = path;
+                Items.Add(item);
+            }
+
+            Folders.Clear();
+            foreach (var folder in folders) Folders.Add(folder);
+
+            OnPropertyChanged(nameof(HasItems));
+        }
+        catch (Exception ex)
+        {
+            SetError(ex.Message);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
     public async Task LoadCustomPlatformAsync(Guid customPlatformId)
     {
         if (IsBusy) return;
@@ -97,6 +159,11 @@ public partial class ContentListViewModel : ViewModelBase
 
         try
         {
+            _currentViewType = PlatformViewType.Custom;
+            _currentPlatform = null;
+            _currentCustomPlatformIds = null;
+            _currentCustomPlatformId = customPlatformId;
+            _currentFolderId = null;
             var items = await _contentService.GetCustomPlatformItemsAsync(customPlatformId);
             var folders = await _contentService.GetCustomPlatformFoldersAsync(customPlatformId);
 
@@ -138,6 +205,11 @@ public partial class ContentListViewModel : ViewModelBase
 
         try
         {
+            _currentViewType = PlatformViewType.Uncategorized;
+            _currentPlatform = null;
+            _currentCustomPlatformIds = null;
+            _currentCustomPlatformId = null;
+            _currentFolderId = null;
             var items = await _contentService.GetUncategorizedItemsAsync();
             var folders = await _contentService.GetUncategorizedFoldersAsync();
 
@@ -199,6 +271,28 @@ public partial class ContentListViewModel : ViewModelBase
                 if (platformDict.TryGetValue(item.CustomPlatformId.Value, out var name))
                     item.CustomPlatformName = name;
             }
+        }
+    }
+
+    /// <summary>
+    /// 重新加载当前查看的内容（删除/导入后调用）
+    /// </summary>
+    public async Task ReloadCurrentContentAsync()
+    {
+        switch (_currentViewType)
+        {
+            case PlatformViewType.Standard when _currentPlatform.HasValue:
+                await LoadPlatformAsync(_currentPlatform.Value);
+                break;
+            case PlatformViewType.Merged when _currentPlatform.HasValue && _currentCustomPlatformIds != null:
+                await LoadMergedPlatformAsync(_currentPlatform.Value, _currentCustomPlatformIds);
+                break;
+            case PlatformViewType.Custom when _currentCustomPlatformId.HasValue:
+                await LoadCustomPlatformAsync(_currentCustomPlatformId.Value);
+                break;
+            case PlatformViewType.Uncategorized:
+                await LoadUncategorizedAsync();
+                break;
         }
     }
 }

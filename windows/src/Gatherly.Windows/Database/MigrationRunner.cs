@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text.RegularExpressions;
 using Microsoft.Data.Sqlite;
 
 namespace Gatherly.Windows.Database;
@@ -16,7 +17,8 @@ public static class MigrationRunner
     private static readonly string[] MigrationFiles = new[]
     {
         "v1_create_tables.sql",
-        "v2_fts.sql"
+        "v2_fts.sql",
+        "v3_import_tasks_updated_at.sql"
     };
 
     /// <summary>
@@ -46,8 +48,41 @@ public static class MigrationRunner
 
         var sql = File.ReadAllText(migrationPath);
         
-        using var command = connection.CreateCommand();
-        command.CommandText = sql;
-        command.ExecuteNonQuery();
+        // Split SQL into individual statements and execute each separately
+        // This ensures that if one statement fails (e.g., duplicate column),
+        // subsequent statements can still execute
+        var statements = SplitSqlStatements(sql);
+        
+        foreach (var statement in statements)
+        {
+            if (string.IsNullOrWhiteSpace(statement))
+                continue;
+                
+            try
+            {
+                using var command = connection.CreateCommand();
+                command.CommandText = statement;
+                command.ExecuteNonQuery();
+            }
+            catch (SqliteException ex) when (ex.Message.Contains("duplicate column"))
+            {
+                // Column already exists, safe to ignore this specific statement
+                // Continue executing subsequent statements (UPDATE, CREATE INDEX)
+            }
+        }
+    }
+
+    /// <summary>
+    /// Split SQL file into individual statements
+    /// </summary>
+    private static string[] SplitSqlStatements(string sql)
+    {
+        // Remove SQL comments
+        var cleaned = Regex.Replace(sql, @"--[^\r\n]*", "");
+        
+        // Split by semicolons
+        var statements = cleaned.Split(';', StringSplitOptions.RemoveEmptyEntries);
+        
+        return statements;
     }
 }
