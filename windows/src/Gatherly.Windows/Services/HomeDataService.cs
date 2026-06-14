@@ -172,8 +172,9 @@ public class HomeDataService
             }
             else
             {
-                // GitHub 等：只统计标准平台
-                totalCount = await GetPlatformItemCountAsync(p, customIds);
+                // GitHub 等没有用户平台的标准平台：不显示在 sidebar
+                // 其 items 将在未分类中显示
+                totalCount = 0;
             }
             if (totalCount > 0)
             {
@@ -279,7 +280,11 @@ public class HomeDataService
     private async Task<int> GetUncategorizedItemCountAsync()
     {
         using var cmd = _connection.CreateCommand();
-        cmd.CommandText = "SELECT COUNT(*) FROM items WHERE platform='custom' AND custom_platform_id IS NULL AND deleted_at IS NULL";
+        // 未分类 = 没有显式用户分类 AND 没有被可见平台入口认领
+        cmd.CommandText = @"SELECT COUNT(*) FROM items 
+            WHERE custom_platform_id IS NULL 
+              AND deleted_at IS NULL
+              AND lower(platform) NOT IN ('youtube', 'bilibili')";
         return Convert.ToInt32(await cmd.ExecuteScalarAsync());
     }
 }

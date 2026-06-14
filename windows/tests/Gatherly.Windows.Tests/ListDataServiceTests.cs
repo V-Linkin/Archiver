@@ -244,6 +244,9 @@ public class ListDataServiceTests : IDisposable
 
         var items = await service.GetUncategorizedItemsAsync();
 
+        // 未分类 = custom_platform_id IS NULL 且 platform 不是可见平台（youtube/bilibili）
+        // 只有 platform=custom 且 custom_platform_id=NULL 的 item 在未分类
+        // platform=bilibili 的 item 被 B站 平台认领，不在未分类
         Assert.Single(items);
         Assert.Equal("00000000-0000-0000-0000-000000000001", items[0].Id.ToString());
     }
@@ -328,17 +331,12 @@ public class ListDataServiceTests : IDisposable
     {
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = @"
-            INSERT INTO items (id, original_url, platform, normalized_url,
+            INSERT INTO items (id, original_url, platform, normalized_url, title, body,
                 import_date, modify_date, content_status, archive_status, media_status)
             VALUES ('00000000-0000-0000-0000-000000000001', 'https://example.com', 'bilibili',
-                'https://example.com', 1700000000, 1700000000, 'normal', 'pending', 'textOnly')";
+                'https://example.com', 'My Special Title', 'My Special Body',
+                1700000000, 1700000000, 'normal', 'pending', 'textOnly')";
         cmd.ExecuteNonQuery();
-        using var ftsCmd = _connection.CreateCommand();
-        ftsCmd.CommandText = @"
-            INSERT INTO items_fts (rowid, title, body) VALUES
-            ((SELECT rowid FROM items WHERE id='00000000-0000-0000-0000-000000000001'),
-             'My Special Title', 'My Special Body')";
-        ftsCmd.ExecuteNonQuery();
 
         var service = new SearchService(new SearchRepository(_connection));
         var results = await service.SearchAsync("Special");
@@ -490,10 +488,10 @@ public class ListDataServiceTests : IDisposable
         var service = new HomeDataService(new ItemRepository(_connection), new MediaRepository(_connection), new CustomPlatformRepository(_connection), _connection);
         var stats = await service.GetPlatformStatsAsync();
 
+        // 没有用户创建的 GitHub 平台时，GitHub 不显示在 sidebar
+        // GitHub item 应显示在未分类
         var github = stats.FirstOrDefault(s => s.StandardPlatform == Platform.github);
-        Assert.NotNull(github);
-        Assert.Equal(1, github!.Count);
-        Assert.Empty(github.CustomPlatformIds);
+        Assert.Null(github);
     }
 
     [Fact]

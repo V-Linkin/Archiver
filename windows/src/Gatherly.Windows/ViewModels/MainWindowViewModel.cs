@@ -267,6 +267,7 @@ public partial class MainWindowViewModel : ObservableObject
     private async Task ShowHomeAsync()
     {
         CurrentSection = "Home";
+        Search.Reset();
         await Home.LoadCommand.ExecuteAsync(null);
     }
 

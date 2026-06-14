@@ -130,8 +130,14 @@ public class ItemRepository
     public async Task<List<Item>> GetUncategorizedItemsAsync()
     {
         using var cmd = _connection.CreateCommand();
-        cmd.CommandText = "SELECT * FROM items WHERE deleted_at IS NULL AND platform=$platform AND custom_platform_id IS NULL ORDER BY import_date DESC";
-        cmd.Parameters.AddWithValue("$platform", Platform.custom.ToRawValue());
+        // 未分类 = 没有显式用户分类 AND 没有被可见平台入口认领
+        // 排除: custom_platform_id 非空（有显式分类）
+        // 排除: platform=youtube/bilibili（被 merged 平台认领）
+        cmd.CommandText = @"SELECT * FROM items 
+            WHERE deleted_at IS NULL 
+              AND custom_platform_id IS NULL 
+              AND lower(platform) NOT IN ('youtube', 'bilibili')
+            ORDER BY import_date DESC";
         return await ReadItemsAsync(cmd);
     }
 

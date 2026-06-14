@@ -242,17 +242,12 @@ public class ViewModelTests : IDisposable
     {
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = @"
-            INSERT INTO items (id, original_url, platform, normalized_url,
+            INSERT INTO items (id, original_url, platform, normalized_url, title, body,
                 import_date, modify_date, content_status, archive_status, media_status)
             VALUES ('00000000-0000-0000-0000-000000000001', 'https://example.com', 'bilibili',
-                'https://example.com', 1700000000, 1700000000, 'normal', 'pending', 'textOnly')";
+                'https://example.com', 'My Special Title', 'My Special Body',
+                1700000000, 1700000000, 'normal', 'pending', 'textOnly')";
         cmd.ExecuteNonQuery();
-        using var ftsCmd = _connection.CreateCommand();
-        ftsCmd.CommandText = @"
-            INSERT INTO items_fts (rowid, title, body) VALUES
-            ((SELECT rowid FROM items WHERE id='00000000-0000-0000-0000-000000000001'),
-             'My Special Title', 'My Special Body')";
-        ftsCmd.ExecuteNonQuery();
 
         var vm = new SearchViewModel(new SearchService(new SearchRepository(_connection)), new MediaRepository(_connection), new CustomPlatformRepository(_connection));
         vm.Query = "Special";
