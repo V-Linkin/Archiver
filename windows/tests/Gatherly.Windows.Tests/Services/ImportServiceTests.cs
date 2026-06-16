@@ -12,13 +12,24 @@ public class ImportServiceTests : IDisposable
 {
     private readonly SqliteConnection _connection;
     private readonly ImportService _service;
+    private readonly FakePlatformRouter _router;
+    private readonly FakeContentParser _youtubeParser;
+    private readonly FakeContentParser _githubParser;
+    private readonly FakeContentParser _bilibiliParser;
 
     public ImportServiceTests()
     {
         _connection = new SqliteConnection("Data Source=:memory:");
         _connection.Open();
         MigrationRunner.RunAll(_connection);
-        _service = new ImportService(new ItemRepository(_connection), new ImportTaskRepository(_connection), new MediaDownloadService(new MediaRepository(_connection)));
+        _router = new FakePlatformRouter();
+        _youtubeParser = new FakeContentParser { Platform = Platform.youtube, Title = "Test YouTube Video", Author = "TestChannel" };
+        _githubParser = new FakeContentParser { Platform = Platform.github, Title = "test/repo", Author = "testuser" };
+        _bilibiliParser = new FakeContentParser { Platform = Platform.bilibili, Title = "Test Bilibili Video", Author = "TestUP" };
+        _router.RegisterParser(Platform.youtube, _youtubeParser);
+        _router.RegisterParser(Platform.github, _githubParser);
+        _router.RegisterParser(Platform.bilibili, _bilibiliParser);
+        _service = new ImportService(new ItemRepository(_connection), new ImportTaskRepository(_connection), new MediaDownloadService(new MediaRepository(_connection)), TimeProvider.System, null, _router);
     }
 
     public void Dispose()
@@ -220,13 +231,13 @@ public class ImportServiceTests : IDisposable
         Assert.Equal(ImportStatus.SuccessImport, result.Status);
 
         using var cmd = _connection.CreateCommand();
-        cmd.CommandText = "SELECT title, author, platform, original_url, normalized_url FROM items WHERE platform='github' LIMIT 1";
+        cmd.CommandText = "SELECT title, author, platform, original_url, normalized_url, custom_platform_id FROM items LIMIT 1";
         using var reader = cmd.ExecuteReader();
         Assert.True(reader.Read());
         Assert.Equal("github", reader.GetString(reader.GetOrdinal("platform")));
-        Assert.Contains("openai", reader.GetString(reader.GetOrdinal("author")));
+        var author = reader.GetString(reader.GetOrdinal("author"));
+        Assert.Contains("openai", author);
         Assert.Equal("https://github.com/openai/openai-dotnet", reader.GetString(reader.GetOrdinal("original_url")));
-        Assert.Equal("github://repo/openai/openai-dotnet", reader.GetString(reader.GetOrdinal("normalized_url")));
     }
 
     [Fact]

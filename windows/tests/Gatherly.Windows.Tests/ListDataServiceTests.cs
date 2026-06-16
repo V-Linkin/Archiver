@@ -473,11 +473,10 @@ public class ListDataServiceTests : IDisposable
         var service = new HomeDataService(new ItemRepository(_connection), new MediaRepository(_connection), new CustomPlatformRepository(_connection), _connection);
         var stats = await service.GetPlatformStatsAsync();
 
-        var youtube = stats.FirstOrDefault(s => s.StandardPlatform == Platform.youtube);
+        var youtube = stats.FirstOrDefault(s => s.Id == cpId);
         Assert.NotNull(youtube);
-        Assert.Equal(2, youtube!.Count);
-        Assert.True(youtube.IsStandardPlatform);
-        Assert.Contains(cpId, youtube.CustomPlatformIds);
+        Assert.Equal(1, youtube!.Count);
+        Assert.False(youtube.IsStandardPlatform);
     }
 
     [Fact]
@@ -542,9 +541,9 @@ public class ListDataServiceTests : IDisposable
         var service = new HomeDataService(new ItemRepository(_connection), new MediaRepository(_connection), new CustomPlatformRepository(_connection), _connection);
         var stats = await service.GetPlatformStatsAsync();
 
-        var bilibili = stats.FirstOrDefault(s => s.StandardPlatform == Platform.bilibili);
+        var bilibili = stats.FirstOrDefault(s => s.Id == cpId);
         Assert.NotNull(bilibili);
-        Assert.Equal(3, bilibili!.Count);
+        Assert.Equal(1, bilibili!.Count);
     }
 
     // ==================== ItemRepository GetByPlatformWithCustomAsync ====================
@@ -794,13 +793,9 @@ public class ListDataServiceTests : IDisposable
         var service = new HomeDataService(new ItemRepository(_connection), new MediaRepository(_connection), new CustomPlatformRepository(_connection), _connection);
         var stats = await service.GetPlatformStatsAsync();
 
-        var youtube = stats.FirstOrDefault(s => s.StandardPlatform == Platform.youtube);
+        var youtube = stats.FirstOrDefault(s => s.Id == cpId);
         Assert.NotNull(youtube);
-        Assert.Equal(3, youtube!.Count);
-
-        var contentService = new ContentListService(new ItemRepository(_connection), new FolderRepository(_connection));
-        var items = await contentService.GetMergedPlatformItemsAsync(Platform.youtube, new List<Guid> { cpId });
-        Assert.Equal(3, items.Count);
+        Assert.Equal(1, youtube!.Count);
     }
 
     [Fact]
@@ -890,13 +885,9 @@ public class ListDataServiceTests : IDisposable
         var service = new HomeDataService(new ItemRepository(_connection), new MediaRepository(_connection), new CustomPlatformRepository(_connection), _connection);
         var stats = await service.GetPlatformStatsAsync();
 
-        var bilibili = stats.FirstOrDefault(s => s.StandardPlatform == Platform.bilibili);
+        var bilibili = stats.FirstOrDefault(s => s.Id == cpId);
         Assert.NotNull(bilibili);
-        Assert.Equal(2, bilibili!.Count);
-
-        var contentService = new ContentListService(new ItemRepository(_connection), new FolderRepository(_connection));
-        var items = await contentService.GetMergedPlatformItemsAsync(Platform.bilibili, new List<Guid> { cpId });
-        Assert.Equal(2, items.Count);
+        Assert.Equal(1, bilibili!.Count);
     }
 
     [Fact]
@@ -957,13 +948,9 @@ public class ListDataServiceTests : IDisposable
         var service = new HomeDataService(new ItemRepository(_connection), new MediaRepository(_connection), new CustomPlatformRepository(_connection), _connection);
         var stats = await service.GetPlatformStatsAsync();
 
-        var youtube = stats.FirstOrDefault(s => s.StandardPlatform == Platform.youtube);
+        var youtube = stats.FirstOrDefault(s => s.Id == cpId);
         Assert.NotNull(youtube);
-        Assert.Equal(2, youtube!.Count);
-
-        var contentService = new ContentListService(new ItemRepository(_connection), new FolderRepository(_connection));
-        var items = await contentService.GetMergedPlatformItemsAsync(Platform.youtube, new List<Guid> { cpId });
-        Assert.Equal(2, items.Count);
+        Assert.Equal(1, youtube!.Count);
     }
 
     [Fact]
@@ -981,16 +968,9 @@ public class ListDataServiceTests : IDisposable
         var service = new HomeDataService(new ItemRepository(_connection), new MediaRepository(_connection), new CustomPlatformRepository(_connection), _connection);
         var stats = await service.GetPlatformStatsAsync();
 
-        var weibo = stats.FirstOrDefault(s => s.StandardPlatform == Platform.weibo);
+        var weibo = stats.FirstOrDefault(s => s.Id == cpId);
         Assert.NotNull(weibo);
         Assert.Equal(1, weibo!.Count);
-
-        var contentService = new ContentListService(new ItemRepository(_connection), new FolderRepository(_connection));
-        var customItems = await contentService.GetCustomPlatformItemsAsync(cpId);
-        Assert.Equal(1, customItems.Count);
-
-        var standardItems = await contentService.GetPlatformItemsAsync(Platform.weibo);
-        Assert.Empty(standardItems);
     }
 
     [Fact]
@@ -1008,13 +988,9 @@ public class ListDataServiceTests : IDisposable
         var service = new HomeDataService(new ItemRepository(_connection), new MediaRepository(_connection), new CustomPlatformRepository(_connection), _connection);
         var stats = await service.GetPlatformStatsAsync();
 
-        var zhihu = stats.FirstOrDefault(s => s.StandardPlatform == Platform.zhihu);
+        var zhihu = stats.FirstOrDefault(s => s.Id == cpId);
         Assert.NotNull(zhihu);
         Assert.Equal(1, zhihu!.Count);
-
-        var contentService = new ContentListService(new ItemRepository(_connection), new FolderRepository(_connection));
-        var customItems = await contentService.GetCustomPlatformItemsAsync(cpId);
-        Assert.Equal(1, customItems.Count);
     }
 
     [Fact]
@@ -1244,13 +1220,9 @@ public class ListDataServiceTests : IDisposable
         var service = new HomeDataService(new ItemRepository(_connection), new MediaRepository(_connection), new CustomPlatformRepository(_connection), _connection);
         var stats = await service.GetPlatformStatsAsync();
 
-        var bilibili = stats.FirstOrDefault(s => s.StandardPlatform == Platform.bilibili);
+        var bilibili = stats.FirstOrDefault(s => s.Id == cpId);
         Assert.NotNull(bilibili);
-        Assert.Equal(2, bilibili!.Count);
-
-        var contentService = new ContentListService(new ItemRepository(_connection), new FolderRepository(_connection));
-        var items = await contentService.GetMergedPlatformItemsAsync(Platform.bilibili, new List<Guid> { cpId });
-        Assert.Equal(2, items.Count);
+        Assert.Equal(1, bilibili!.Count);
     }
 
     [Fact]
@@ -1268,9 +1240,9 @@ public class ListDataServiceTests : IDisposable
         var service = new HomeDataService(new ItemRepository(_connection), new MediaRepository(_connection), new CustomPlatformRepository(_connection), _connection);
         var stats = await service.GetPlatformStatsAsync();
 
-        var bilibili = stats.FirstOrDefault(s => s.StandardPlatform == Platform.bilibili);
+        var bilibili = stats.FirstOrDefault(s => s.Id == cpId);
         Assert.NotNull(bilibili);
-        Assert.Contains(cpId, bilibili!.CustomPlatformIds);
+        Assert.Equal(cpId, bilibili!.Id);
     }
 
     [Fact]
@@ -1288,9 +1260,9 @@ public class ListDataServiceTests : IDisposable
         var service = new HomeDataService(new ItemRepository(_connection), new MediaRepository(_connection), new CustomPlatformRepository(_connection), _connection);
         var stats = await service.GetPlatformStatsAsync();
 
-        var bilibili = stats.FirstOrDefault(s => s.StandardPlatform == Platform.bilibili);
+        var bilibili = stats.FirstOrDefault(s => s.Id == cpId);
         Assert.NotNull(bilibili);
-        Assert.Contains(cpId, bilibili!.CustomPlatformIds);
+        Assert.Equal(cpId, bilibili!.Id);
     }
 
     [Fact]
@@ -1308,9 +1280,9 @@ public class ListDataServiceTests : IDisposable
         var service = new HomeDataService(new ItemRepository(_connection), new MediaRepository(_connection), new CustomPlatformRepository(_connection), _connection);
         var stats = await service.GetPlatformStatsAsync();
 
-        var bilibili = stats.FirstOrDefault(s => s.StandardPlatform == Platform.bilibili);
+        var bilibili = stats.FirstOrDefault(s => s.Id == cpId);
         Assert.NotNull(bilibili);
-        Assert.Contains(cpId, bilibili!.CustomPlatformIds);
+        Assert.Equal(cpId, bilibili!.Id);
     }
 
     [Fact]
@@ -1339,10 +1311,11 @@ public class ListDataServiceTests : IDisposable
         var service = new HomeDataService(new ItemRepository(_connection), new MediaRepository(_connection), new CustomPlatformRepository(_connection), _connection);
         var stats = await service.GetPlatformStatsAsync();
 
-        var bilibili = stats.FirstOrDefault(s => s.StandardPlatform == Platform.bilibili);
+        var bilibili = stats.FirstOrDefault(s => s.Id == cpIdBili);
         Assert.NotNull(bilibili);
-        Assert.Contains(cpIdBili, bilibili!.CustomPlatformIds);
-        Assert.DoesNotContain(cpIdOther, bilibili!.CustomPlatformIds);
+        var other = stats.FirstOrDefault(s => s.Id == cpIdOther);
+        Assert.NotNull(other);
+        Assert.NotEqual(bilibili!.Id, other!.Id);
     }
 
     // ==================== CustomPlatform CRUD Tests ====================

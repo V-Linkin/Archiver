@@ -1,172 +1,147 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Gatherly.Windows.Database;
 using Gatherly.Windows.Models;
+using Gatherly.Windows.Models.Enums;
 using Gatherly.Windows.Services;
 
 namespace Gatherly.Windows.ViewModels;
 
-/// <summary>
-/// 平台管理 ViewModel — 显示用户自定义平台列表和创建新平台
-/// </summary>
 public partial class PlatformManagementViewModel : ObservableObject
 {
     private readonly CustomPlatformService _platformService;
+    private readonly ItemRepository _itemRepo;
 
-    public ObservableCollection<CustomPlatform> Platforms { get; } = new();
+    public ObservableCollection<PlatformManagementEntry> Entries { get; } = new();
 
-    [ObservableProperty]
-    private bool _isLoading;
+    [ObservableProperty] private bool _isLoading;
+    [ObservableProperty] private bool _isCreating;
+    [ObservableProperty] private bool _isEditing;
+    [ObservableProperty] private bool _isSaving;
+    [ObservableProperty] private PlatformManagementEntry? _editingEntry;
+    [ObservableProperty] private string _platformName = string.Empty;
+    [ObservableProperty] private string? _errorMessage;
+    [ObservableProperty] private bool _isConfirmingDelete;
+    [ObservableProperty] private PlatformManagementEntry? _deletingEntry;
+    [ObservableProperty] private string? _deleteConfirmMessage;
 
-    [ObservableProperty]
-    private bool _isCreating;
+    public bool IsEmpty => Entries.Count == 0 && !IsLoading;
+    public bool CanSave => !IsSaving && !string.IsNullOrWhiteSpace(PlatformName);
 
-    [ObservableProperty]
-    private bool _isSaving;
+    partial void OnPlatformNameChanged(string value) => OnPropertyChanged(nameof(CanSave));
 
-    [ObservableProperty]
-    private string _newPlatformName = string.Empty;
+    public Func<Task>? OnPlatformChanged { get; set; }
 
-    [ObservableProperty]
-    private string? _errorMessage;
-
-    public bool IsEmpty => Platforms.Count == 0 && !IsLoading;
-
-    public bool CanSave => !IsSaving && !string.IsNullOrWhiteSpace(NewPlatformName);
-
-    partial void OnNewPlatformNameChanged(string value)
-    {
-        OnPropertyChanged(nameof(CanSave));
-    }
-
-    /// <summary>
-    /// 创建成功后的回调（刷新 Sidebar）
-    /// </summary>
-    public Func<Task>? OnPlatformCreated { get; set; }
-
-    public PlatformManagementViewModel(CustomPlatformService platformService)
+    public PlatformManagementViewModel(CustomPlatformService platformService, ItemRepository itemRepo)
     {
         _platformService = platformService;
+        _itemRepo = itemRepo;
     }
 
-    /// <summary>
-    /// 加载用户自定义平台列表
-    /// </summary>
     [RelayCommand]
     public async Task LoadAsync()
     {
         if (IsLoading) return;
-
         IsLoading = true;
         ErrorMessage = null;
-
-        try
-        {
-            var platforms = await _platformService.GetAllPlatformsAsync();
-            Platforms.Clear();
-            foreach (var p in platforms)
-            {
-                Platforms.Add(p);
-            }
-            OnPropertyChanged(nameof(IsEmpty));
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"加载平台列表失败：{ex.Message}";
-        }
-        finally
-        {
-            IsLoading = false;
-        }
+        try { await BuildEntriesAsync(); OnPropertyChanged(nameof(IsEmpty)); }
+        catch (Exception ex) { ErrorMessage = $"加载平台列表失败：{ex.Message}"; }
+        finally { IsLoading = false; }
     }
 
-    /// <summary>
-    /// 进入创建模式
-    /// </summary>
     [RelayCommand]
     private void BeginCreate()
     {
-        IsCreating = true;
-        NewPlatformName = string.Empty;
-        ErrorMessage = null;
+        IsCreating = true; IsEditing = false; EditingEntry = null;
+        PlatformName = string.Empty; ErrorMessage = null;
     }
 
-    /// <summary>
-    /// 取消创建
-    /// </summary>
     [RelayCommand]
-    private void CancelCreate()
+    private void CancelEdit()
     {
-        IsCreating = false;
-        NewPlatformName = string.Empty;
-        ErrorMessage = null;
+        IsCreating = false; IsEditing = false; EditingEntry = null;
+        PlatformName = string.Empty; ErrorMessage = null;
     }
 
-    /// <summary>
-    /// 保存新平台
-    /// </summary>
     [RelayCommand]
-    private async Task SaveCreateAsync()
+    private void BeginEdit(PlatformManagementEntry? entry)
     {
-        if (IsSaving || string.IsNullOrWhiteSpace(NewPlatformName))
-        {
-            System.Diagnostics.Debug.WriteLine($"[SaveCreate] Blocked: IsSaving={IsSaving}, Name='{NewPlatformName}'");
-            return;
-        }
+        if (entry == null) return;
+        IsEditing = true; IsCreating = false; EditingEntry = entry;
+        PlatformName = entry.DisplayName; ErrorMessage = null;
+    }
 
-        IsSaving = true;
-        ErrorMessage = null;
-
+    [RelayCommand]
+    private async Task SaveAsync()
+    {
+        if (IsSaving || string.IsNullOrWhiteSpace(PlatformName)) return;
+        IsSaving = true; ErrorMessage = null;
         try
         {
-            System.Diagnostics.Debug.WriteLine($"[SaveCreate] Creating: '{NewPlatformName}'");
-            var platform = await _platformService.CreatePlatformAsync(NewPlatformName);
-            System.Diagnostics.Debug.WriteLine($"[SaveCreate] Created: id={platform.Id}, name={platform.Name}");
-
-            // 从数据库重新加载列表，确保一致性
-            System.Diagnostics.Debug.WriteLine($"[SaveCreate] Reloading platforms...");
-            await ReloadPlatformsAsync();
-            System.Diagnostics.Debug.WriteLine($"[SaveCreate] Reloaded: Platforms.Count={Platforms.Count}");
-
-            // 清空创建状态
-            IsCreating = false;
-            NewPlatformName = string.Empty;
-            ErrorMessage = null;
-
-            // 通知刷新 Sidebar
-            if (OnPlatformCreated != null)
+            if (IsEditing && EditingEntry?.CustomPlatformId.HasValue == true)
             {
-                System.Diagnostics.Debug.WriteLine($"[SaveCreate] Calling OnPlatformCreated...");
-                await OnPlatformCreated();
+                var updated = await _platformService.UpdatePlatformAsync(
+                    EditingEntry.CustomPlatformId.Value, name: PlatformName);
+                if (updated == null) { ErrorMessage = "平台不存在或更新失败"; return; }
             }
-            System.Diagnostics.Debug.WriteLine($"[SaveCreate] Done");
+            else
+            {
+                await _platformService.CreatePlatformAsync(PlatformName);
+            }
+            await BuildEntriesAsync();
+            IsCreating = false; IsEditing = false; EditingEntry = null;
+            PlatformName = string.Empty; ErrorMessage = null;
+            if (OnPlatformChanged != null) await OnPlatformChanged();
         }
-        catch (ArgumentException ex)
-        {
-            ErrorMessage = ex.Message;
-            System.Diagnostics.Debug.WriteLine($"[SaveCreate] Validation error: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"创建平台失败：{ex.Message}";
-            System.Diagnostics.Debug.WriteLine($"[SaveCreate] Error: {ex}");
-        }
-        finally
-        {
-            IsSaving = false;
-        }
+        catch (ArgumentException ex) { ErrorMessage = ex.Message; }
+        catch (Exception ex) { ErrorMessage = $"操作失败：{ex.Message}"; }
+        finally { IsSaving = false; }
     }
 
-    /// <summary>
-    /// 从数据库重新加载平台列表
-    /// </summary>
-    private async Task ReloadPlatformsAsync()
+    [RelayCommand]
+    private async Task BeginDelete(PlatformManagementEntry? entry)
     {
-        var platforms = await _platformService.GetAllPlatformsAsync();
-        Platforms.Clear();
-        foreach (var p in platforms)
+        if (entry?.CustomPlatformId == null) return;
+        var itemCount = await _itemRepo.CountByCustomPlatformIdAsync(entry.CustomPlatformId.Value);
+        DeletingEntry = entry; IsConfirmingDelete = true;
+        DeleteConfirmMessage = itemCount > 0
+            ? $"平台「{entry.DisplayName}」仍有 {itemCount} 条内容。删除平台后，这些内容将移动到「未分类内容」。确定继续吗？"
+            : $"确定删除平台「{entry.DisplayName}」吗？";
+    }
+
+    [RelayCommand]
+    private async Task ConfirmDelete()
+    {
+        if (DeletingEntry?.CustomPlatformId == null) return;
+        try
         {
-            Platforms.Add(p);
+            await _platformService.DeletePlatformAsync(DeletingEntry.CustomPlatformId.Value);
+            IsConfirmingDelete = false; DeletingEntry = null; DeleteConfirmMessage = null;
+            await BuildEntriesAsync();
+            if (OnPlatformChanged != null) await OnPlatformChanged();
+        }
+        catch (Exception ex) { ErrorMessage = $"删除失败：{ex.Message}"; IsConfirmingDelete = false; DeletingEntry = null; DeleteConfirmMessage = null; }
+    }
+
+    [RelayCommand]
+    private void CancelDelete()
+    {
+        IsConfirmingDelete = false; DeletingEntry = null; DeleteConfirmMessage = null;
+    }
+
+    private async Task BuildEntriesAsync()
+    {
+        Entries.Clear();
+        var customPlatforms = await _platformService.GetAllPlatformsAsync();
+        foreach (var cp in customPlatforms)
+        {
+            Entries.Add(new PlatformManagementEntry
+            {
+                Kind = PlatformManagementEntryKind.Custom,
+                CustomPlatformId = cp.Id,
+                DisplayName = cp.Name
+            });
         }
         OnPropertyChanged(nameof(IsEmpty));
     }

@@ -154,9 +154,12 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly BackupImportService _backupImportService;
     private readonly MediaRepository _mediaRepo;
     private readonly CustomPlatformRepository _customPlatformRepo;
+    private readonly SystemPlatformDisplayNames _systemPlatformDisplayNames;
+    private readonly SqliteConnection _connection;
 
     public MainWindowViewModel(SqliteConnection connection)
     {
+        _connection = connection;
         var itemRepo = new ItemRepository(connection);
         var folderRepo = new FolderRepository(connection);
         var searchRepo = new SearchRepository(connection);
@@ -170,7 +173,14 @@ public partial class MainWindowViewModel : ObservableObject
 
         var customPlatformRepo = new CustomPlatformRepository(connection);
         _customPlatformRepo = customPlatformRepo;
-        Home = new HomeViewModel(new HomeDataService(itemRepo, mediaRepo, customPlatformRepo, connection), new ImportService(itemRepo, importTaskRepo, new Services.Media.MediaDownloadService(mediaRepo)));
+        _systemPlatformDisplayNames = new SystemPlatformDisplayNames();
+
+        // System-to-Custom migration
+        var customMap = new Services.SystemPlatformCustomMap();
+        var migrationService = new Services.SystemPlatformItemMigrationService(connection, customPlatformRepo, customMap, _systemPlatformDisplayNames);
+        _ = migrationService.Migrate();
+
+        Home = new HomeViewModel(new HomeDataService(itemRepo, mediaRepo, customPlatformRepo, connection), new ImportService(itemRepo, importTaskRepo, new Services.Media.MediaDownloadService(mediaRepo), TimeProvider.System, customMap));
         ContentList = new ContentListViewModel(new ContentListService(itemRepo, folderRepo), mediaRepo, customPlatformRepo);
         Search = new SearchViewModel(new SearchService(searchRepo), mediaRepo, customPlatformRepo);
         Trash = new TrashViewModel(new TrashDataService(itemRepo, trashRepo), _itemService);
@@ -304,8 +314,9 @@ public partial class MainWindowViewModel : ObservableObject
     private void OpenPlatformManagement()
     {
         var platformService = new Services.CustomPlatformService(_customPlatformRepo);
-        var vm = new PlatformManagementViewModel(platformService);
-        vm.OnPlatformCreated = RefreshAllPlatformViewsAsync;
+        var itemRepo = new ItemRepository(_connection);
+        var vm = new PlatformManagementViewModel(platformService, itemRepo);
+        vm.OnPlatformChanged = RefreshAllPlatformViewsAsync;
 
         var window = new Views.PlatformManagementWindow
         {

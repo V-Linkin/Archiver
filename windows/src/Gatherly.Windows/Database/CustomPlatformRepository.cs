@@ -129,18 +129,18 @@ public class CustomPlatformRepository
         if (platform == null)
             return new DeletePlatformResult { Success = false, PlatformNotFound = true };
 
-        // 统计受影响的 item 数量
         var affectedCount = await CountItemsByPlatformIdAsync(id);
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
-        // 在事务中执行删除
         var transaction = _connection.BeginTransaction();
         try
         {
-            // 1. 更新所有引用该平台的 items，将 custom_platform_id 设为 NULL
+            // 1. 迁移关联 items 到未分类
             using (var cmd = _connection.CreateCommand())
             {
-                cmd.CommandText = "UPDATE items SET custom_platform_id=NULL WHERE custom_platform_id COLLATE NOCASE=$id";
+                cmd.CommandText = "UPDATE items SET platform='custom', custom_platform_id=NULL, modify_date=$now WHERE custom_platform_id COLLATE NOCASE=$id";
                 cmd.Parameters.AddWithValue("$id", id.ToString("D"));
+                cmd.Parameters.AddWithValue("$now", now);
                 cmd.ExecuteNonQuery();
             }
 

@@ -13,7 +13,7 @@ public class PlatformRouter
     private readonly BilibiliParser _bilibili = new();
     private readonly YouTubeParser _youtube = new();
 
-    public IContentParser GetParser(Platform platform, string url)
+    public virtual IContentParser GetParser(Platform platform, string url)
     {
         if (platform == Platform.github)
             return _github;

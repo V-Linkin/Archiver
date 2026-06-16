@@ -19,24 +19,33 @@ public class ImportService
     private readonly MediaDownloadService _mediaDownload;
     private readonly PlatformRouter _router;
     private readonly TimeProvider _timeProvider;
+    private readonly SystemPlatformCustomMap? _customMap;
 
-    /// <summary>
-    /// 活跃任务窗口：pending/importing 任务在此时间内视为活跃
-    /// </summary>
     private static readonly TimeSpan ActiveTaskWindow = TimeSpan.FromMinutes(10);
 
     public ImportService(ItemRepository itemRepo, ImportTaskRepository taskRepo, MediaDownloadService mediaDownload)
-        : this(itemRepo, taskRepo, mediaDownload, TimeProvider.System)
+        : this(itemRepo, taskRepo, mediaDownload, TimeProvider.System, null, new PlatformRouter())
     {
     }
 
     public ImportService(ItemRepository itemRepo, ImportTaskRepository taskRepo, MediaDownloadService mediaDownload, TimeProvider timeProvider)
+        : this(itemRepo, taskRepo, mediaDownload, timeProvider, null, new PlatformRouter())
+    {
+    }
+
+    public ImportService(ItemRepository itemRepo, ImportTaskRepository taskRepo, MediaDownloadService mediaDownload, TimeProvider timeProvider, SystemPlatformCustomMap? customMap)
+        : this(itemRepo, taskRepo, mediaDownload, timeProvider, customMap, new PlatformRouter())
+    {
+    }
+
+    public ImportService(ItemRepository itemRepo, ImportTaskRepository taskRepo, MediaDownloadService mediaDownload, TimeProvider timeProvider, SystemPlatformCustomMap? customMap, PlatformRouter router)
     {
         _itemRepo = itemRepo;
         _taskRepo = taskRepo;
         _mediaDownload = mediaDownload;
-        _router = new PlatformRouter();
+        _router = router;
         _timeProvider = timeProvider;
+        _customMap = customMap;
     }
 
     /// <summary>
@@ -152,13 +161,18 @@ public class ImportService
         if (parseResult.Status == ParseStatus.Success && parseResult.Content != null)
         {
             var content = parseResult.Content;
+
+            // Resolve target CustomPlatform for system platforms
+            var customPlatformId = _customMap?.GetCustomPlatformId(platform.Value.ToRawValue());
+
             var item = new Item
             {
                 Id = Guid.NewGuid(),
                 Title = content.Title,
                 Body = content.Body,
                 OriginalUrl = content.OriginalUrl ?? url,
-                Platform = platform.Value,
+                Platform = customPlatformId.HasValue ? Platform.custom : platform.Value,
+                CustomPlatformId = customPlatformId,
                 PlatformContentId = content.PlatformContentId ?? contentId,
                 NormalizedUrl = content.NormalizedUrl ?? normalizedUrl,
                 Author = content.Author,
