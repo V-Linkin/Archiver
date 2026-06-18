@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BackupPackageV2",
+  "description": "Gatherly Backup Package V2 manifest schema",
+  "type": "object",
+  "required": ["formatVersion", "createdAt", "appVersion", "sourceApp", "sourceOS", "databaseSchemaVersion", "databaseUserVersion", "counts", "files", "features", "warnings"],
+  "properties": {
+    "formatVersion": { "type": "integer", "const": 2 },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "appVersion": { "type": "string", "minLength": 1 },
+    "sourceApp": { "type": "string", "const": "Gatherly" },
+    "sourceOS": { "type": "string", "enum": ["windows", "macos"] },
+    "databaseSchemaVersion": { "type": "integer", "minimum": 0 },
+    "databaseUserVersion": { "type": "integer", "minimum": 0 },
+    "counts": {
+      "type": "object",
+      "required": ["items", "mediaAssets", "folders", "customPlatforms", "importTasks", "trashRecords"],
+      "properties": {
+        "items": { "type": "integer", "minimum": 0 },
+        "mediaAssets": { "type": "integer", "minimum": 0 },
+        "folders": { "type": "integer", "minimum": 0 },
+        "customPlatforms": { "type": "integer", "minimum": 0 },
+        "importTasks": { "type": "integer", "minimum": 0 },
+        "trashRecords": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "type", "size", "sha256", "required"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1, "pattern": "^[^\\\\:]+$" },
+          "type": { "type": "string", "enum": ["database", "settings", "media", "platform_logos"] },
+          "size": { "type": "integer", "minimum": 0 },
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "required": { "type": "boolean" }
+        }
+      }
+    },
+    "features": {
+      "type": "object",
+      "required": ["hasDatabase", "hasMedia", "hasPlatformLogos", "hasPlatformDisplayNames", "hasSystemPlatformMappings", "hasTrash", "hasFTS", "hasFolders"],
+      "properties": {
+        "hasDatabase": { "type": "boolean" },
+        "hasMedia": { "type": "boolean" },
+        "hasPlatformLogos": { "type": "boolean" },
+        "hasPlatformDisplayNames": { "type": "boolean" },
+        "hasSystemPlatformMappings": { "type": "boolean" },
+        "hasTrash": { "type": "boolean" },
+        "hasFTS": { "type": "boolean" },
+        "hasFolders": { "type": "boolean" }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

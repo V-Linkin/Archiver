@@ -15,10 +15,13 @@
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.1.0" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="11.1.0" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+    <PackageReference Include="JsonSchema.Net" Version="5.2.0" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.6" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="..\..\shared\db\migrations\*.sql" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\shared\db\migrations\*.sql" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\shared\import-export\backup-package-v2.schema.json" Link="backup-package-v2.schema.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\..\shared\import-export\backup-package-v2.schema.json" Link="shared\import-export\backup-package-v2.schema.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

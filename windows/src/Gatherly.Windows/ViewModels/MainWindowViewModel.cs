@@ -5,6 +5,7 @@ using Gatherly.Windows.Database;
 using Gatherly.Windows.Models;
 using Gatherly.Windows.Models.Enums;
 using Gatherly.Windows.Services;
+using Gatherly.Windows.Services.Backup;
 using Microsoft.Data.Sqlite;
 
 namespace Gatherly.Windows.ViewModels;
@@ -141,6 +142,8 @@ public partial class MainWindowViewModel : ObservableObject
     public ContentListViewModel ContentList { get; }
     public SearchViewModel Search { get; }
     public TrashViewModel Trash { get; }
+    public BackupPackageViewModel BackupVM { get; }
+    public SettingsViewModel Settings { get; }
 
     /// <summary>
     /// Sidebar 平台入口列表
@@ -156,8 +159,9 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly CustomPlatformRepository _customPlatformRepo;
     private readonly SystemPlatformDisplayNames _systemPlatformDisplayNames;
     private readonly SqliteConnection _connection;
+    private readonly Task _migrationTask;
 
-    public MainWindowViewModel(SqliteConnection connection)
+    public MainWindowViewModel(SqliteConnection connection, string? dataDirectory = null)
     {
         _connection = connection;
         var itemRepo = new ItemRepository(connection);
@@ -173,17 +177,19 @@ public partial class MainWindowViewModel : ObservableObject
 
         var customPlatformRepo = new CustomPlatformRepository(connection);
         _customPlatformRepo = customPlatformRepo;
-        _systemPlatformDisplayNames = new SystemPlatformDisplayNames();
+        _systemPlatformDisplayNames = new SystemPlatformDisplayNames(dataDirectory);
 
         // System-to-Custom migration
-        var customMap = new Services.SystemPlatformCustomMap();
+        var customMap = new Services.SystemPlatformCustomMap(dataDirectory);
         var migrationService = new Services.SystemPlatformItemMigrationService(connection, customPlatformRepo, customMap, _systemPlatformDisplayNames);
-        _ = migrationService.Migrate();
+        _migrationTask = MigrateAsync(migrationService);
 
         Home = new HomeViewModel(new HomeDataService(itemRepo, mediaRepo, customPlatformRepo, connection), new ImportService(itemRepo, importTaskRepo, new Services.Media.MediaDownloadService(mediaRepo), TimeProvider.System, customMap));
         ContentList = new ContentListViewModel(new ContentListService(itemRepo, folderRepo), mediaRepo, customPlatformRepo);
         Search = new SearchViewModel(new SearchService(searchRepo), mediaRepo, customPlatformRepo);
         Trash = new TrashViewModel(new TrashDataService(itemRepo, trashRepo), _itemService);
+        BackupVM = new BackupPackageViewModel(() => new BackupPackageServiceAdapter(new BackupPackageV2Service(connection, customPlatformRepo, _systemPlatformDisplayNames, customMap)));
+        Settings = new SettingsViewModel(BackupVM);
 
         // Subscribe to sub-ViewModel selection changes → navigate to detail
         // Note: Trash does NOT navigate to detail (macOS behavior: trash only selects)
@@ -227,6 +233,24 @@ public partial class MainWindowViewModel : ObservableObject
                 await ContentList.ReloadCurrentContentAsync();
         };
     }
+
+    private static Task MigrateAsync(Services.SystemPlatformItemMigrationService migrationService)
+    {
+        try
+        {
+            migrationService.Migrate();
+        }
+        catch
+        {
+            // Migration failure does not block app startup
+        }
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// 等待 migration 完成（测试用）
+    /// </summary>
+    public Task WaitForMigrationAsync() => _migrationTask;
 
     /// <summary>
     /// 从 zip 备份包恢复数据
@@ -294,6 +318,12 @@ public partial class MainWindowViewModel : ObservableObject
     {
         CurrentSection = "Trash";
         await Trash.LoadCommand.ExecuteAsync(null);
+    }
+
+    [RelayCommand]
+    private void ShowSettings()
+    {
+        CurrentSection = "Settings";
     }
 
     /// <summary>

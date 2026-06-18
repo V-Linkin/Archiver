@@ -11,9 +11,12 @@ namespace Gatherly.Windows.Tests;
 public class ViewModelTests : IDisposable
 {
     private readonly SqliteConnection _connection;
+    private readonly string _testDir;
 
     public ViewModelTests()
     {
+        _testDir = Path.Combine(Path.GetTempPath(), "GlyVMT_" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(_testDir);
         _connection = new SqliteConnection("Data Source=:memory:");
         _connection.Open();
         MigrationRunner.RunAll(_connection);
@@ -30,6 +33,7 @@ public class ViewModelTests : IDisposable
     {
         _connection.Close();
         _connection.Dispose();
+        try { Directory.Delete(_testDir, true); } catch { }
     }
 
     private void InsertItem(string id, string platform = "bilibili", double importDate = 1700000000,
@@ -307,7 +311,7 @@ public class ViewModelTests : IDisposable
     [Fact]
     public void MainWindowViewModel_CreatesChildViewModels()
     {
-        var vm = new MainWindowViewModel(_connection);
+        var vm = new MainWindowViewModel(_connection, _testDir);
 
         Assert.NotNull(vm.Home);
         Assert.NotNull(vm.ContentList);
@@ -321,7 +325,7 @@ public class ViewModelTests : IDisposable
     {
         InsertItem("00000000-0000-0000-0000-000000000001", importDate: 1700001000);
 
-        var vm = new MainWindowViewModel(_connection);
+        var vm = new MainWindowViewModel(_connection, _testDir);
 
         await vm.Home.LoadCommand.ExecuteAsync(null);
         Assert.Single(vm.Home.RecentItems);

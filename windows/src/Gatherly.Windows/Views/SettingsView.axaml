@@ -1,0 +1,64 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Gatherly.Windows.ViewModels"
+        x:Class="Gatherly.Windows.Views.SettingsView"
+        x:DataType="vm:SettingsViewModel">
+
+    <ScrollViewer>
+        <StackPanel Margin="24" Spacing="24">
+
+            <!-- 数据备份 -->
+            <Border Background="White" CornerRadius="8" Padding="16" BorderBrush="#E0E0E0" BorderThickness="1">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="数据备份" FontSize="16" FontWeight="SemiBold" />
+                    <TextBlock Text="创建包含数据库、媒体文件和平台设置的 Backup Package V2。"
+                               FontSize="13" Foreground="#666" TextWrapping="Wrap" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="📤 创建备份"
+                                Click="CreateBackup_Click"
+                                IsEnabled="{Binding BackupVM.CanCreateBackup}"
+                                Padding="16,8" FontSize="13" />
+                        <Button Content="⏹ 取消备份"
+                                Command="{Binding BackupVM.CancelBackupCommand}"
+                                IsVisible="{Binding BackupVM.IsBackupRunning}"
+                                Padding="16,8" FontSize="13"
+                                Background="#D32F2F" Foreground="White"
+                                BorderThickness="0" />
+                    </StackPanel>
+
+                    <!-- Progress -->
+                    <StackPanel Spacing="4"
+                                IsVisible="{Binding BackupVM.IsBackupRunning}">
+                        <TextBlock Text="{Binding BackupVM.BackupStageText}"
+                                   FontSize="12" Foreground="#666" />
+                        <ProgressBar Value="{Binding BackupVM.BackupProgressValue}"
+                                     Maximum="100" Height="6" />
+                        <TextBlock Text="{Binding BackupVM.BackupProgressText}"
+                                   FontSize="11" Foreground="#888" />
+                        <TextBlock Text="{Binding BackupVM.BackupCurrentFileText}"
+                                   FontSize="11" Foreground="#999"
+                                   TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+
+                    <!-- Status -->
+                    <Border IsVisible="{Binding BackupVM.HasStatusMessage}"
+                            Background="#F0F8F0" CornerRadius="4" Padding="8,6">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="{Binding BackupVM.BackupStatusMessage}"
+                                       Foreground="#2D6A2D" FontSize="12" />
+                            <TextBlock Text="{Binding BackupVM.BackupOutputPath}"
+                                       Foreground="#666" FontSize="11"
+                                       TextTrimming="CharacterEllipsis"
+                                       IsVisible="{Binding BackupVM.HasOutputPath}" />
+                            <TextBlock Text="{Binding BackupVM.BackupOutputSizeText}"
+                                       Foreground="#888" FontSize="11"
+                                       IsVisible="{Binding BackupVM.HasOutputSize}" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
