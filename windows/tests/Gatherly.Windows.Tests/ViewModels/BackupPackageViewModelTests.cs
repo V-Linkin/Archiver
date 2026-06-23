@@ -734,6 +734,10 @@ public class BackupPackageViewModelTests : IDisposable
 
         await vm.CreateBackupCommand.ExecuteAsync(Path.Combine(_testDir, "test.zip"));
 
+        // Progress<T> posts callback to ThreadPool; wait for it to execute
+        for (int i = 0; i < 50 && string.IsNullOrEmpty(vm.BackupCurrentFileText); i++)
+            await Task.Delay(20);
+
         Assert.DoesNotContain("0018989E", vm.BackupCurrentFileText);
         Assert.DoesNotContain("cover.jpg", vm.BackupCurrentFileText);
         Assert.Contains("5", vm.BackupCurrentFileText);
