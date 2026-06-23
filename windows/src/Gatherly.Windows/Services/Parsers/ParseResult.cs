@@ -55,6 +55,7 @@ public class ParsedContent
     public string? OriginalUrl { get; init; }
     public string? NormalizedUrl { get; init; }
     public Platform Platform { get; init; }
+    public Dictionary<string, string> RawMetadata { get; init; } = [];
 }
 
 /// <summary>
