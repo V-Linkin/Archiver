@@ -14,6 +14,7 @@ public class PlatformRouter
     private readonly YouTubeParser _youtube = new();
     private readonly DouyinParser _douyin = new();
     private readonly XiaohongshuParser _xiaohongshu = new();
+    private readonly CoolapkParser _coolapk = new();
 
     public virtual IContentParser GetParser(Platform platform, string url)
     {
@@ -27,6 +28,8 @@ public class PlatformRouter
             return _douyin;
         if (platform == Platform.xiaohongshu)
             return _xiaohongshu;
+        if (platform == Platform.coolapk)
+            return _coolapk;
 
         return _notImplemented;
     }
