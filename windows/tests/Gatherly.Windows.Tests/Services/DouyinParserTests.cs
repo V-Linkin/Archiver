@@ -81,11 +81,11 @@ public class DouyinParserTests
     }
 
     [Fact]
-    public void PlatformRouter_DouyinNotGoesToNotImplemented()
+    public void PlatformRouter_Xiaohongshu_GoesToXiaohongshuParser()
     {
         var router = new PlatformRouter();
         var parser = router.GetParser(Platform.xiaohongshu, "https://www.xiaohongshu.com/explore/abc123");
-        Assert.IsType<NotImplementedParser>(parser);
+        Assert.IsType<XiaohongshuParser>(parser);
     }
 
     [Fact]

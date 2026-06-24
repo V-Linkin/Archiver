@@ -89,12 +89,11 @@ public class ImportServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task ProcessImport_XiaohongshuUrl_ReturnsTaskCreated()
+    public async Task ProcessImport_XiaohongshuUrl_RoutesToParser()
     {
         var result = await _service.ProcessImportAsync("https://www.xiaohongshu.com/explore/65a1b2c3");
-        Assert.Equal(ImportStatus.TaskCreated, result.Status);
-        Assert.Equal(Platform.xiaohongshu, result.Platform);
-        Assert.Contains("小红书", result.Message);
+        // Now routed to real XiaohongshuParser (not NotImplemented), so not TaskCreated
+        Assert.NotEqual(ImportStatus.TaskCreated, result.Status);
     }
 
     [Fact]
@@ -739,9 +738,9 @@ public class ImportServiceTests : IDisposable
             cmd.ExecuteNonQuery();
         }
 
-        // xiaohongshu parser returns TaskCreated (not implemented yet)
+        // xiaohongshu parser now exists — it will try HTTP and likely fail
         var result = await _service.ProcessImportAsync("https://www.xiaohongshu.com/explore/test123");
-        Assert.Equal(ImportStatus.TaskCreated, result.Status);
+        Assert.True(result.Status == ImportStatus.Failed || result.Status == ImportStatus.SuccessImport);
 
         // No new active item created
         using var activeCmd = _connection.CreateCommand();

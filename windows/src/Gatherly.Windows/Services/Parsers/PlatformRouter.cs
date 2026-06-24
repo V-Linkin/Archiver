@@ -13,6 +13,7 @@ public class PlatformRouter
     private readonly BilibiliParser _bilibili = new();
     private readonly YouTubeParser _youtube = new();
     private readonly DouyinParser _douyin = new();
+    private readonly XiaohongshuParser _xiaohongshu = new();
 
     public virtual IContentParser GetParser(Platform platform, string url)
     {
@@ -24,6 +25,8 @@ public class PlatformRouter
             return _youtube;
         if (platform == Platform.douyin)
             return _douyin;
+        if (platform == Platform.xiaohongshu)
+            return _xiaohongshu;
 
         return _notImplemented;
     }
