@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
@@ -12,20 +13,49 @@ namespace Gatherly.Windows.Views;
 public partial class ItemDetailView : UserControl
 {
     private readonly IExternalLinkService _externalLinkService = new ExternalLinkService();
+    private MainWindowViewModel? _subscribedVm;
 
     public ItemDetailView()
     {
         InitializeComponent();
-        DataContextChanged += (_, _) => ResetScroll();
+        DataContextChanged += OnDataContextChanged;
     }
 
-    private void ResetScroll()
+    private void OnDataContextChanged(object? sender, EventArgs e)
+    {
+        if (_subscribedVm != null)
+            _subscribedVm.PropertyChanged -= OnViewModelPropertyChanged;
+
+        if (DataContext is MainWindowViewModel vm)
+        {
+            _subscribedVm = vm;
+            _subscribedVm.PropertyChanged += OnViewModelPropertyChanged;
+        }
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainWindowViewModel.SelectedItem))
+            ResetScrollToTop();
+    }
+
+    private void ResetScrollToTop()
     {
         if (DetailScrollViewer == null) return;
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
             DetailScrollViewer.Offset = new Avalonia.Vector(0, 0);
         });
+    }
+
+    protected override void OnDetachedFromVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+        if (_subscribedVm != null)
+        {
+            _subscribedVm.PropertyChanged -= OnViewModelPropertyChanged;
+            _subscribedVm = null;
+        }
     }
 
     /// <summary>
