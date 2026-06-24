@@ -16,6 +16,16 @@ public partial class ItemDetailView : UserControl
     public ItemDetailView()
     {
         InitializeComponent();
+        DataContextChanged += (_, _) => ResetScroll();
+    }
+
+    private void ResetScroll()
+    {
+        if (DetailScrollViewer == null) return;
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            DetailScrollViewer.Offset = new Avalonia.Vector(0, 0);
+        });
     }
 
     /// <summary>

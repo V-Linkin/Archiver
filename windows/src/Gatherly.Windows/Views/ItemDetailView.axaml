@@ -48,7 +48,7 @@
         </Border>
 
         <!-- Content area -->
-        <ScrollViewer>
+        <ScrollViewer x:Name="DetailScrollViewer">
             <StackPanel Spacing="20" Margin="24,16,24,24"
                         MaxWidth="800">
 
