@@ -131,6 +131,12 @@ public static partial class UrlNormalizer
     public static string? ExtractXUsername(string url) =>
         ExtractFirstGroup(url, XUsernameRegex());
 
+    /// <summary>
+    /// 提取微博 status ID
+    /// </summary>
+    public static string? ExtractWeiboId(string url) =>
+        ExtractFirstGroup(url, WeiboIdRegex());
+
     private static string GetCanonicalTemplate(Platform platform) => platform switch
     {
         Platform.douyin => "douyin://video/{id}",

@@ -27,6 +27,47 @@ public class MediaDownloadService
     }
 
     /// <summary>
+    /// 按平台 / 域名隔离设置 Referer，避免全局污染
+    /// </summary>
+    private static string? GetRefererForUrl(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            return null;
+        var host = uri.Host;
+        if (host.Contains("sinaimg.cn") || host.Contains("weibo.cn") || host.Contains("weibo.com"))
+            return "https://weibo.com/";
+        if (host.Contains("douyinpic.com") || host.Contains("douyin.com"))
+            return "https://www.douyin.com/";
+        if (host.Contains("xiaohongshu.com") || host.Contains("xhscdn.com"))
+            return "https://www.xiaohongshu.com/";
+        if (host.Contains("coolapk.com") || host.Contains("coolapk1s.com"))
+            return "https://www.coolapk.com/";
+        if (host.Contains("bilibili.com"))
+            return "https://www.bilibili.com/";
+        return null;
+    }
+
+    private static async Task<byte[]> DownloadBytesAsync(string url, CancellationToken ct)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        var referer = GetRefererForUrl(url);
+        if (referer != null)
+            request.Headers.TryAddWithoutValidation("Referer", referer);
+        var response = await SharedHttpClient.SendAsync(request, ct);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsByteArrayAsync(ct);
+    }
+
+    private static async Task<HttpResponseMessage> DownloadWithHeadersAsync(string url, HttpCompletionOption completionOption, CancellationToken ct)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        var referer = GetRefererForUrl(url);
+        if (referer != null)
+            request.Headers.TryAddWithoutValidation("Referer", referer);
+        return await SharedHttpClient.SendAsync(request, completionOption, ct);
+    }
+
+    /// <summary>
     /// 下载封面图片到本地并创建 media_asset 记录
     /// 失败时不抛异常，返回 null
     /// </summary>
@@ -37,7 +78,7 @@ public class MediaDownloadService
 
         try
         {
-            var bytes = await SharedHttpClient.GetByteArrayAsync(coverUrl, ct);
+            var bytes = await DownloadBytesAsync(coverUrl, ct);
             if (bytes.Length == 0)
                 return null;
 
@@ -93,7 +134,7 @@ public class MediaDownloadService
 
         try
         {
-            var bytes = await SharedHttpClient.GetByteArrayAsync(imageUrl, ct);
+            var bytes = await DownloadBytesAsync(imageUrl, ct);
             if (bytes.Length == 0)
                 return null;
 
@@ -149,7 +190,7 @@ public class MediaDownloadService
 
             Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
 
-            using var response = await SharedHttpClient.GetAsync(videoUrl, HttpCompletionOption.ResponseHeadersRead, ct);
+            using var response = await DownloadWithHeadersAsync(videoUrl, HttpCompletionOption.ResponseHeadersRead, ct);
             response.EnsureSuccessStatusCode();
 
             long fileSize = 0;

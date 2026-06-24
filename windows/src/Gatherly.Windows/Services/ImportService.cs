@@ -183,7 +183,7 @@ public class ImportService
                 ContentStatus = ContentStatus.normal,
                 ArchiveStatus = ArchiveStatus.pending,
                 MediaStatus = string.IsNullOrEmpty(content.VideoUrl)
-                    ? (content.ImageUrls.Count > 0 ? MediaStatus.complete : MediaStatus.textOnly)
+                    ? (content.ImageUrls.Count > 0 || !string.IsNullOrEmpty(content.CoverUrl) ? MediaStatus.complete : MediaStatus.textOnly)
                     : MediaStatus.complete,
                 CoverUrl = content.CoverUrl
             };
