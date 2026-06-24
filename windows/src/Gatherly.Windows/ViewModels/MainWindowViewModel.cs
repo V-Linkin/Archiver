@@ -66,6 +66,11 @@ public partial class MainWindowViewModel : ObservableObject
     public bool HasVideos => VideoAssets.Count > 0;
 
     /// <summary>
+    /// 视频预览卡片的封面图片路径（优先使用 cover asset，fallback 到第一张 image）
+    /// </summary>
+    public string? VideoCoverImagePath { get; private set; }
+
+    /// <summary>
     /// 回收站操作成功后的回调（由 MainWindowViewModel 订阅以刷新 Sidebar）
     /// </summary>
     public Func<Task>? OnTrashOperationSuccess { get; set; }
@@ -510,8 +515,10 @@ public partial class MainWindowViewModel : ObservableObject
     {
         ImageAssets.Clear();
         VideoAssets.Clear();
+        VideoCoverImagePath = null;
         OnPropertyChanged(nameof(HasImages));
         OnPropertyChanged(nameof(HasVideos));
+        OnPropertyChanged(nameof(VideoCoverImagePath));
 
         if (itemId == null) return;
 
@@ -527,6 +534,31 @@ public partial class MainWindowViewModel : ObservableObject
                     ImageAssets.Add(display);
                 else if (asset.Type == MediaType.video)
                     VideoAssets.Add(display);
+            }
+
+            // 视频预览封面：优先 cover，fallback 到第一张 image
+            if (HasVideos && VideoCoverImagePath == null)
+            {
+                var coverAsset = assets.FirstOrDefault(a => a.Type == MediaType.cover && !string.IsNullOrEmpty(a.LocalPath));
+                if (coverAsset != null)
+                {
+                    var path = MediaPathHelper.ResolveFullPath(coverAsset.LocalPath);
+                    if (File.Exists(path))
+                        VideoCoverImagePath = path;
+                }
+
+                if (VideoCoverImagePath == null)
+                {
+                    var imgAsset = assets.FirstOrDefault(a => a.Type == MediaType.image && !string.IsNullOrEmpty(a.LocalPath));
+                    if (imgAsset != null)
+                    {
+                        var path = MediaPathHelper.ResolveFullPath(imgAsset.LocalPath);
+                        if (File.Exists(path))
+                            VideoCoverImagePath = path;
+                    }
+                }
+
+                OnPropertyChanged(nameof(VideoCoverImagePath));
             }
 
             OnPropertyChanged(nameof(HasImages));
@@ -580,6 +612,17 @@ public partial class MainWindowViewModel : ObservableObject
         {
             // 打开失败不影响主流程
         }
+    }
+
+    /// <summary>
+    /// 视频预览卡片点击 — 打开第一个视频
+    /// </summary>
+    [RelayCommand]
+    private void PlayVideoCard()
+    {
+        var firstVideo = VideoAssets.FirstOrDefault(v => v.FileExists);
+        if (firstVideo != null)
+            OpenVideoFile(firstVideo);
     }
 
     /// <summary>

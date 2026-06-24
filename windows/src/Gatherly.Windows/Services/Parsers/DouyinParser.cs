@@ -31,26 +31,51 @@ public partial class DouyinParser : IContentParser
         {
             var html = await SharedHttpClient.GetStringAsync(request.Url, cancellationToken);
 
+            // 诊断日志
+            var log = $"[{DateTime.Now:HH:mm:ss}] URL={request.Url}\nHTML length={html.Length}\nHas _ROUTER_DATA={html.Contains("window._ROUTER_DATA")}\n";
+
             // 尝试从 SSR 数据中提取 JSON（与 macOS 一致的优先级）
             var ssrResult = ExtractFromSsrData(html, request);
             if (ssrResult != null)
+            {
+                log += $"SSR result: Status={ssrResult.Status}, Title={ssrResult.Content?.Title}, Author={ssrResult.Content?.Author}\n";
+                WriteLog(log);
                 return ssrResult;
+            }
+
+            log += "SSR result: null (fell through to meta)\n";
 
             // 回退：从 meta 标签提取基础信息（与 macOS extractFromMetaTags 一致）
-            return ExtractFromMetaTags(html, request);
+            var metaResult = ExtractFromMetaTags(html, request);
+            log += $"Meta result: Status={metaResult.Status}, Title={metaResult.Content?.Title}, Author={metaResult.Content?.Author}\n";
+            WriteLog(log);
+            return metaResult;
         }
         catch (HttpRequestException ex)
         {
+            WriteLog($"[{DateTime.Now:HH:mm:ss}] HTTP error: {ex.Message}\n");
             return ParseResult.Fail($"HTTP 请求失败：{ex.Message}");
         }
         catch (TaskCanceledException)
         {
+            WriteLog($"[{DateTime.Now:HH:mm:ss}] Timeout\n");
             return ParseResult.Fail("请求超时");
         }
         catch (Exception ex)
         {
+            WriteLog($"[{DateTime.Now:HH:mm:ss}] Parse error: {ex.Message}\n{ex.StackTrace}\n");
             return ParseResult.Fail($"解析失败：{ex.Message}");
         }
+    }
+
+    private static void WriteLog(string message)
+    {
+        try
+        {
+            var logPath = Path.Combine(Path.GetTempPath(), "douyin_parser_debug.log");
+            File.AppendAllText(logPath, message + "\n");
+        }
+        catch { }
     }
 
     /// <summary>
@@ -59,23 +84,47 @@ public partial class DouyinParser : IContentParser
     /// </summary>
     private ParseResult? ExtractFromSsrData(string html, ParseRequest request)
     {
+        var log = "";
+
         // 移动端页面使用 window._ROUTER_DATA
         var routerMatch = RouterDataPattern().Match(html);
+        log += $"Regex match: {routerMatch.Success}\n";
+
         if (routerMatch.Success)
         {
             var jsonStr = routerMatch.Groups[1].Value.Trim();
             if (jsonStr.EndsWith(';'))
                 jsonStr = jsonStr[..^1];
 
+            log += $"JSON length: {jsonStr.Length}\n";
+
             try
             {
                 var json = JsonDocument.Parse(jsonStr);
+                log += "JSON parsed OK\n";
+
+                // 列出 loaderData 键
+                if (json.RootElement.TryGetProperty("loaderData", out var ld))
+                {
+                    log += "loaderData keys: ";
+                    foreach (var p in ld.EnumerateObject())
+                        log += $"{p.Name}({p.Value.ValueKind}) ";
+                    log += "\n";
+                }
+
                 var mobileResult = ParseMobileJson(json.RootElement, request);
+                log += $"ParseMobileJson result: {(mobileResult != null ? "SUCCESS" : "NULL")}\n";
+                if (mobileResult?.Content != null)
+                    log += $"  Title=[{mobileResult.Content.Title}] Author=[{mobileResult.Content.Author}] Cover=[{mobileResult.Content.CoverUrl}] Video=[{mobileResult.Content.VideoUrl}] Images={mobileResult.Content.ImageUrls.Count} Pcid=[{mobileResult.Content.PlatformContentId}]\n";
+
+                WriteLog(log);
                 if (mobileResult != null)
                     return mobileResult;
             }
-            catch
+            catch (Exception ex)
             {
+                log += $"JSON parse error: {ex.Message}\n";
+                WriteLog(log);
                 // JSON 解析失败，继续尝试其他方式
             }
         }
@@ -134,10 +183,58 @@ public partial class DouyinParser : IContentParser
 
         // 尝试 videoInfoRes.item_list
         if (page.Value.TryGetProperty("videoInfoRes", out var videoInfoRes) &&
+            videoInfoRes.ValueKind == System.Text.Json.JsonValueKind.Object &&
             videoInfoRes.TryGetProperty("item_list", out var itemList) &&
+            itemList.ValueKind == System.Text.Json.JsonValueKind.Array &&
             itemList.GetArrayLength() > 0)
         {
             return ParseNoteDetail(itemList[0], request);
+        }
+
+        // 如果 videoInfoRes 存在但 item_list 为 Null，尝试从 videoInfoRes 顶层提取数据
+        if (page.Value.TryGetProperty("videoInfoRes", out var viRes2) &&
+            viRes2.ValueKind == System.Text.Json.JsonValueKind.Object)
+        {
+            // 尝试直接从 videoInfoRes 提取 desc / author / video / images
+            var desc = GetString(viRes2, "desc");
+            string? author = null;
+            if (viRes2.TryGetProperty("author", out var authorEl) && authorEl.ValueKind == System.Text.Json.JsonValueKind.Object)
+                author = GetString(authorEl, "nickname");
+
+            string? videoUrl = null;
+            if (viRes2.TryGetProperty("video", out var videoEl) && videoEl.ValueKind == System.Text.Json.JsonValueKind.Object)
+            {
+                if (videoEl.TryGetProperty("play_addr", out var playAddr) && playAddr.ValueKind == System.Text.Json.JsonValueKind.Object &&
+                    playAddr.TryGetProperty("url_list", out var urls) && urls.ValueKind == System.Text.Json.JsonValueKind.Array && urls.GetArrayLength() > 0)
+                {
+                    videoUrl = urls[0].GetString()?.Replace("/playwm/", "/play/");
+                }
+            }
+
+            string? coverUrl = null;
+            if (viRes2.TryGetProperty("video", out var cvEl) && cvEl.ValueKind == System.Text.Json.JsonValueKind.Object &&
+                cvEl.TryGetProperty("cover", out var coverEl) && coverEl.ValueKind == System.Text.Json.JsonValueKind.Object &&
+                coverEl.TryGetProperty("url_list", out var coverUrls) && coverUrls.ValueKind == System.Text.Json.JsonValueKind.Array && coverUrls.GetArrayLength() > 0)
+            {
+                coverUrl = coverUrls[0].GetString();
+            }
+
+            if (desc != null || author != null || videoUrl != null || coverUrl != null)
+            {
+                var title = !string.IsNullOrEmpty(desc) ? desc.Length > 50 ? desc[..50] : desc : "";
+                return ParseResult.Success(new ParsedContent
+                {
+                    Title = title,
+                    Body = desc,
+                    Author = author,
+                    CoverUrl = coverUrl,
+                    VideoUrl = videoUrl,
+                    PlatformContentId = UrlNormalizer.ExtractContentId(request.Url, Platform.douyin),
+                    Platform = Platform.douyin,
+                    OriginalUrl = request.Url,
+                    NormalizedUrl = request.NormalizedUrl
+                });
+            }
         }
 
         return null;
@@ -149,6 +246,9 @@ public partial class DouyinParser : IContentParser
     private ParseResult? ParseNoteDetail(JsonElement detail, ParseRequest request)
     {
         var desc = detail.TryGetProperty("desc", out var descEl) ? descEl.GetString() : null;
+
+        // 提取 aweme_id 作为 PlatformContentId（从 JSON 中获取，不依赖 URL 正则）
+        var awemeId = GetString(detail, "aweme_id");
 
         // 提取作者
         string? author = null;
@@ -169,6 +269,7 @@ public partial class DouyinParser : IContentParser
         {
             if (video.TryGetProperty("cover", out var cover) &&
                 cover.TryGetProperty("url_list", out var coverUrls) &&
+                coverUrls.ValueKind == System.Text.Json.JsonValueKind.Array &&
                 coverUrls.GetArrayLength() > 0)
             {
                 coverUrl = coverUrls[0].GetString();
@@ -181,6 +282,7 @@ public partial class DouyinParser : IContentParser
         {
             if (videoForPlay.TryGetProperty("play_addr", out var playAddr) &&
                 playAddr.TryGetProperty("url_list", out var playUrls) &&
+                playUrls.ValueKind == System.Text.Json.JsonValueKind.Array &&
                 playUrls.GetArrayLength() > 0)
             {
                 var url = playUrls[0].GetString() ?? "";
@@ -191,12 +293,14 @@ public partial class DouyinParser : IContentParser
 
         // 提取图片列表（与 macOS 一致）
         var imageUrls = new List<string>();
-        if (detail.TryGetProperty("images", out var images))
-        {
-            foreach (var image in images.EnumerateArray())
+            if (detail.TryGetProperty("images", out var images) &&
+                images.ValueKind == System.Text.Json.JsonValueKind.Array)
             {
-                if (image.TryGetProperty("url_list", out var urlList) &&
-                    urlList.GetArrayLength() > 0)
+                foreach (var image in images.EnumerateArray())
+                {
+                    if (image.TryGetProperty("url_list", out var urlList) &&
+                        urlList.ValueKind == System.Text.Json.JsonValueKind.Array &&
+                        urlList.GetArrayLength() > 0)
                 {
                     var firstUrl = urlList[0].GetString();
                     if (firstUrl != null)
@@ -240,7 +344,7 @@ public partial class DouyinParser : IContentParser
             CoverUrl = coverUrl,
             ImageUrls = imageUrls,
             VideoUrl = videoUrl,
-            PlatformContentId = UrlNormalizer.ExtractContentId(request.Url, Platform.douyin),
+            PlatformContentId = awemeId ?? UrlNormalizer.ExtractContentId(request.Url, Platform.douyin) ?? "",
             Platform = Platform.douyin,
             OriginalUrl = request.Url,
             NormalizedUrl = request.NormalizedUrl
@@ -273,6 +377,7 @@ public partial class DouyinParser : IContentParser
         if (detailEl.TryGetProperty("video", out var video))
         {
             if (video.TryGetProperty("playAddr", out var playAddr) &&
+                playAddr.ValueKind == System.Text.Json.JsonValueKind.Array &&
                 playAddr.GetArrayLength() > 0)
             {
                 var first = playAddr[0];
@@ -288,10 +393,12 @@ public partial class DouyinParser : IContentParser
         string? coverUrl = null;
         if (detailEl.TryGetProperty("video", out var videoForCover) &&
             videoForCover.TryGetProperty("cover", out var cover) &&
+            cover.ValueKind == System.Text.Json.JsonValueKind.Array &&
             cover.GetArrayLength() > 0)
         {
             var firstCover = cover[0];
             if (firstCover.TryGetProperty("urlList", out var urlList) &&
+                urlList.ValueKind == System.Text.Json.JsonValueKind.Array &&
                 urlList.GetArrayLength() > 0)
             {
                 coverUrl = urlList[0].GetString();
@@ -300,11 +407,13 @@ public partial class DouyinParser : IContentParser
 
         // 图片列表
         var imageUrls = new List<string>();
-        if (detailEl.TryGetProperty("images", out var images))
+        if (detailEl.TryGetProperty("images", out var images) &&
+            images.ValueKind == System.Text.Json.JsonValueKind.Array)
         {
             foreach (var image in images.EnumerateArray())
             {
                 if (image.TryGetProperty("url_list", out var urlList) &&
+                    urlList.ValueKind == System.Text.Json.JsonValueKind.Array &&
                     urlList.GetArrayLength() > 0)
                 {
                     var firstUrl = urlList[0].GetString();
@@ -325,7 +434,7 @@ public partial class DouyinParser : IContentParser
             CoverUrl = coverUrl,
             ImageUrls = imageUrls,
             VideoUrl = videoUrl,
-            PlatformContentId = UrlNormalizer.ExtractContentId(request.Url, Platform.douyin),
+            PlatformContentId = UrlNormalizer.ExtractContentId(request.Url, Platform.douyin) ?? "",
             Platform = Platform.douyin,
             OriginalUrl = request.Url,
             NormalizedUrl = request.NormalizedUrl
@@ -349,7 +458,7 @@ public partial class DouyinParser : IContentParser
             Title = title,
             Body = desc,
             CoverUrl = cover,
-            PlatformContentId = UrlNormalizer.ExtractContentId(request.Url, Platform.douyin),
+            PlatformContentId = UrlNormalizer.ExtractContentId(request.Url, Platform.douyin) ?? "",
             Platform = Platform.douyin,
             OriginalUrl = request.Url,
             NormalizedUrl = request.NormalizedUrl
@@ -410,6 +519,11 @@ public partial class DouyinParser : IContentParser
     /// </summary>
     [GeneratedRegex("""window\._ROUTER_DATA\s*=\s*(.*?)</script>""", RegexOptions.Singleline)]
     private static partial Regex RouterDataPattern();
+
+    /// <summary>
+    /// 测试用：暴露 RouterDataPattern 供单元测试使用
+    /// </summary>
+    public static Match RouterDataPatternForTest(string html) => RouterDataPattern().Match(html);
 
     /// <summary>
     /// 匹配 &lt;script id="RENDER_DATA" type="application/json"&gt;{ URL-encoded JSON }&lt;/script&gt;

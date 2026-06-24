@@ -190,10 +190,34 @@ public class ImportService
 
             await _itemRepo.InsertAsync(item);
 
-            // 下载封面到本地（失败不影响导入）
+            // 下载封面
             if (!string.IsNullOrEmpty(content.CoverUrl))
             {
-                await _mediaDownload.DownloadCoverAsync(item.Id, content.CoverUrl);
+                try
+                {
+                    var coverAsset = await _mediaDownload.DownloadCoverAsync(item.Id, content.CoverUrl);
+                    if (coverAsset != null)
+                    {
+                        item.CoverAssetId = coverAsset.Id;
+                        await _itemRepo.UpdateAsync(item);
+                    }
+                }
+                catch
+                {
+                    // 网络下载失败不影响导入
+                }
+            }
+
+            // 下载图片列表
+            for (int i = 0; i < content.ImageUrls.Count; i++)
+            {
+                try { await _mediaDownload.DownloadImageAsync(item.Id, content.ImageUrls[i], i); } catch { }
+            }
+
+            // 下载视频
+            if (!string.IsNullOrEmpty(content.VideoUrl))
+            {
+                try { await _mediaDownload.DownloadVideoAsync(item.Id, content.VideoUrl); } catch { }
             }
 
             await _taskRepo.UpdateCompletedAsync(task.Id, item.Id);

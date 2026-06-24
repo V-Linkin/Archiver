@@ -42,6 +42,18 @@ public partial class ItemDetailView : UserControl
         }
     }
 
+    /// <summary>
+    /// 视频预览卡片点击 — 播放视频
+    /// </summary>
+    private void VideoCard_PointerPressed(object? sender, Avalonia.Input.PointerPressedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.PlayVideoCardCommand.Execute(null);
+            e.Handled = true;
+        }
+    }
+
     private async void TrashConfirm_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not MainWindowViewModel vm || vm.SelectedItem == null) return;

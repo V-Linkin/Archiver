@@ -196,7 +196,14 @@ public class ItemRepository
         using var ftsCmd = _connection.CreateCommand();
         ftsCmd.CommandText = "SELECT last_insert_rowid()";
         var rowid = (long)(await ftsCmd.ExecuteScalarAsync()!);
+        // 先删除可能存在的孤儿 FTS 记录（rowid 冲突会导致 UNIQUE constraint failed）
+        ftsCmd.CommandText = "DELETE FROM items_fts WHERE rowid = $rowid";
+        ftsCmd.Parameters.Clear();
+        ftsCmd.Parameters.AddWithValue("$rowid", rowid);
+        await ftsCmd.ExecuteNonQueryAsync();
+        // 再插入新的 FTS 记录
         ftsCmd.CommandText = "INSERT INTO items_fts(rowid, title, body) VALUES ($rowid, $title, $body)";
+        ftsCmd.Parameters.Clear();
         ftsCmd.Parameters.AddWithValue("$rowid", rowid);
         ftsCmd.Parameters.AddWithValue("$title", (object?)item.Title ?? DBNull.Value);
         ftsCmd.Parameters.AddWithValue("$body", (object?)item.Body ?? DBNull.Value);
@@ -245,6 +252,26 @@ public class ItemRepository
         cmd.Parameters.AddWithValue("$deletedAt", item.DeletedAt?.ToUnixTimeSeconds() ?? (object)DBNull.Value);
         cmd.Parameters.AddWithValue("$customPlatformId", item.CustomPlatformId?.ToString() ?? (object)DBNull.Value);
         await cmd.ExecuteNonQueryAsync();
+
+        // 同步 FTS
+        using var ridCmd = _connection.CreateCommand();
+        ridCmd.CommandText = "SELECT rowid FROM items WHERE id COLLATE NOCASE=$id";
+        ridCmd.Parameters.AddWithValue("$id", item.Id.ToString("D"));
+        var rowidResult = await ridCmd.ExecuteScalarAsync();
+        if (rowidResult != null && rowidResult != DBNull.Value)
+        {
+            var rowid = Convert.ToInt64(rowidResult);
+            using var ftsCmd = _connection.CreateCommand();
+            ftsCmd.CommandText = "DELETE FROM items_fts WHERE rowid = $rowid";
+            ftsCmd.Parameters.AddWithValue("$rowid", rowid);
+            await ftsCmd.ExecuteNonQueryAsync();
+            ftsCmd.CommandText = "INSERT INTO items_fts(rowid, title, body) VALUES ($rowid, $title, $body)";
+            ftsCmd.Parameters.Clear();
+            ftsCmd.Parameters.AddWithValue("$rowid", rowid);
+            ftsCmd.Parameters.AddWithValue("$title", (object?)item.Title ?? DBNull.Value);
+            ftsCmd.Parameters.AddWithValue("$body", (object?)item.Body ?? DBNull.Value);
+            await ftsCmd.ExecuteNonQueryAsync();
+        }
     }
 
 
@@ -255,10 +282,30 @@ public class ItemRepository
     /// </summary>
     public async Task DeleteAsync(Guid itemId)
     {
+        // 先查 rowid 用于 FTS 清理
+        long? rowid = null;
+        using (var ridCmd = _connection.CreateCommand())
+        {
+            ridCmd.CommandText = "SELECT rowid FROM items WHERE id COLLATE NOCASE=$id";
+            ridCmd.Parameters.AddWithValue("$id", itemId.ToString("D"));
+            var result = await ridCmd.ExecuteScalarAsync();
+            if (result != null && result != DBNull.Value)
+                rowid = Convert.ToInt64(result);
+        }
+
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = "DELETE FROM items WHERE id COLLATE NOCASE=$id";
         cmd.Parameters.AddWithValue("$id", itemId.ToString("D"));
         await cmd.ExecuteNonQueryAsync();
+
+        // 同步删除 FTS
+        if (rowid.HasValue)
+        {
+            using var ftsCmd = _connection.CreateCommand();
+            ftsCmd.CommandText = "DELETE FROM items_fts WHERE rowid = $rowid";
+            ftsCmd.Parameters.AddWithValue("$rowid", rowid.Value);
+            await ftsCmd.ExecuteNonQueryAsync();
+        }
     }
 
     private async Task<List<Item>> ReadItemsAsync(SqliteCommand cmd)
