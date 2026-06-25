@@ -21,6 +21,18 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string _appVersion = "1.0.0";
     [ObservableProperty] private string _restoreStatus = "";
     [ObservableProperty] private bool _hasRestoreStatus;
+    [ObservableProperty] private string _dataDirStatus = "";
+    [ObservableProperty] private bool _hasDataDirStatus;
+
+    // Dry-run plan fields
+    [ObservableProperty] private bool _hasMigrationPlan;
+    [ObservableProperty] private string _planCurrentDir = "";
+    [ObservableProperty] private string _planTargetDir = "";
+    [ObservableProperty] private string _planDbSize = "";
+    [ObservableProperty] private string _planMediaInfo = "";
+    [ObservableProperty] private string _planEstimate = "";
+    [ObservableProperty] private string _planConclusion = "";
+    [ObservableProperty] private string _planWarning = "";
 
     public long TotalItems
     {
@@ -117,6 +129,13 @@ public partial class SettingsViewModel : ObservableObject
             RestoreStatus = "数据目录不存在";
             HasRestoreStatus = true;
         }
+    }
+
+    [RelayCommand]
+    private void ModifyDataDirectory()
+    {
+        // 此方法由 SettingsView.axaml.cs 的 ModifyDataDirectory_Click 调用
+        // 实际的目录选择器逻辑在 code-behind 中处理
     }
 
     [RelayCommand]
