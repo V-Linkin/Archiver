@@ -45,4 +45,28 @@ public partial class SettingsView : UserControl
 
         await backupVm.CreateBackupCommand.ExecuteAsync(path);
     }
+
+    private void OpenDataDirectory_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is SettingsViewModel vm)
+            vm.OpenDataDirectoryCommand.Execute(null);
+    }
+
+    private void ShowHelp_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is SettingsViewModel vm)
+            vm.ShowHelpCommand.Execute(null);
+    }
+
+    private void OpenGitHub_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is SettingsViewModel vm)
+            vm.OpenGitHubCommand.Execute(null);
+    }
+
+    private async void RestoreBackup_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is SettingsViewModel vm)
+            await vm.RestoreBackupCommand.ExecuteAsync(null);
+    }
 }

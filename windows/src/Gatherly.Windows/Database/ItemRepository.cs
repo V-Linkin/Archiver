@@ -127,6 +127,13 @@ public class ItemRepository
         return await ReadItemsAsync(cmd);
     }
 
+    public long CountSync()
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM items WHERE deleted_at IS NULL";
+        return (long)(cmd.ExecuteScalar() ?? 0);
+    }
+
     public async Task<int> CountByCustomPlatformIdAsync(Guid customPlatformId)
     {
         using var cmd = _connection.CreateCommand();
