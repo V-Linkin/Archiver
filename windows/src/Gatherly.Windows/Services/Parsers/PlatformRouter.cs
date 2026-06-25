@@ -18,6 +18,7 @@ public class PlatformRouter
     private readonly WeiboParser _weibo = new();
     private readonly ZhihuParser _zhihu = new();
     private readonly DoubanParser _douban = new();
+    private readonly XParser _x = new();
 
     public virtual IContentParser GetParser(Platform platform, string url)
     {
@@ -39,6 +40,8 @@ public class PlatformRouter
             return _zhihu;
         if (platform == Platform.douban)
             return _douban;
+        if (platform == Platform.x)
+            return _x;
 
         return _notImplemented;
     }
