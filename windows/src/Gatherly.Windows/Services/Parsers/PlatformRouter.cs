@@ -17,6 +17,7 @@ public class PlatformRouter
     private readonly CoolapkParser _coolapk = new();
     private readonly WeiboParser _weibo = new();
     private readonly ZhihuParser _zhihu = new();
+    private readonly DoubanParser _douban = new();
 
     public virtual IContentParser GetParser(Platform platform, string url)
     {
@@ -36,6 +37,8 @@ public class PlatformRouter
             return _weibo;
         if (platform == Platform.zhihu)
             return _zhihu;
+        if (platform == Platform.douban)
+            return _douban;
 
         return _notImplemented;
     }

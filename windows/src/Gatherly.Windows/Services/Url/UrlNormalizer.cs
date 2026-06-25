@@ -137,6 +137,12 @@ public static partial class UrlNormalizer
     public static string? ExtractWeiboId(string url) =>
         ExtractFirstGroup(url, WeiboIdRegex());
 
+    /// <summary>
+    /// 提取豆瓣 ID
+    /// </summary>
+    public static string? ExtractDoubanId(string url) =>
+        ExtractFirstGroup(url, DoubanIdRegex());
+
     private static string GetCanonicalTemplate(Platform platform) => platform switch
     {
         Platform.douyin => "douyin://video/{id}",

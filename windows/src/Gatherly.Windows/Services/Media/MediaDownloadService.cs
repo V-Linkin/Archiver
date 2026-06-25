@@ -36,6 +36,8 @@ public class MediaDownloadService
         var host = uri.Host;
         if (host.Contains("sinaimg.cn") || host.Contains("weibo.cn") || host.Contains("weibo.com"))
             return "https://weibo.com/";
+        if (host.Contains("douban.com") || host.Contains("doubanio.com"))
+            return "https://movie.douban.com/";
         if (host.Contains("douyinpic.com") || host.Contains("douyin.com"))
             return "https://www.douyin.com/";
         if (host.Contains("xiaohongshu.com") || host.Contains("xhscdn.com"))
