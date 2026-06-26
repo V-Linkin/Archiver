@@ -1,0 +1,46 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:v="using:Gatherly.Windows.Views"
+        x:Class="Gatherly.Windows.Views.MoveToFolderWindow"
+        Title="移动到文件夹"
+        Width="360" Height="380"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False">
+
+    <DockPanel x:DataType="v:MoveToFolderViewModel">
+        <!-- Empty state -->
+        <TextBlock DockPanel.Dock="Top"
+                   Text="当前平台没有文件夹，请先创建文件夹。"
+                   IsVisible="{Binding !HasFolders}"
+                   HorizontalAlignment="Center"
+                   FontSize="13" Foreground="#999"
+                   Margin="0,40,0,0" />
+
+        <!-- Folder list -->
+        <ListBox x:Name="FolderListBox"
+                 ItemsSource="{Binding Folders}"
+                 Background="Transparent" BorderThickness="0"
+                 Margin="8,8"
+                 SelectionChanged="FolderListBox_SelectionChanged">
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="v:FolderChoiceEntry">
+                    <Border Padding="12,10" Margin="0,1" Background="White" CornerRadius="4">
+                        <TextBlock Text="{Binding Name}" FontSize="14" />
+                    </Border>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- Footer -->
+        <Border DockPanel.Dock="Bottom" Background="#FAFAFA"
+                BorderBrush="#E0E0E0" BorderThickness="0,1,0,0"
+                Padding="16,10">
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                <Button Content="取消" Click="CancelButton_Click" Padding="16,6" FontSize="13" />
+                <Button x:Name="MoveButton" Content="移动" Click="MoveButton_Click"
+                        IsEnabled="False"
+                        Padding="16,6" FontSize="13" FontWeight="SemiBold" />
+            </StackPanel>
+        </Border>
+    </DockPanel>
+</Window>

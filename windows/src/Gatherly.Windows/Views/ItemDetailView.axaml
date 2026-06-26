@@ -48,7 +48,7 @@
         </Border>
 
         <!-- Content area -->
-        <ScrollViewer>
+        <ScrollViewer x:Name="DetailScrollViewer">
             <StackPanel Spacing="20" Margin="24,16,24,24"
                         MaxWidth="800">
 
@@ -83,37 +83,50 @@
                     </ScrollViewer>
                 </StackPanel>
 
-                <!-- Video list -->
+                <!-- Video preview card -->
                 <StackPanel Spacing="8"
                             IsVisible="{Binding HasVideos}">
                     <TextBlock Text="视频" FontSize="14" Foreground="Gray" />
+                    <!-- Preview card with cover + play button -->
+                    <Border CornerRadius="10" ClipToBounds="True"
+                            Background="#1A1A1A"
+                            MaxWidth="480" MaxHeight="320"
+                            HorizontalAlignment="Left"
+                            Cursor="Hand"
+                            PointerPressed="VideoCard_PointerPressed">
+                        <Panel>
+                            <Image Source="{Binding VideoCoverImagePath, Converter={x:Static conv:FilePathToBitmapConverter.Instance}}"
+                                   Stretch="Uniform" Opacity="0.9" />
+                            <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    Width="64" Height="64" CornerRadius="32"
+                                    Background="#80000000" BorderBrush="#40FFFFFF" BorderThickness="2">
+                                <TextBlock Text="▶" FontSize="28" Foreground="White"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Margin="3,0,0,0" />
+                            </Border>
+                        </Panel>
+                    </Border>
+                    <!-- Video file info + action buttons -->
                     <ItemsControl ItemsSource="{Binding VideoAssets}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:MediaAssetDisplay">
-                                <Border CornerRadius="8" Padding="12"
-                                        Background="#F8F8F8" Margin="0,0,0,8">
-                                    <StackPanel Spacing="6">
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <TextBlock Text="🎬" FontSize="16" />
-                                            <TextBlock Text="{Binding FileName}"
-                                                       FontSize="14" />
-                                            <TextBlock Text="{Binding FileSizeDisplay}"
-                                                       FontSize="12" Foreground="Gray"
-                                                       VerticalAlignment="Center" />
-                                        </StackPanel>
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <Button Content="打开视频"
-                                                    FontSize="12" Padding="10,5"
-                                                    Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).OpenVideoFileCommand}"
-                                                    CommandParameter="{Binding}"
-                                                    IsVisible="{Binding FileExists}" />
-                                            <Button Content="打开所在文件夹"
-                                                    FontSize="12" Padding="10,5"
-                                                    Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).OpenVideoFolderCommand}"
-                                                    CommandParameter="{Binding}" />
-                                        </StackPanel>
+                                <StackPanel Spacing="4" Margin="0,4,0,0">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="🎬" FontSize="14" />
+                                        <TextBlock Text="{Binding FileName}" FontSize="13" />
+                                        <TextBlock Text="{Binding FileSizeDisplay}" FontSize="12" Foreground="Gray"
+                                                   VerticalAlignment="Center" />
                                     </StackPanel>
-                                </Border>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Button Content="打开视频" FontSize="12" Padding="10,4"
+                                                Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).OpenVideoFileCommand}"
+                                                CommandParameter="{Binding}"
+                                                IsVisible="{Binding FileExists}" />
+                                        <Button Content="打开所在文件夹" FontSize="12" Padding="10,4"
+                                                Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).OpenVideoFolderCommand}"
+                                                CommandParameter="{Binding}" />
+                                    </StackPanel>
+                                </StackPanel>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>

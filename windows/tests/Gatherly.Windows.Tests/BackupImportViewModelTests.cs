@@ -124,7 +124,7 @@ public class BackupImportViewModelTests : IDisposable
         conn.Open();
         MigrationRunner.RunAll(conn);
 
-        var vm = new MainWindowViewModel(conn);
+        var vm = new MainWindowViewModel(conn, _tempDir);
 
         Assert.NotNull(vm);
         Assert.NotNull(vm.Home);
@@ -142,7 +142,7 @@ public class BackupImportViewModelTests : IDisposable
         conn.Open();
         MigrationRunner.RunAll(conn);
 
-        var vm = new MainWindowViewModel(conn);
+        var vm = new MainWindowViewModel(conn, _tempDir);
 
         Assert.False(vm.IsImportingBackup);
         Assert.False(vm.HasBackupImportStatus);
@@ -156,7 +156,7 @@ public class BackupImportViewModelTests : IDisposable
         conn.Open();
         MigrationRunner.RunAll(conn);
 
-        var vm = new MainWindowViewModel(conn);
+        var vm = new MainWindowViewModel(conn, _tempDir);
 
         await vm.ImportBackupAsync("/nonexistent/path.zip");
 
@@ -218,7 +218,7 @@ public class BackupImportViewModelTests : IDisposable
         // Now create a ViewModel pointing at the restored database
         using var conn = new SqliteConnection($"Data Source={dbPath}");
         conn.Open();
-        var vm = new MainWindowViewModel(conn);
+        var vm = new MainWindowViewModel(conn, _tempDir);
 
         // Home should have loaded the restored data
         await vm.Home.LoadCommand.ExecuteAsync(null);
@@ -238,7 +238,7 @@ public class BackupImportViewModelTests : IDisposable
 
         using var conn = new SqliteConnection($"Data Source={dbPath}");
         conn.Open();
-        var vm = new MainWindowViewModel(conn);
+        var vm = new MainWindowViewModel(conn, _tempDir);
 
         await vm.Trash.LoadCommand.ExecuteAsync(null);
         // No trashed items in test backup
@@ -252,7 +252,7 @@ public class BackupImportViewModelTests : IDisposable
         conn.Open();
         MigrationRunner.RunAll(conn);
 
-        var vm = new MainWindowViewModel(conn);
+        var vm = new MainWindowViewModel(conn, _tempDir);
         vm.IsImportingBackup = true;
 
         // Should return immediately without doing anything

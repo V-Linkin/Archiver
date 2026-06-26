@@ -1,4 +1,4 @@
-using Gatherly.Windows.Database;
+﻿using Gatherly.Windows.Database;
 using Gatherly.Windows.Models;
 using Gatherly.Windows.Models.Enums;
 using Gatherly.Windows.Services;
@@ -11,9 +11,12 @@ namespace Gatherly.Windows.Tests;
 public class ItemServiceTests : IDisposable
 {
     private readonly SqliteConnection _connection;
+    private readonly string _testDir;
 
     public ItemServiceTests()
     {
+        _testDir = Path.Combine(Path.GetTempPath(), "GlyTest_" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(_testDir);
         _connection = new SqliteConnection("Data Source=:memory:");
         _connection.Open();
         MigrationRunner.RunAll(_connection);
@@ -30,7 +33,9 @@ public class ItemServiceTests : IDisposable
     {
         _connection.Close();
         _connection.Dispose();
+        try { Directory.Delete(_testDir, true); } catch { }
     }
+
 
     private void InsertTestItem(string id = "00000000-0000-0000-0000-000000000001",
         string? folderId = null, string archiveStatus = "pending")
@@ -260,7 +265,7 @@ public class ItemServiceTests : IDisposable
     [Fact]
     public async Task MainWindowViewModel_TrashSelectedItemCommand_NullDoesNotCrash()
     {
-        var vm = new MainWindowViewModel(_connection);
+        var vm = new MainWindowViewModel(_connection, _testDir);
         vm.SelectedItem = null;
         await vm.TrashSelectedItemCommand.ExecuteAsync(null);
         Assert.Null(vm.SelectedItem);
@@ -270,7 +275,7 @@ public class ItemServiceTests : IDisposable
     public async Task MainWindowViewModel_TrashSelectedItemCommand_TrashesItem()
     {
         InsertTestItem();
-        var vm = new MainWindowViewModel(_connection);
+        var vm = new MainWindowViewModel(_connection, _testDir);
 
         // Wait for home to load
         await vm.Home.LoadCommand.ExecuteAsync(null);
@@ -292,7 +297,7 @@ public class ItemServiceTests : IDisposable
     {
         InsertTestItem("00000000-0000-0000-0000-000000000001");
         InsertTestItem("00000000-0000-0000-0000-000000000002");
-        var vm = new MainWindowViewModel(_connection);
+        var vm = new MainWindowViewModel(_connection, _testDir);
 
         await vm.Home.LoadCommand.ExecuteAsync(null);
         Assert.Equal(2, vm.Home.RecentItems.Count);
@@ -412,7 +417,7 @@ public class ItemServiceTests : IDisposable
     [Fact]
     public async Task MainWindowViewModel_SaveRemarkCommand_NullDoesNotCrash()
     {
-        var vm = new MainWindowViewModel(_connection);
+        var vm = new MainWindowViewModel(_connection, _testDir);
         vm.SelectedItem = null;
         await vm.SaveRemarkCommand.ExecuteAsync(null);
         Assert.Null(vm.SelectedItem);
@@ -422,7 +427,7 @@ public class ItemServiceTests : IDisposable
     public async Task MainWindowViewModel_StartEditRemark_EntersEditMode()
     {
         InsertTestItem();
-        var vm = new MainWindowViewModel(_connection);
+        var vm = new MainWindowViewModel(_connection, _testDir);
         await vm.Home.LoadCommand.ExecuteAsync(null);
 
         if (vm.Home.RecentItems.Count > 0)
@@ -439,7 +444,7 @@ public class ItemServiceTests : IDisposable
     public async Task MainWindowViewModel_CancelEditRemark_ExitsEditMode()
     {
         InsertTestItem();
-        var vm = new MainWindowViewModel(_connection);
+        var vm = new MainWindowViewModel(_connection, _testDir);
         await vm.Home.LoadCommand.ExecuteAsync(null);
 
         if (vm.Home.RecentItems.Count > 0)
@@ -458,7 +463,7 @@ public class ItemServiceTests : IDisposable
     public async Task MainWindowViewModel_SaveRemark_UpdatesSelectedItem()
     {
         InsertTestItem();
-        var vm = new MainWindowViewModel(_connection);
+        var vm = new MainWindowViewModel(_connection, _testDir);
         await vm.Home.LoadCommand.ExecuteAsync(null);
 
         if (vm.Home.RecentItems.Count > 0)

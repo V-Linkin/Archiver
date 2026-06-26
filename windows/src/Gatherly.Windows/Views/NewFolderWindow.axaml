@@ -1,0 +1,23 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Gatherly.Windows.Views.NewFolderWindow"
+        Width="350" Height="160"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False">
+
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Margin="24,20,24,0" Spacing="12">
+            <TextBlock x:Name="TitleText" Text="新建文件夹" FontSize="16" FontWeight="SemiBold" />
+            <TextBox x:Name="FolderNameBox" Watermark="文件夹名称" MinWidth="200" />
+        </StackPanel>
+        <Border DockPanel.Dock="Bottom" Background="#FAFAFA"
+                BorderBrush="#E0E0E0" BorderThickness="0,1,0,0"
+                Padding="16,10">
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                <Button Content="取消" Click="CancelButton_Click" Padding="16,6" FontSize="13" />
+                <Button x:Name="CreateButton" Content="创建" Click="CreateButton_Click"
+                        Padding="16,6" FontSize="13" FontWeight="SemiBold" />
+            </StackPanel>
+        </Border>
+    </DockPanel>
+</Window>

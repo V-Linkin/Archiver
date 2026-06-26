@@ -70,6 +70,50 @@ public class FolderRepository
         return await ReadFoldersAsync(cmd);
     }
 
+    public async Task<Folder> CreateAsync(string name, Platform platform, Guid? parentPlatformId = null,
+        Guid? customPlatformId = null, int sortOrder = 0)
+    {
+        var id = Guid.NewGuid();
+        var now = DateTimeOffset.UtcNow;
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = @"INSERT INTO folders (id, name, parent_id, platform, created_at, sort_order, custom_platform_id)
+            VALUES ($id, $name, $parentId, $platform, $createdAt, $sortOrder, $cpId)";
+        cmd.Parameters.AddWithValue("$id", id.ToString("D"));
+        cmd.Parameters.AddWithValue("$name", name.Trim());
+        cmd.Parameters.AddWithValue("$parentId", parentPlatformId?.ToString() ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("$platform", platform.ToRawValue());
+        cmd.Parameters.AddWithValue("$createdAt", now.ToUnixTimeSeconds());
+        cmd.Parameters.AddWithValue("$sortOrder", sortOrder);
+        cmd.Parameters.AddWithValue("$cpId", customPlatformId?.ToString() ?? (object)DBNull.Value);
+        await cmd.ExecuteNonQueryAsync();
+        return (await GetByIdAsync(id))!;
+    }
+
+    public async Task UpdateNameAsync(Guid id, string newName)
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "UPDATE folders SET name=$name WHERE id COLLATE NOCASE=$id";
+        cmd.Parameters.AddWithValue("$name", newName.Trim());
+        cmd.Parameters.AddWithValue("$id", id.ToString("D"));
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    public async Task DeleteAsync(Guid id)
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "DELETE FROM folders WHERE id COLLATE NOCASE=$id";
+        cmd.Parameters.AddWithValue("$id", id.ToString("D"));
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    public async Task<int> CountItemsAsync(Guid folderId)
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM items WHERE folder_id COLLATE NOCASE=$folderId AND deleted_at IS NULL";
+        cmd.Parameters.AddWithValue("$folderId", folderId.ToString("D"));
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync());
+    }
+
     private async Task<List<Folder>> ReadFoldersAsync(SqliteCommand cmd)
     {
         using var reader = await cmd.ExecuteReaderAsync();

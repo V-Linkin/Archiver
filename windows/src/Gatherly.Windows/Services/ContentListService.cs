@@ -103,4 +103,10 @@ public class ContentListService
     {
         return await _folderRepo.GetUncategorizedFoldersAsync();
     }
+
+    public async Task<string?> GetFolderNameAsync(Guid folderId)
+    {
+        var folder = await _folderRepo.GetByIdAsync(folderId);
+        return folder?.Name;
+    }
 }

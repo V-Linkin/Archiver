@@ -1,0 +1,172 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Gatherly.Windows.ViewModels"
+        x:Class="Gatherly.Windows.Views.PlatformManagementWindow"
+        x:DataType="vm:PlatformManagementViewModel"
+        Title="平台管理"
+        Width="560" Height="520"
+        MinWidth="400" MinHeight="350"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True">
+
+    <DockPanel>
+        <!-- Header -->
+        <Border DockPanel.Dock="Top" Background="#FAFAFA"
+                BorderBrush="#E0E0E0" BorderThickness="0,0,0,1"
+                Padding="16,12">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0" Text="平台管理"
+                           FontSize="16" FontWeight="SemiBold"
+                           VerticalAlignment="Center" />
+                <Button Grid.Column="1" Content="新建平台"
+                        Command="{Binding BeginCreateCommand}"
+                        Padding="12,6" FontSize="13" />
+            </Grid>
+        </Border>
+
+        <!-- Content -->
+        <DockPanel>
+            <!-- Empty State -->
+            <StackPanel DockPanel.Dock="Top"
+                        IsVisible="{Binding IsEmpty}"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="8" Margin="0,40">
+                <TextBlock Text="还没有平台" FontSize="14" HorizontalAlignment="Center"
+                           Foreground="#666" />
+                <TextBlock Text="创建平台后可在侧边栏中管理内容" FontSize="12"
+                           HorizontalAlignment="Center" Foreground="#999" />
+            </StackPanel>
+
+            <!-- Loading State -->
+            <TextBlock DockPanel.Dock="Top"
+                       Text="加载中..." IsVisible="{Binding IsLoading}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       FontSize="14" Foreground="#666" Margin="0,40" />
+
+            <!-- Create Form -->
+            <Border DockPanel.Dock="Top"
+                    IsVisible="{Binding IsCreating}"
+                    Background="#F8F8F8" BorderBrush="#E0E0E0"
+                    BorderThickness="0,0,0,1" Padding="16,12">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="新建平台" FontSize="14" FontWeight="SemiBold" />
+                    <TextBox Text="{Binding PlatformName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             Watermark="输入平台名称"
+                             MinWidth="200" />
+                    <TextBlock Text="{Binding ErrorMessage}"
+                               Foreground="#D32F2F" FontSize="12"
+                               IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="保存"
+                                Command="{Binding SaveCommand}"
+                                IsEnabled="{Binding CanSave}"
+                                Padding="16,6" />
+                        <Button Content="取消"
+                                Command="{Binding CancelEditCommand}"
+                                Padding="16,6" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Edit Form -->
+            <Border DockPanel.Dock="Top"
+                    IsVisible="{Binding IsEditing}"
+                    Background="#F8F8F8" BorderBrush="#E0E0E0"
+                    BorderThickness="0,0,0,1" Padding="16,12">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="编辑平台" FontSize="14" FontWeight="SemiBold" />
+                    <TextBox Text="{Binding PlatformName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             Watermark="输入平台名称"
+                             MinWidth="200" />
+                    <TextBlock Text="{Binding ErrorMessage}"
+                               Foreground="#D32F2F" FontSize="12"
+                               IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="保存"
+                                Command="{Binding SaveCommand}"
+                                IsEnabled="{Binding CanSave}"
+                                Padding="16,6" />
+                        <Button Content="取消"
+                                Command="{Binding CancelEditCommand}"
+                                Padding="16,6" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Delete Confirmation -->
+            <Border DockPanel.Dock="Top"
+                    IsVisible="{Binding IsConfirmingDelete}"
+                    Background="#FFF3E0" BorderBrush="#FF9800"
+                    BorderThickness="0,0,0,1" Padding="16,12">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="确认删除" FontSize="14" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding DeleteConfirmMessage}"
+                               FontSize="13" TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="确认删除"
+                                Command="{Binding ConfirmDeleteCommand}"
+                                Padding="16,6" Background="#D32F2F" Foreground="White" />
+                        <Button Content="取消"
+                                Command="{Binding CancelDeleteCommand}"
+                                Padding="16,6" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Platform List -->
+            <ScrollViewer>
+                <ItemsControl ItemsSource="{Binding Entries}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:PlatformManagementEntry">
+                            <Border Padding="12,10" Margin="0,1"
+                                    Background="White">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
+                                        <Border Width="32" Height="32"
+                                                Background="#F0F0F0" CornerRadius="6"
+                                                VerticalAlignment="Center">
+                                            <TextBlock Text="📁" FontSize="16"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center" />
+                                        </Border>
+                                        <TextBlock Text="{Binding DisplayName}"
+                                                   FontSize="14" FontWeight="SemiBold"
+                                                   VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                        <Button Content="编辑"
+                                                Tag="{Binding}"
+                                                Click="EditButton_Click"
+                                                FontSize="12" Padding="8,4"
+                                                Background="Transparent" Foreground="#1A73E8"
+                                                Cursor="Hand"
+                                                ToolTip.Tip="编辑平台名称" />
+                                        <Button Content="删除"
+                                                Tag="{Binding}"
+                                                Click="DeleteButton_Click"
+                                                FontSize="12" Padding="8,4"
+                                                Background="Transparent" Foreground="#D32F2F"
+                                                Cursor="Hand"
+                                                IsVisible="{Binding HasCustomPlatform}"
+                                                ToolTip.Tip="删除自建平台" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </DockPanel>
+
+        <!-- Footer -->
+        <Border DockPanel.Dock="Bottom" Background="#FAFAFA"
+                BorderBrush="#E0E0E0" BorderThickness="0,1,0,0"
+                Padding="16,10">
+            <Button Content="关闭"
+                    HorizontalAlignment="Right"
+                    Padding="16,6" FontSize="13"
+                    Click="CloseButton_Click" />
+        </Border>
+    </DockPanel>
+</Window>

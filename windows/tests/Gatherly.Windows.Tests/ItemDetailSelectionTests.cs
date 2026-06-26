@@ -10,9 +10,12 @@ namespace Gatherly.Windows.Tests;
 public class ItemDetailSelectionTests : IDisposable
 {
     private readonly SqliteConnection _connection;
+    private readonly string _testDir;
 
     public ItemDetailSelectionTests()
     {
+        _testDir = Path.Combine(Path.GetTempPath(), "GlyDetail_" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(_testDir);
         _connection = new SqliteConnection("Data Source=:memory:");
         _connection.Open();
         MigrationRunner.RunAll(_connection);
@@ -29,11 +32,12 @@ public class ItemDetailSelectionTests : IDisposable
     {
         _connection.Close();
         _connection.Dispose();
+        try { Directory.Delete(_testDir, true); } catch { }
     }
 
     private MainWindowViewModel CreateViewModel()
     {
-        return new MainWindowViewModel(_connection);
+        return new MainWindowViewModel(_connection, _testDir);
     }
 
     [Fact]

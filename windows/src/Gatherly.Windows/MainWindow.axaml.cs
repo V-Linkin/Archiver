@@ -48,6 +48,7 @@ public partial class MainWindow : Window
         TrashViewControl.IsVisible = section == "Trash";
         ContentListViewControl.IsVisible = section == "PlatformContent";
         DetailViewControl.IsVisible = section == "Detail";
+        SettingsViewControl.IsVisible = section == "Settings";
     }
 
     private async void PlatformEntry_Click(object? sender, RoutedEventArgs e)
@@ -62,14 +63,15 @@ public partial class MainWindow : Window
                 await vm.ShowUncategorizedCommand.ExecuteAsync(null);
             }
             else if (entry.IsStandardPlatform && entry.StandardPlatform.HasValue
-                     && SupportsMergedPlatform(entry.StandardPlatform.Value)
                      && entry.CustomPlatformIds.Count > 0)
             {
+                // 有标准平台且有自定义平台 ID → 合并查询
                 await vm.ShowMergedPlatformCommand.ExecuteAsync(entry);
             }
             else if (entry.IsStandardPlatform && entry.StandardPlatform.HasValue
                      && entry.CustomPlatformIds.Count == 0)
             {
+                // 仅有标准平台，无自定义平台 ID → 标准查询
                 await vm.ShowStandardPlatformCommand.ExecuteAsync(entry.StandardPlatform.Value);
             }
             else if (entry.CustomPlatformIds.Count == 1)
@@ -111,5 +113,38 @@ public partial class MainWindow : Window
         if (string.IsNullOrEmpty(path)) return;
 
         await vm.ImportBackupAsync(path);
+    }
+
+    private async void CreateBackup_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm) return;
+        if (vm.BackupVM.IsBackupRunning) return;
+
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel?.StorageProvider == null) return;
+
+        var suggestedName = $"Gatherly-Backup-{DateTime.Now:yyyyMMdd-HHmmss}.zip";
+
+        var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "创建备份",
+            SuggestedFileName = suggestedName,
+            DefaultExtension = ".zip",
+            FileTypeChoices = new[]
+            {
+                new FilePickerFileType("Gatherly 备份文件") { Patterns = new[] { "*.zip" } }
+            }
+        });
+
+        if (file == null) return;
+
+        var path = file.TryGetLocalPath();
+        if (string.IsNullOrEmpty(path))
+        {
+            vm.BackupVM.BackupStatusMessage = "请选择本地文件位置";
+            return;
+        }
+
+        await vm.BackupVM.CreateBackupCommand.ExecuteAsync(path);
     }
 }

@@ -5,6 +5,7 @@ using Gatherly.Windows.Database;
 using Gatherly.Windows.Models;
 using Gatherly.Windows.Models.Enums;
 using Gatherly.Windows.Services;
+using Gatherly.Windows.Services.Backup;
 using Microsoft.Data.Sqlite;
 
 namespace Gatherly.Windows.ViewModels;
@@ -63,6 +64,11 @@ public partial class MainWindowViewModel : ObservableObject
 
     public bool HasImages => ImageAssets.Count > 0;
     public bool HasVideos => VideoAssets.Count > 0;
+
+    /// <summary>
+    /// 视频预览卡片的封面图片路径（优先使用 cover asset，fallback 到第一张 image）
+    /// </summary>
+    public string? VideoCoverImagePath { get; private set; }
 
     /// <summary>
     /// 回收站操作成功后的回调（由 MainWindowViewModel 订阅以刷新 Sidebar）
@@ -141,6 +147,8 @@ public partial class MainWindowViewModel : ObservableObject
     public ContentListViewModel ContentList { get; }
     public SearchViewModel Search { get; }
     public TrashViewModel Trash { get; }
+    public BackupPackageViewModel BackupVM { get; }
+    public SettingsViewModel Settings { get; }
 
     /// <summary>
     /// Sidebar 平台入口列表
@@ -151,11 +159,17 @@ public partial class MainWindowViewModel : ObservableObject
     private string _platformTitle = "";
 
     private readonly ItemService _itemService;
+    private readonly Services.FolderService _folderService;
     private readonly BackupImportService _backupImportService;
     private readonly MediaRepository _mediaRepo;
+    private readonly CustomPlatformRepository _customPlatformRepo;
+    private readonly SystemPlatformDisplayNames _systemPlatformDisplayNames;
+    private readonly SqliteConnection _connection;
+    private readonly Task _migrationTask;
 
-    public MainWindowViewModel(SqliteConnection connection)
+    public MainWindowViewModel(SqliteConnection connection, string? dataDirectory = null)
     {
+        _connection = connection;
         var itemRepo = new ItemRepository(connection);
         var folderRepo = new FolderRepository(connection);
         var searchRepo = new SearchRepository(connection);
@@ -164,14 +178,25 @@ public partial class MainWindowViewModel : ObservableObject
         var importTaskRepo = new ImportTaskRepository(connection);
 
         _itemService = new ItemService(itemRepo, trashRepo, folderRepo, mediaRepo, connection);
+        _folderService = new Services.FolderService(folderRepo, itemRepo);
         _backupImportService = new BackupImportService();
         _mediaRepo = mediaRepo;
 
         var customPlatformRepo = new CustomPlatformRepository(connection);
-        Home = new HomeViewModel(new HomeDataService(itemRepo, mediaRepo, customPlatformRepo, connection), new ImportService(itemRepo, importTaskRepo, new Services.Media.MediaDownloadService(mediaRepo)));
+        _customPlatformRepo = customPlatformRepo;
+        _systemPlatformDisplayNames = new SystemPlatformDisplayNames(dataDirectory);
+
+        // System-to-Custom migration
+        var customMap = new Services.SystemPlatformCustomMap(dataDirectory);
+        var migrationService = new Services.SystemPlatformItemMigrationService(connection, customPlatformRepo, customMap, _systemPlatformDisplayNames);
+        _migrationTask = MigrateAsync(migrationService);
+
+        Home = new HomeViewModel(new HomeDataService(itemRepo, mediaRepo, customPlatformRepo, connection), new ImportService(itemRepo, importTaskRepo, new Services.Media.MediaDownloadService(mediaRepo), TimeProvider.System, customMap));
         ContentList = new ContentListViewModel(new ContentListService(itemRepo, folderRepo), mediaRepo, customPlatformRepo);
         Search = new SearchViewModel(new SearchService(searchRepo), mediaRepo, customPlatformRepo);
         Trash = new TrashViewModel(new TrashDataService(itemRepo, trashRepo), _itemService);
+        BackupVM = new BackupPackageViewModel(() => new BackupPackageServiceAdapter(new BackupPackageV2Service(connection, customPlatformRepo, _systemPlatformDisplayNames, customMap)));
+        Settings = new SettingsViewModel(BackupVM);
 
         // Subscribe to sub-ViewModel selection changes → navigate to detail
         // Note: Trash does NOT navigate to detail (macOS behavior: trash only selects)
@@ -214,7 +239,37 @@ public partial class MainWindowViewModel : ObservableObject
             if (CurrentSection == "PlatformContent")
                 await ContentList.ReloadCurrentContentAsync();
         };
+
+        // 订阅移动到平台请求
+        ContentList.OnMoveToPlatformRequested = item => HandleMoveToPlatform(item);
+
+        // 订阅文件夹操作
+        ContentList.OnNewFolderRequested = () => HandleNewFolder();
+        ContentList.OnFolderClicked = folder => HandleFolderClicked(folder);
+        ContentList.OnFolderRenameRequested = folder => HandleFolderRename(folder);
+        ContentList.OnFolderDeleteRequested = folder => HandleFolderDelete(folder);
+        ContentList.OnNavigateBackRequested = () => HandleNavigateBack();
+        ContentList.OnMoveToFolderRequested = item => HandleMoveToFolder(item);
+        ContentList.OnDeleteItemRequested = item => HandleDeleteItem(item);
     }
+
+    private static Task MigrateAsync(Services.SystemPlatformItemMigrationService migrationService)
+    {
+        try
+        {
+            migrationService.Migrate();
+        }
+        catch
+        {
+            // Migration failure does not block app startup
+        }
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// 等待 migration 完成（测试用）
+    /// </summary>
+    public Task WaitForMigrationAsync() => _migrationTask;
 
     /// <summary>
     /// 从 zip 备份包恢复数据
@@ -284,6 +339,12 @@ public partial class MainWindowViewModel : ObservableObject
         await Trash.LoadCommand.ExecuteAsync(null);
     }
 
+    [RelayCommand]
+    private void ShowSettings()
+    {
+        CurrentSection = "Settings";
+    }
+
     /// <summary>
     /// 加载 Sidebar 平台入口
     /// </summary>
@@ -293,6 +354,35 @@ public partial class MainWindowViewModel : ObservableObject
         SidebarPlatforms.Clear();
         foreach (var p in platforms)
             SidebarPlatforms.Add(p);
+    }
+
+    /// <summary>
+    /// 打开平台管理窗口
+    /// </summary>
+    [RelayCommand]
+    private void OpenPlatformManagement()
+    {
+        var platformService = new Services.CustomPlatformService(_customPlatformRepo);
+        var itemRepo = new ItemRepository(_connection);
+        var vm = new PlatformManagementViewModel(platformService, itemRepo);
+        vm.OnPlatformChanged = RefreshAllPlatformViewsAsync;
+
+        var window = new Views.PlatformManagementWindow
+        {
+            DataContext = vm
+        };
+
+        window.Show();
+        _ = vm.LoadCommand.ExecuteAsync(null);
+    }
+
+    /// <summary>
+    /// 统一刷新所有平台视图（Sidebar + 首页平台入口）
+    /// </summary>
+    private async Task RefreshAllPlatformViewsAsync()
+    {
+        await LoadSidebarPlatformsAsync();
+        await Home.LoadCommand.ExecuteAsync(null);
     }
 
     /// <summary>
@@ -439,8 +529,10 @@ public partial class MainWindowViewModel : ObservableObject
     {
         ImageAssets.Clear();
         VideoAssets.Clear();
+        VideoCoverImagePath = null;
         OnPropertyChanged(nameof(HasImages));
         OnPropertyChanged(nameof(HasVideos));
+        OnPropertyChanged(nameof(VideoCoverImagePath));
 
         if (itemId == null) return;
 
@@ -456,6 +548,31 @@ public partial class MainWindowViewModel : ObservableObject
                     ImageAssets.Add(display);
                 else if (asset.Type == MediaType.video)
                     VideoAssets.Add(display);
+            }
+
+            // 视频预览封面：优先 cover，fallback 到第一张 image
+            if (HasVideos && VideoCoverImagePath == null)
+            {
+                var coverAsset = assets.FirstOrDefault(a => a.Type == MediaType.cover && !string.IsNullOrEmpty(a.LocalPath));
+                if (coverAsset != null)
+                {
+                    var path = MediaPathHelper.ResolveFullPath(coverAsset.LocalPath);
+                    if (File.Exists(path))
+                        VideoCoverImagePath = path;
+                }
+
+                if (VideoCoverImagePath == null)
+                {
+                    var imgAsset = assets.FirstOrDefault(a => a.Type == MediaType.image && !string.IsNullOrEmpty(a.LocalPath));
+                    if (imgAsset != null)
+                    {
+                        var path = MediaPathHelper.ResolveFullPath(imgAsset.LocalPath);
+                        if (File.Exists(path))
+                            VideoCoverImagePath = path;
+                    }
+                }
+
+                OnPropertyChanged(nameof(VideoCoverImagePath));
             }
 
             OnPropertyChanged(nameof(HasImages));
@@ -509,6 +626,17 @@ public partial class MainWindowViewModel : ObservableObject
         {
             // 打开失败不影响主流程
         }
+    }
+
+    /// <summary>
+    /// 视频预览卡片点击 — 打开第一个视频
+    /// </summary>
+    [RelayCommand]
+    private void PlayVideoCard()
+    {
+        var firstVideo = VideoAssets.FirstOrDefault(v => v.FileExists);
+        if (firstVideo != null)
+            OpenVideoFile(firstVideo);
     }
 
     /// <summary>
@@ -577,6 +705,193 @@ public partial class MainWindowViewModel : ObservableObject
     {
         if (SelectedItem?.OriginalUrl != null)
             _externalLinkService.Open(SelectedItem.OriginalUrl);
+    }
+
+    private async void HandleMoveToPlatform(Item item)
+    {
+        if (App.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+            && desktop.MainWindow is Avalonia.Controls.Window mainWindow)
+        {
+            var window = new Views.MoveToPlatformWindow(item, _customPlatformRepo)
+            {
+                Title = "移动到平台"
+            };
+            await window.ShowDialog(mainWindow);
+
+            if (window.Result != null)
+            {
+                try
+                {
+                    await _itemService.MoveToCustomPlatformAsync(item, window.Result.CustomPlatformId, _customPlatformRepo);
+
+                    await LoadSidebarPlatformsAsync();
+                    if (CurrentSection == "PlatformContent")
+                        await ContentList.ReloadCurrentContentAsync();
+                }
+                catch (Exception ex)
+                {
+                    BackupImportError = $"移动失败：{ex.Message}";
+                }
+            }
+        }
+    }
+
+    private async void HandleNewFolder()
+    {
+        if (App.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+            && desktop.MainWindow is Avalonia.Controls.Window mainWindow)
+        {
+            var dialog = new Views.NewFolderWindow();
+            await dialog.ShowDialog(mainWindow);
+
+            if (dialog.Result != null)
+            {
+                try
+                {
+                    var platform = ContentList.CurrentPagePlatform;
+                    var cpId = ContentList.CurrentPageCustomPlatformId;
+                    await _folderService.CreateFolderAsync(dialog.Result, platform, customPlatformId: cpId);
+                    if (CurrentSection == "PlatformContent")
+                        await ContentList.ReloadCurrentContentAsync();
+                    await LoadSidebarPlatformsAsync();
+                }
+                catch (Exception ex)
+                {
+                    BackupImportError = $"创建文件夹失败：{ex.Message}";
+                }
+            }
+        }
+    }
+
+    private async void HandleFolderClicked(Folder folder)
+    {
+        PlatformTitle = folder.Name;
+        PreviousSection = CurrentSection;
+        CurrentSection = "PlatformContent";
+        await ContentList.LoadFolderAsync(folder.Id);
+    }
+
+    private async void HandleFolderRename(Folder folder)
+    {
+        if (App.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+            && desktop.MainWindow is Avalonia.Controls.Window mainWindow)
+        {
+            var dialog = new Views.NewFolderWindow("重命名文件夹");
+            await dialog.ShowDialog(mainWindow);
+
+            if (dialog.Result != null)
+            {
+                try
+                {
+                    await _folderService.RenameFolderAsync(folder.Id, dialog.Result);
+                    if (CurrentSection == "PlatformContent")
+                        await ContentList.ReloadCurrentContentAsync();
+                }
+                catch (Exception ex)
+                {
+                    BackupImportError = $"重命名失败：{ex.Message}";
+                }
+            }
+        }
+    }
+
+    private async void HandleFolderDelete(Folder folder)
+    {
+        if (App.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+            && desktop.MainWindow is Avalonia.Controls.Window mainWindow)
+        {
+            var dialog = new Views.ConfirmDialogWindow("删除文件夹", $"确定删除文件夹「{folder.Name}」？内容不会被删除。");
+            await dialog.ShowDialog(mainWindow);
+
+            if (dialog.Result == true)
+            {
+                try
+                {
+                    await _folderService.DeleteFolderAsync(folder.Id);
+                    if (CurrentSection == "PlatformContent")
+                        await ContentList.ReloadCurrentContentAsync();
+                    await LoadSidebarPlatformsAsync();
+                }
+                catch (Exception ex)
+                {
+                    BackupImportError = $"删除失败：{ex.Message}";
+                }
+            }
+        }
+    }
+
+    private async void HandleNavigateBack()
+    {
+        // Clear folder state first, then reload parent platform view
+        ContentList.ClearFolderState();
+        PlatformTitle = "内容列表";
+        await ContentList.ReloadCurrentContentAsync();
+    }
+
+    private async void HandleMoveToFolder(Item item)
+    {
+        if (App.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+            && desktop.MainWindow is Avalonia.Controls.Window mainWindow)
+        {
+            // Get folders for current platform context
+            var folderRepo = new FolderRepository(_connection);
+            var platform = ContentList.CurrentPagePlatform;
+            var cpId = ContentList.CurrentPageCustomPlatformId;
+
+            List<Folder> folders;
+            if (cpId.HasValue)
+                folders = await folderRepo.GetByCustomPlatformIdAsync(cpId.Value);
+            else
+                folders = await folderRepo.GetByPlatformAsync(platform);
+
+            if (folders.Count == 0)
+            {
+                BackupImportError = "当前平台没有文件夹，请先创建文件夹。";
+                return;
+            }
+
+            var window = new Views.MoveToFolderWindow(folders);
+            await window.ShowDialog(mainWindow);
+
+            if (window.Result != null)
+            {
+                try
+                {
+                    await _itemService.MoveToFolderAsync(item, window.Result.FolderId, folderRepo);
+                    if (CurrentSection == "PlatformContent")
+                        await ContentList.ReloadCurrentContentAsync();
+                }
+                catch (Exception ex)
+                {
+                    BackupImportError = $"移动到文件夹失败：{ex.Message}";
+                }
+            }
+        }
+    }
+
+    private async void HandleDeleteItem(Item item)
+    {
+        if (App.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+            && desktop.MainWindow is Avalonia.Controls.Window mainWindow)
+        {
+            var dialog = new Views.ConfirmDialogWindow("删除内容", $"确定将「{item.Title ?? "未命名内容"}」移入回收站？");
+            await dialog.ShowDialog(mainWindow);
+
+            if (dialog.Result == true)
+            {
+                try
+                {
+                    await _itemService.TrashItemAsync(item);
+                    // Reload current view (folder or platform)
+                    await ContentList.ReloadCurrentContentAsync();
+                    await LoadSidebarPlatformsAsync();
+                }
+                catch (Exception ex)
+                {
+                    BackupImportError = $"删除失败：{ex.Message}";
+                }
+            }
+        }
     }
 }
 

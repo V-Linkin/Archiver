@@ -1,0 +1,81 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:v="using:Gatherly.Windows.Views"
+        x:Class="Gatherly.Windows.Views.MoveToPlatformWindow"
+        x:DataType="v:MoveToPlatformViewModel"
+        Title="移动到平台"
+        Width="360" Height="380"
+        MinWidth="300" MinHeight="300"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False">
+
+    <DockPanel>
+        <!-- Header -->
+        <Border DockPanel.Dock="Top" Background="#FAFAFA"
+                BorderBrush="#E0E0E0" BorderThickness="0,0,0,1"
+                Padding="16,12">
+            <StackPanel Spacing="4">
+                <TextBlock Text="移动到平台" FontSize="16" FontWeight="SemiBold" />
+                <TextBlock Text="选择一个自定义平台，当前内容将移动到该平台。"
+                           FontSize="12" Foreground="#666" />
+            </StackPanel>
+        </Border>
+
+        <!-- Empty State -->
+        <TextBlock DockPanel.Dock="Top"
+                   Text="暂无自定义平台，请先创建自定义平台。"
+                   IsVisible="{Binding !HasPlatforms}"
+                   HorizontalAlignment="Center"
+                   FontSize="13" Foreground="#999"
+                   Margin="0,40,0,0" />
+
+        <!-- Platform List -->
+        <ListBox Name="PlatformListBox"
+                 ItemsSource="{Binding Platforms}"
+                 SelectedItem="{Binding SelectedPlatform}"
+                 IsVisible="{Binding HasPlatforms}"
+                 Background="Transparent" BorderThickness="0"
+                 Margin="8,8">
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="v:PlatformChoiceEntry">
+                    <Border Padding="12,10" Margin="0,1"
+                            Background="White" CornerRadius="4">
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                            <Border Grid.Column="0" Width="28" Height="28"
+                                    Background="#F0F0F0" CornerRadius="6"
+                                    VerticalAlignment="Center" Margin="0,0,10,0">
+                                <TextBlock Text="📁" FontSize="14"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                       FontSize="14" FontWeight="SemiBold"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock Grid.Column="2" Text="当前"
+                                       FontSize="11" Foreground="#1A73E8"
+                                       VerticalAlignment="Center"
+                                       IsVisible="{Binding IsCurrent}" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- Footer -->
+        <Border DockPanel.Dock="Bottom" Background="#FAFAFA"
+                BorderBrush="#E0E0E0" BorderThickness="0,1,0,0"
+                Padding="16,10">
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                <Button Content="取消"
+                        Click="CancelButton_Click"
+                        Padding="16,6" FontSize="13" />
+                <Button Content="移动"
+                        Click="MoveButton_Click"
+                        IsEnabled="{Binding CanMove}"
+                        Padding="16,6" FontSize="13"
+                        FontWeight="SemiBold" />
+            </StackPanel>
+        </Border>
+    </DockPanel>
+</Window>

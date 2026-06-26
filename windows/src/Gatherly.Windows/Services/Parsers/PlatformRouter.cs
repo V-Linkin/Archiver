@@ -4,7 +4,7 @@ namespace Gatherly.Windows.Services.Parsers;
 
 /// <summary>
 /// 平台路由器 — 根据平台返回对应 Parser
-/// 当前 GitHub + Bilibili + YouTube 有真实 Parser，其它平台返回 NotImplementedParser
+/// 当前 GitHub + Bilibili + YouTube + Douyin 有真实 Parser，其它平台返回 NotImplementedParser
 /// </summary>
 public class PlatformRouter
 {
@@ -12,8 +12,15 @@ public class PlatformRouter
     private readonly GitHubParser _github = new();
     private readonly BilibiliParser _bilibili = new();
     private readonly YouTubeParser _youtube = new();
+    private readonly DouyinParser _douyin = new();
+    private readonly XiaohongshuParser _xiaohongshu = new();
+    private readonly CoolapkParser _coolapk = new();
+    private readonly WeiboParser _weibo = new();
+    private readonly ZhihuParser _zhihu = new();
+    private readonly DoubanParser _douban = new();
+    private readonly XParser _x = new();
 
-    public IContentParser GetParser(Platform platform, string url)
+    public virtual IContentParser GetParser(Platform platform, string url)
     {
         if (platform == Platform.github)
             return _github;
@@ -21,6 +28,20 @@ public class PlatformRouter
             return _bilibili;
         if (platform == Platform.youtube)
             return _youtube;
+        if (platform == Platform.douyin)
+            return _douyin;
+        if (platform == Platform.xiaohongshu)
+            return _xiaohongshu;
+        if (platform == Platform.coolapk)
+            return _coolapk;
+        if (platform == Platform.weibo)
+            return _weibo;
+        if (platform == Platform.zhihu)
+            return _zhihu;
+        if (platform == Platform.douban)
+            return _douban;
+        if (platform == Platform.x)
+            return _x;
 
         return _notImplemented;
     }
