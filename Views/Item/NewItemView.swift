@@ -382,7 +382,7 @@ struct NewItemView: View {
         appState.refreshData()
         isSaving = false
         isPresented = false
-        selectedNav = .item(item.id)
+        appState.pendingDetailItemID = item.id
         
         let platformName = appState.customPlatforms.first(where: { $0.id == selectedCustomPlatformID })?.name ?? "未分类"
         appState.showToast("内容已保存到 \(platformName)")

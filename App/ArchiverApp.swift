@@ -3,7 +3,7 @@ import SwiftUI
 @main
 struct ArchiverApp: App {
     @State private var appState = AppState()
-    
+
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -12,6 +12,18 @@ struct ArchiverApp: App {
         }
         .defaultSize(width: 1200, height: 800)
     }
+}
+
+/// 平台浏览状态（含列表数据，跨 View 重建持久化）
+struct PlatformListState {
+    var items: [Item] = []
+    var folders: [Folder] = []
+    var currentPage: Int = 1
+    var totalCount: Int = 0
+    var totalPages: Int = 1
+    var hasLoadedOnce: Bool = false
+    var isLoadingPage: Bool = false
+    var anchorItemID: UUID? = nil
 }
 
 @MainActor
@@ -24,13 +36,22 @@ final class AppState {
     let searchRepo = SearchRepository()
     let importService = ImportService.shared
     let customPlatformRepo = CustomPlatformRepository()
-    
+
+    /// 每页固定60条
+    static let platformPageSize = 60
+
+    /// 平台列表状态（含列表数据，跨 View 重建持久化）
+    var platformListStates: [UUID: PlatformListState] = [:]
+
+    /// 新建 item 后自动打开详情
+    var pendingDetailItemID: UUID? = nil
+
     var recentItems: [Item] = []
     var customPlatformCounts: [UUID: Int] = [:]
     var refreshCounter: Int = 0
-    
+
     private static let hiddenItemsKey = "hiddenRecentItemIDs"
-    
+
     var hiddenItemIDs: Set<UUID> {
         get {
             guard let data = UserDefaults.standard.data(forKey: Self.hiddenItemsKey),
@@ -43,7 +64,7 @@ final class AppState {
             }
         }
     }
-    
+
     func hideItem(_ item: Item) {
         var hidden = hiddenItemIDs
         hidden.insert(item.id)
@@ -51,43 +72,43 @@ final class AppState {
         recentItems = recentItems.filter { $0.id != item.id }
     }
     var recentFolders: [Folder] = []
-    
+
     var searchQuery = ""
     var searchResults: [SearchResult] = []
-    
+
     var showNewItem = false
     var newItemPlatform: Platform = .custom
     var newItemCustomPlatformID: UUID? = nil
-    
+
     var editingCustomPlatform: CustomPlatform? = nil
     var changeLogoCustomPlatform: CustomPlatform? = nil
     var deletingCustomPlatform: CustomPlatform? = nil
-    
+
     var showNewCustomPlatform = false
-    
+
     var customPlatforms: [CustomPlatform] = []
-    
+
     var toastMessage: String?
     var showToast = false
-    
+
     func refreshData() {
         // 异步执行数据库操作，避免阻塞主线程
         Task.detached { [weak self] in
             guard let self else { return }
             let customPlatforms = (try? self.customPlatformRepo.fetchAll()) ?? []
-            
+
             let hiddenIDs = await MainActor.run { self.hiddenItemIDs }
             let recentItems = (try? self.itemRepo.fetchRecent())?.filter { !hiddenIDs.contains($0.id) } ?? []
             let recentFolders = (try? self.folderRepo.fetchRecent(limit: 5)) ?? []
             try? self.searchRepo.rebuildIndex()
-            
+
             // 用 SQL COUNT 替代加载全部条目
             var counts: [UUID: Int] = [:]
             for cp in customPlatforms {
                 let count = (try? self.itemRepo.countByCustomPlatform(cp.id)) ?? 0
                 counts[cp.id] = count
             }
-            
+
             await MainActor.run {
                 self.customPlatforms = customPlatforms
                 self.recentItems = recentItems
@@ -97,7 +118,7 @@ final class AppState {
             }
         }
     }
-    
+
     enum MoveDirection {
         case up, down, top
     }
@@ -105,7 +126,7 @@ final class AppState {
     func movePlatform(_ platform: CustomPlatform, direction: MoveDirection) {
         guard let idx = customPlatforms.firstIndex(where: { $0.id == platform.id }) else { return }
         var platforms = customPlatforms
-        
+
         switch direction {
         case .up:
             guard idx > 0 else { return }
@@ -118,13 +139,13 @@ final class AppState {
             let item = platforms.remove(at: idx)
             platforms.insert(item, at: 0)
         }
-        
+
         // 更新 sort_order
         for (i, var p) in platforms.enumerated() {
             p.sortOrder = i
             try? customPlatformRepo.update(p)
         }
-        
+
         customPlatforms = platforms
     }
 
@@ -135,4 +156,27 @@ final class AppState {
             self?.showToast = false
         }
     }
+
+    /// 从所有平台列表状态中移除指定 item
+    func removeItemFromAllListStates(itemID: UUID) {
+        for key in platformListStates.keys {
+            guard var s = platformListStates[key] else { continue }
+            let beforeCount = s.items.count
+            s.items.removeAll { $0.id == itemID }
+            if s.items.count < beforeCount {
+                s.totalCount = max(0, s.totalCount - 1)
+                let pageSize = Self.platformPageSize
+                s.totalPages = max(1, Int(ceil(Double(s.totalCount) / Double(pageSize))))
+                if s.currentPage > s.totalPages {
+                    s.currentPage = s.totalPages
+                }
+            }
+            platformListStates[key] = s
+        }
+    }
+
+    /// 删除事件计数器，触发当前页 reload
+    var deletionEventCounter: Int = 0
+    /// 最近删除的 item ID
+    var lastDeletedItemID: UUID? = nil
 }

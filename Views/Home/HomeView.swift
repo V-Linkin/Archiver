@@ -4,6 +4,7 @@ import SwiftUI
 struct HomeView: View {
     @Binding var selectedNav: NavigationTarget?
     @Binding var previousNav: NavigationTarget?
+    var openDetail: (UUID) -> Void
     @Environment(AppState.self) private var appState
     
     var body: some View {
@@ -29,7 +30,7 @@ struct HomeView: View {
                 
                 Divider()
                 
-                RecentItemsSection(items: appState.recentItems, selectedNav: $selectedNav, previousNav: $previousNav)
+                RecentItemsSection(items: appState.recentItems, selectedNav: $selectedNav, previousNav: $previousNav, openDetail: openDetail)
                 Divider()
                 
                 PlatformGridSection(selectedNav: $selectedNav, previousNav: $previousNav)
@@ -176,6 +177,7 @@ struct RecentItemsSection: View {
     let items: [Item]
     @Binding var selectedNav: NavigationTarget?
     @Binding var previousNav: NavigationTarget?
+    var openDetail: (UUID) -> Void
     @Environment(AppState.self) private var appState
     private let itemService = ItemService()
     
@@ -197,8 +199,11 @@ struct RecentItemsSection: View {
                     LazyHStack(spacing: 12) {
                         ForEach(items) { item in
                             Button {
+                                let tappedID = item.id
                                 previousNav = .home
-                                if NavDebounce.shared.canNavigate() { selectedNav = .item(item.id) }
+                                if NavDebounce.shared.canNavigate() {
+                                    self.openDetail(tappedID)
+                                }
                             } label: {
                                 ItemCardView(item: item)
                             }

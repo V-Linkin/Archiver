@@ -45,10 +45,12 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.archiver.app
         INFOPLIST_FILE: Info.plist
+        ENABLE_TESTABILITY: YES
     dependencies:
       - package: GRDB
     scheme:
-      testTargets: []
+      testTargets:
+        - ArchiverTests
 
   ArchiverTests:
     type: bundle.unit-test

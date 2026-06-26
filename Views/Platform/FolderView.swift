@@ -4,6 +4,7 @@ struct FolderView: View {
     let folderID: UUID
     @Binding var selectedNav: NavigationTarget?
     @Binding var previousNav: NavigationTarget?
+    var openDetail: (UUID) -> Void
     @Environment(AppState.self) private var appState
     private let itemService = ItemService()
     private let folderService = FolderService()
@@ -49,7 +50,7 @@ struct FolderView: View {
                         ForEach(items) { item in
                             Button {
                                 previousNav = .folder(folderID)
-                                selectedNav = .item(item.id)
+                                openDetail(item.id)
                             } label: {
                                 ItemCardView(item: item)
                             }
@@ -63,7 +64,7 @@ struct FolderView: View {
                 List(items) { item in
                     Button {
                         previousNav = .folder(folderID)
-                        selectedNav = .item(item.id)
+                        openDetail(item.id)
                     } label: {
                         ItemListRow(item: item)
                     }

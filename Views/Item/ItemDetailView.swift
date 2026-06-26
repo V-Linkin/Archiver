@@ -4,6 +4,8 @@ import SwiftUI
 
 struct ItemDetailView: View {
     let itemID: UUID
+    var onDismiss: (() -> Void)? = nil
+    var onDeleted: ((UUID) -> Void)? = nil
     @Binding var selectedNav: NavigationTarget?
     @Binding var previousNav: NavigationTarget?
     @Binding var coverImages: [NSImage]
@@ -115,7 +117,9 @@ struct ItemDetailView: View {
             // 操作按钮（固定在顶部）
             HStack(spacing: 8) {
                 Button {
-                    if let prev = previousNav {
+                    if let dismiss = onDismiss {
+                        dismiss()
+                    } else if let prev = previousNav {
                         selectedNav = prev
                     } else {
                         selectedNav = .none
@@ -487,10 +491,8 @@ struct ItemDetailView: View {
         try? itemService.trashItem(item, mediaPaths: mediaPaths)
         
         appState.refreshData()
-        let target = previousNav ?? .home
-        previousNav = nil
-        selectedNav = target
-
+        onDeleted?(item.id)
+        onDismiss?()
     }
 }
 
