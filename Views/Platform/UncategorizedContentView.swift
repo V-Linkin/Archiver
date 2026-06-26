@@ -3,6 +3,7 @@ import SwiftUI
 struct UncategorizedContentView: View {
     @Binding var selectedNav: NavigationTarget?
     @Binding var previousNav: NavigationTarget?
+    var openDetail: (UUID) -> Void
     @Environment(AppState.self) private var appState
     private let itemService = ItemService()
     
@@ -111,7 +112,7 @@ struct UncategorizedContentView: View {
                 ForEach(items) { item in
                     Button {
                         previousNav = .uncategorized
-                        if NavDebounce.shared.canNavigate() { selectedNav = .item(item.id) }
+                        if NavDebounce.shared.canNavigate() { openDetail(item.id) }
                     } label: {
                         ItemCardView(item: item)
                     }
@@ -127,7 +128,7 @@ struct UncategorizedContentView: View {
         List(items) { item in
             Button {
                 previousNav = .uncategorized
-                if NavDebounce.shared.canNavigate() { selectedNav = .item(item.id) }
+                if NavDebounce.shared.canNavigate() { openDetail(item.id) }
             } label: {
                 ItemListRow(item: item)
             }

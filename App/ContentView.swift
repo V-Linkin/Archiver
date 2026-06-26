@@ -11,7 +11,7 @@ enum NavigationTarget: Hashable, Identifiable {
     case settings
     case customPlatform(UUID)
     case uncategorized
-    
+
     var id: String {
         switch self {
         case .home: return "home"
@@ -33,25 +33,46 @@ struct ContentView: View {
     @State private var selectedNav: NavigationTarget? = .home
     @State private var previousNav: NavigationTarget? = .home
     private let searchService = SearchService()
-    
-    // Image viewer state (lifted to cover entire window including sidebar)
+
+    // Image viewer state
     @State private var coverImages: [NSImage] = []
     @State private var coverImageIndex: Int = 0
     @State private var showCoverViewer: Bool = false
 
-    
+    // item 详情 overlay 状态（不替换 detail root）
+    @State private var selectedDetailItemID: UUID? = nil
+
     var body: some View {
         @Bindable var state = appState
-        
+
         NavigationSplitView {
             SidebarView(selectedNav: $selectedNav, previousNav: $previousNav)
         } detail: {
-            VStack(spacing: 0) {
-                if case .folder = selectedNav {
-                    backButton
+            ZStack {
+                VStack(spacing: 0) {
+                    if case .folder = selectedNav {
+                        backButton
+                    }
+                    detailView
                 }
-                detailView
-                    .id(selectedNav)
+
+                if let itemID = selectedDetailItemID {
+                    ItemDetailView(
+                        itemID: itemID,
+                        onDismiss: closeDetail,
+                        onDeleted: handleItemDeleted,
+                        selectedNav: $selectedNav,
+                        previousNav: $previousNav,
+                        coverImages: $coverImages,
+                        coverImageIndex: $coverImageIndex,
+                        showCoverViewer: $showCoverViewer,
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color(nsColor: .windowBackgroundColor))
+                    .transition(.move(edge: .trailing))
+                    .animation(.easeInOut(duration: 0.25), value: selectedDetailItemID)
+                    .zIndex(1)
+                }
             }
         }
         .searchable(text: $state.searchQuery, prompt: "搜索标题和正文...")
@@ -77,9 +98,19 @@ struct ContentView: View {
                     previousNav = oldValue
                 }
             }
+            // 平台级切换时：关闭详情、清空 pending
+            if let newNav = newValue, let oldNav = oldValue, newNav != oldNav {
+                selectedDetailItemID = nil
+                appState.pendingDetailItemID = nil
+            }
+        }
+        .onChange(of: appState.pendingDetailItemID) { _, newValue in
+            if let id = newValue {
+                appState.pendingDetailItemID = nil
+                openDetail(id)
+            }
         }
         .overlay {
-            // Image viewer overlays at top level to cover sidebar
             if showCoverViewer && !coverImages.isEmpty {
                 ImageViewerView(
                     images: coverImages,
@@ -89,7 +120,6 @@ struct ContentView: View {
                 .transition(.opacity)
                 .animation(.easeInOut(duration: 0.2), value: showCoverViewer)
             }
-
         }
         .overlay(alignment: .top) {
             if appState.showToast, let message = appState.toastMessage {
@@ -139,7 +169,22 @@ struct ContentView: View {
             Text("确定删除平台「\(state.deletingCustomPlatform?.name ?? "")」？平台下的内容不会被删除，但会失去平台分类。")
         }
     }
+
+    private func openDetail(_ itemID: UUID) {
+        selectedDetailItemID = itemID
+    }
+
+    private func closeDetail() {
+        selectedDetailItemID = nil
+    }
     
+    private func handleItemDeleted(_ itemID: UUID) {
+        selectedDetailItemID = nil
+        appState.lastDeletedItemID = itemID
+        appState.removeItemFromAllListStates(itemID: itemID)
+        appState.deletionEventCounter += 1
+    }
+
     private var backButton: some View {
         Button {
             let target = previousNav ?? .home
@@ -162,43 +207,34 @@ struct ContentView: View {
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
-    
+
     @ViewBuilder
     private var detailView: some View {
-        switch selectedNav {
-        case .home:
-            HomeView(selectedNav: $selectedNav, previousNav: $previousNav)
-        case .platform(let p):
-            PlatformView(platform: p, selectedNav: $selectedNav, previousNav: $previousNav)
-        case .platformStatus(let p, let s):
-            PlatformStatusView(platform: p, status: s)
-        case .folder(let id):
-            FolderView(folderID: id, selectedNav: $selectedNav, previousNav: $previousNav)
-        case .item(let id):
-            ItemDetailView(
-                itemID: id,
-                selectedNav: $selectedNav,
-                previousNav: $previousNav,
-                coverImages: $coverImages,
-                coverImageIndex: $coverImageIndex,
-                showCoverViewer: $showCoverViewer,
-
-            )
-        case .search:
-            SearchResultsView(selectedNav: $selectedNav, previousNav: $previousNav)
-        case .trash:
+        if case .home = selectedNav {
+            HomeView(selectedNav: $selectedNav, previousNav: $previousNav, openDetail: openDetail)
+        } else if case .platform(let p) = selectedNav {
+            PlatformView(platform: p, selectedNav: $selectedNav, previousNav: $previousNav, openDetail: openDetail)
+                .id("system_\(p.rawValue)")
+        } else if case .platformStatus(let p, let s) = selectedNav {
+            PlatformStatusView(platform: p, status: s, openDetail: openDetail)
+        } else if case .folder(let id) = selectedNav {
+            FolderView(folderID: id, selectedNav: $selectedNav, previousNav: $previousNav, openDetail: openDetail)
+        } else if case .search = selectedNav {
+            SearchResultsView(selectedNav: $selectedNav, previousNav: $previousNav, openDetail: openDetail)
+        } else if case .trash = selectedNav {
             TrashView()
-        case .settings:
+        } else if case .settings = selectedNav {
             SettingsView()
-        case .customPlatform(let id):
-            CustomPlatformContentView(customPlatformID: id, selectedNav: $selectedNav, previousNav: $previousNav)
-        case .uncategorized:
-            UncategorizedContentView(selectedNav: $selectedNav, previousNav: $previousNav)
-        case .none:
-            HomeView(selectedNav: $selectedNav, previousNav: $previousNav)
+        } else if case .customPlatform(let id) = selectedNav {
+            CustomPlatformContentView(customPlatformID: id, selectedNav: $selectedNav, previousNav: $previousNav, openDetail: openDetail)
+                .id("custom_\(id.uuidString)")
+        } else if case .uncategorized = selectedNav {
+            UncategorizedContentView(selectedNav: $selectedNav, previousNav: $previousNav, openDetail: openDetail)
+        } else {
+            EmptyView()
         }
     }
-    
+
     private func performSearch() {
         let service = searchService
         let query = appState.searchQuery
@@ -215,14 +251,14 @@ struct SidebarView: View {
     @Binding var selectedNav: NavigationTarget?
     @Binding var previousNav: NavigationTarget?
     @Environment(AppState.self) private var appState
-    
+
     var body: some View {
         List(selection: $selectedNav) {
             Section {
                 Label("首页", systemImage: "house.fill")
                     .tag(NavigationTarget.home)
             }
-            
+
             Section("平台") {
                 ForEach(appState.customPlatforms) { cp in
                     NavigationLink(value: NavigationTarget.customPlatform(cp.id)) {
@@ -277,9 +313,9 @@ struct SidebarView: View {
                         .font(.subheadline)
                 }
             }
-            
+
             Divider()
-            
+
             Section {
                 Label("回收站", systemImage: "trash.fill")
                     .tag(NavigationTarget.trash)

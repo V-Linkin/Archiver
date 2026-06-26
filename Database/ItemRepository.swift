@@ -4,23 +4,23 @@ import GRDB
 /// Item 数据访问层
 final class ItemRepository: @unchecked Sendable {
     private let db: DatabaseQueue
-    
+
     init(db: DatabaseQueue = DatabaseManager.shared.db) {
         self.db = db
     }
-    
+
     // MARK: - CRUD
-    
+
     /// 插入新内容
     func insert(_ item: Item) throws {
         try db.write { db in
             try insertRecord(item, db: db)
         }
     }
-    
+
     private func insertRecord(_ item: Item, db: Database) throws {
         // 获取当前 last_insert_rowid 用于 FTS
-        
+
         try db.execute(
             sql: """
             INSERT INTO items (id, title, body, original_url, platform, platform_content_id,
@@ -44,7 +44,7 @@ final class ItemRepository: @unchecked Sendable {
                 item.customPlatformID?.uuidString
             ]
         )
-        
+
         // 使用显式 rowid 查询来同步 FTS 索引
         if let rowid = try? Int.fetchOne(
             db,
@@ -57,7 +57,7 @@ final class ItemRepository: @unchecked Sendable {
             )
         }
     }
-    
+
     /// 更新内容
     func update(_ item: Item) throws {
         try db.write { db in
@@ -86,14 +86,14 @@ final class ItemRepository: @unchecked Sendable {
                     item.id.uuidString
                 ]
             )
-            
+
             // 更新 FTS 索引
             guard let rowid = try Int.fetchOne(
                 db,
                 sql: "SELECT rowid FROM items WHERE id=?",
                 arguments: [item.id.uuidString]
             ) else { return }
-            
+
             // 先删除旧 FTS 记录，再插入新记录
             try? db.execute(
                 sql: "DELETE FROM items_fts WHERE rowid=?",
@@ -105,14 +105,14 @@ final class ItemRepository: @unchecked Sendable {
             )
         }
     }
-    
+
     /// 根据ID查找
     func find(id: UUID) throws -> Item? {
         try db.read { db in
             try fetchOne(db, sql: "SELECT * FROM items WHERE id=?", arguments: [id.uuidString])
         }
     }
-    
+
     /// 根据平台和内容ID查找（用于去重）
     func findByPlatformContentID(platform: Platform, contentID: String) throws -> Item? {
         try db.read { db in
@@ -123,7 +123,7 @@ final class ItemRepository: @unchecked Sendable {
             )
         }
     }
-    
+
     /// 根据标准化链接查找（用于去重）
     func findByNormalizedURL(_ url: String) throws -> Item? {
         try db.read { db in
@@ -134,14 +134,14 @@ final class ItemRepository: @unchecked Sendable {
             )
         }
     }
-    
+
     /// 查询所有未删除的内容
     func fetchAll(platform: Platform? = nil, archiveStatus: ArchiveStatus? = nil,
-                  folderID: UUID? = nil, limit: Int = 100, offset: Int = 0) throws -> [Item] {
+                  folderID: UUID? = nil, limit: Int? = nil, offset: Int = 0) throws -> [Item] {
         try db.read { db in
             var sql = "SELECT * FROM items WHERE deleted_at IS NULL"
             var args: [DatabaseValueConvertible] = []
-            
+
             if let platform = platform {
                 sql += " AND platform=?"
                 args.append(platform.rawValue)
@@ -154,15 +154,19 @@ final class ItemRepository: @unchecked Sendable {
                 sql += " AND folder_id=?"
                 args.append(folderID.uuidString)
             }
-            
-            sql += " ORDER BY import_date DESC LIMIT ? OFFSET ?"
-            args.append(limit)
-            args.append(offset)
-            
+
+            sql += " ORDER BY import_date DESC, id DESC"
+
+            if let limit = limit {
+                sql += " LIMIT ? OFFSET ?"
+                args.append(limit)
+                args.append(offset)
+            }
+
             return try fetchAll(db, sql: sql, arguments: StatementArguments(args))
         }
     }
-    
+
     /// 获取最近7天导入的内容
     func fetchRecent() throws -> [Item] {
         let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
@@ -174,7 +178,7 @@ final class ItemRepository: @unchecked Sendable {
             )
         }
     }
-    
+
     /// 软删除
     func softDelete(id: UUID) throws {
         try db.write { db in
@@ -184,7 +188,7 @@ final class ItemRepository: @unchecked Sendable {
             )
         }
     }
-    
+
     /// 恢复
     func restore(id: UUID) throws {
         try db.write { db in
@@ -194,14 +198,14 @@ final class ItemRepository: @unchecked Sendable {
             )
         }
     }
-    
+
     /// 彻底删除
     func permanentDelete(id: UUID) throws {
         try db.write { db in
             try db.execute(sql: "DELETE FROM items WHERE id=?", arguments: [id.uuidString])
         }
     }
-    
+
     /// 获取回收站内容
     func fetchTrashed() throws -> [Item] {
         try db.read { db in
@@ -211,7 +215,7 @@ final class ItemRepository: @unchecked Sendable {
             )
         }
     }
-    
+
     /// 按自定义平台ID查询内容（无分页限制）
     func fetchByCustomPlatformID(_ platformID: UUID) throws -> [Item] {
         try db.read { db in
@@ -222,7 +226,7 @@ final class ItemRepository: @unchecked Sendable {
             )
         }
     }
-    
+
     /// 查询未分类内容（platform=.custom 且 customPlatformID 为 nil）
     func fetchUncategorizedItems() throws -> [Item] {
         try db.read { db in
@@ -233,13 +237,13 @@ final class ItemRepository: @unchecked Sendable {
             )
         }
     }
-    
+
     /// 统计数量
     func count(platform: Platform? = nil, archiveStatus: ArchiveStatus? = nil) throws -> Int {
         try db.read { db in
             var sql = "SELECT COUNT(*) FROM items WHERE deleted_at IS NULL"
             var args: [DatabaseValueConvertible] = []
-            
+
             if let platform = platform {
                 sql += " AND platform=?"
                 args.append(platform.rawValue)
@@ -248,11 +252,35 @@ final class ItemRepository: @unchecked Sendable {
                 sql += " AND archive_status=?"
                 args.append(status.rawValue)
             }
-            
+
             return try Int.fetchOne(db, sql: sql, arguments: StatementArguments(args)) ?? 0
         }
     }
-    
+
+    // MARK: - 分页查询
+
+    /// 按自定义平台ID分页查询
+    func fetchPageByCustomPlatformID(_ platformID: UUID, limit: Int, offset: Int) throws -> [Item] {
+        try db.read { db in
+            try fetchAll(
+                db,
+                sql: "SELECT * FROM items WHERE custom_platform_id=? AND deleted_at IS NULL ORDER BY import_date DESC, id DESC LIMIT ? OFFSET ?",
+                arguments: [platformID.uuidString, limit, offset]
+            )
+        }
+    }
+
+    /// 按系统平台分页查询
+    func fetchPage(platform: Platform, limit: Int, offset: Int) throws -> [Item] {
+        try db.read { db in
+            try fetchAll(
+                db,
+                sql: "SELECT * FROM items WHERE platform=? AND deleted_at IS NULL ORDER BY import_date DESC, id DESC LIMIT ? OFFSET ?",
+                arguments: [platform.rawValue, limit, offset]
+            )
+        }
+    }
+
     /// 统计指定自定义平台的条目数
     func countByCustomPlatform(_ platformID: UUID) throws -> Int {
         try db.read { db in
@@ -265,17 +293,17 @@ final class ItemRepository: @unchecked Sendable {
     }
 
     // MARK: - Private
-    
+
     private func fetchOne(_ db: Database, sql: String, arguments: StatementArguments) throws -> Item? {
         guard let row = try Row.fetchOne(db, sql: sql, arguments: arguments) else { return nil }
         return try rowToItem(row)
     }
-    
+
 private func fetchAll(_ db: Database, sql: String, arguments: StatementArguments = StatementArguments()) throws -> [Item] {
         let rows = try Row.fetchAll(db, sql: sql, arguments: arguments)
         return try rows.map { try rowToItem($0) }
     }
-    
+
     private func rowToItem(_ row: Row) throws -> Item {
         Item(
             id: UUID(uuidString: row["id"])!,

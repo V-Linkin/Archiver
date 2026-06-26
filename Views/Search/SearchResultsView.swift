@@ -4,6 +4,7 @@ struct SearchResultsView: View {
     @Environment(AppState.self) private var appState
     @Binding var selectedNav: NavigationTarget?
     @Binding var previousNav: NavigationTarget?
+    var openDetail: (UUID) -> Void
     @State private var filterPlatform: String? = nil
     @State private var filterStatus: ArchiveStatus? = nil
     
@@ -29,7 +30,7 @@ struct SearchResultsView: View {
                         ForEach(filteredResults) { result in
                             Button {
                                 previousNav = .search
-                                selectedNav = .item(result.item.id)
+                                openDetail(result.item.id)
                             } label: {
                                 ItemCardView(item: result.item)
                             }
