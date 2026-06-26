@@ -237,6 +237,9 @@ public partial class MainWindowViewModel : ObservableObject
             if (CurrentSection == "PlatformContent")
                 await ContentList.ReloadCurrentContentAsync();
         };
+
+        // 订阅移动到平台请求
+        ContentList.OnMoveToPlatformRequested = item => HandleMoveToPlatform(item);
     }
 
     private static Task MigrateAsync(Services.SystemPlatformItemMigrationService migrationService)
@@ -691,6 +694,35 @@ public partial class MainWindowViewModel : ObservableObject
     {
         if (SelectedItem?.OriginalUrl != null)
             _externalLinkService.Open(SelectedItem.OriginalUrl);
+    }
+
+    private async void HandleMoveToPlatform(Item item)
+    {
+        if (App.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+            && desktop.MainWindow is Avalonia.Controls.Window mainWindow)
+        {
+            var window = new Views.MoveToPlatformWindow(item, _customPlatformRepo)
+            {
+                Title = "移动到平台"
+            };
+            await window.ShowDialog(mainWindow);
+
+            if (window.Result != null)
+            {
+                try
+                {
+                    await _itemService.MoveToCustomPlatformAsync(item, window.Result.CustomPlatformId, _customPlatformRepo);
+
+                    await LoadSidebarPlatformsAsync();
+                    if (CurrentSection == "PlatformContent")
+                        await ContentList.ReloadCurrentContentAsync();
+                }
+                catch (Exception ex)
+                {
+                    BackupImportError = $"移动失败：{ex.Message}";
+                }
+            }
+        }
     }
 }
 

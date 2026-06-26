@@ -42,6 +42,12 @@
                     <Border Width="200" Margin="0,0,12,12" CornerRadius="8"
                             ClipToBounds="True" Background="#F8F8F8"
                             BorderBrush="#E0E0E0" BorderThickness="1">
+                        <Border.ContextFlyout>
+                            <MenuFlyout>
+                                <MenuItem Header="移动到平台" Click="MoveToPlatform_Click"
+                                          Tag="{Binding}" />
+                            </MenuFlyout>
+                        </Border.ContextFlyout>
                         <StackPanel>
                             <!-- 封面图 -->
                             <Border Height="140" Background="#F0F0F0">

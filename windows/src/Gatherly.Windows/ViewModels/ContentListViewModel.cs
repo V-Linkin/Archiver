@@ -295,4 +295,9 @@ public partial class ContentListViewModel : ViewModelBase
                 break;
         }
     }
+
+    /// <summary>
+    /// 移动到平台请求回调（由 MainWindowViewModel 订阅处理）
+    /// </summary>
+    public Action<Item>? OnMoveToPlatformRequested { get; set; }
 }
