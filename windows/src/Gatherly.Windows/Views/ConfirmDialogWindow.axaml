@@ -1,0 +1,25 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Gatherly.Windows.Views.ConfirmDialogWindow"
+        Width="380" Height="170"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False">
+
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Margin="24,20,24,0" Spacing="10">
+            <TextBlock x:Name="TitleText" FontSize="16" FontWeight="SemiBold" />
+            <TextBlock x:Name="MessageText" FontSize="13" Foreground="#666"
+                       TextWrapping="Wrap" />
+        </StackPanel>
+        <Border DockPanel.Dock="Bottom" Background="#FAFAFA"
+                BorderBrush="#E0E0E0" BorderThickness="0,1,0,0"
+                Padding="16,10">
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                <Button Content="取消" Click="CancelButton_Click" Padding="16,6" FontSize="13" />
+                <Button Content="确认删除" Click="ConfirmButton_Click"
+                        Padding="16,6" FontSize="13" FontWeight="SemiBold"
+                        Foreground="White" Background="#D32F2F" />
+            </StackPanel>
+        </Border>
+    </DockPanel>
+</Window>

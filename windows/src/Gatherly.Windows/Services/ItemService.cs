@@ -61,6 +61,23 @@ public class ItemService
     }
 
     /// <summary>
+    /// 将内容移动到文件夹
+    /// 对齐 macOS ItemService.moveToFolder：只更新 folderID，不修改 platform/customPlatformID
+    /// </summary>
+    public async Task MoveToFolderAsync(Item item, Guid folderId, FolderRepository folderRepo)
+    {
+        var folder = await folderRepo.GetByIdAsync(folderId)
+            ?? throw new InvalidOperationException($"目标文件夹不存在: {folderId}");
+
+        var fresh = await _itemRepo.GetByIdAsync(item.Id)
+            ?? throw new InvalidOperationException($"Item not found: {item.Id}");
+
+        fresh.FolderId = folderId;
+        fresh.ModifyDate = DateTimeOffset.UtcNow;
+        await _itemRepo.UpdateAsync(fresh);
+    }
+
+    /// <summary>
     /// 将内容移入回收站
     /// </summary>
     public async Task TrashItemAsync(Item item, IReadOnlyList<string>? mediaPaths = null)
