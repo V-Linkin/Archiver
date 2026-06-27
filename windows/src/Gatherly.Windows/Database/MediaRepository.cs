@@ -61,4 +61,12 @@ public class MediaRepository
         cmd.Parameters.AddWithValue("$id", itemId.ToString("D"));
         await cmd.ExecuteNonQueryAsync();
     }
+
+    public async Task DeleteAsync(Guid assetId)
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "DELETE FROM media_assets WHERE id = $id";
+        cmd.Parameters.AddWithValue("$id", assetId.ToString("D"));
+        await cmd.ExecuteNonQueryAsync();
+    }
 }
