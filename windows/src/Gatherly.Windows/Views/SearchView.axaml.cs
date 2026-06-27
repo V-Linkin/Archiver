@@ -11,6 +11,21 @@ public partial class SearchView : UserControl
         InitializeComponent();
     }
 
+    public void ClearSelection()
+    {
+        if (Content is Panel panel)
+        {
+            foreach (var child in panel.Children)
+            {
+                if (child is ListBox lb)
+                {
+                    lb.SelectedItem = null;
+                    break;
+                }
+            }
+        }
+    }
+
     private async void SearchTextBox_KeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter && DataContext is SearchViewModel vm)

@@ -13,6 +13,11 @@ public partial class ContentListView : UserControl
         InitializeComponent();
     }
 
+    public void ClearSelection()
+    {
+        ItemListBox.SelectedItem = null;
+    }
+
     /// <summary>
     /// 平台页：移动到平台 + 移动到文件夹
     /// 文件夹页：移动到文件夹 + 删除
@@ -47,7 +52,7 @@ public partial class ContentListView : UserControl
         // Only navigate on left-click; right-click is handled by ContextFlyout
         if (e.GetCurrentPoint(border).Properties.IsLeftButtonPressed)
         {
-            vm.SelectedItem = item;
+            vm.OnItemSelected?.Invoke(item);
         }
     }
 

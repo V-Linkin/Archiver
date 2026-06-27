@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Platform.Storage;
 using Avalonia.Interactivity;
 using Gatherly.Windows.Models.Enums;
@@ -49,6 +50,12 @@ public partial class MainWindow : Window
         ContentListViewControl.IsVisible = section == "PlatformContent";
         DetailViewControl.IsVisible = section == "Detail";
         SettingsViewControl.IsVisible = section == "Settings";
+
+        // Clear selection when returning to list views to prevent stale focus/selection
+        if (section == "PlatformContent")
+            ContentListViewControl.ClearSelection();
+        else if (section == "Search")
+            SearchViewControl.ClearSelection();
     }
 
     private async void PlatformEntry_Click(object? sender, RoutedEventArgs e)
