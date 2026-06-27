@@ -1,9 +1,10 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:Gatherly.Windows.Views"
         x:Class="Gatherly.Windows.Views.EditItemWindow"
         Title="编辑内容"
-        Width="600" Height="500"
-        MinWidth="400" MinHeight="350"
+        Width="600" Height="600"
+        MinWidth="400" MinHeight="450"
         WindowStartupLocation="CenterOwner"
         CanResize="True"
         Closing="Window_Closing">
@@ -39,13 +40,42 @@
                     <TextBlock Text="正文" FontSize="12" Foreground="#888" />
                     <TextBox x:Name="BodyBox" Watermark="输入正文内容"
                              AcceptsReturn="True" TextWrapping="Wrap"
-                             MinHeight="150" />
+                             MinHeight="120" />
                 </StackPanel>
                 <StackPanel Spacing="4">
                     <TextBlock Text="备注" FontSize="12" Foreground="#888" />
                     <TextBox x:Name="RemarkBox" Watermark="输入备注"
-                             AcceptsReturn="True" MinHeight="80" />
+                             AcceptsReturn="True" MinHeight="60" />
                 </StackPanel>
+
+                <!-- Images -->
+                <StackPanel Spacing="4">
+                    <DockPanel>
+                        <TextBlock Text="图片" FontSize="12" Foreground="#888"
+                                   VerticalAlignment="Center" />
+                        <Button Content="+ 添加图片" Click="AddImage_Click"
+                                DockPanel.Dock="Right" Padding="10,4" FontSize="12"
+                                HorizontalAlignment="Right" />
+                    </DockPanel>
+                    <WrapPanel x:Name="ImageWrapPanel" />
+                    <TextBlock x:Name="NoImagesText" Text="暂无图片" FontSize="11"
+                               Foreground="#aaa" IsVisible="True" />
+                </StackPanel>
+
+                <!-- Videos -->
+                <StackPanel Spacing="4">
+                    <DockPanel>
+                        <TextBlock Text="视频" FontSize="12" Foreground="#888"
+                                   VerticalAlignment="Center" />
+                        <Button Content="+ 添加视频" Click="AddVideo_Click"
+                                DockPanel.Dock="Right" Padding="10,4" FontSize="12"
+                                HorizontalAlignment="Right" />
+                    </DockPanel>
+                    <StackPanel x:Name="VideoStackPanel" />
+                    <TextBlock x:Name="NoVideosText" Text="暂无视频" FontSize="11"
+                               Foreground="#aaa" IsVisible="True" />
+                </StackPanel>
+
                 <TextBlock x:Name="ErrorTextBlock" Text="" Foreground="#D32F2F"
                            FontSize="12" IsVisible="False" />
             </StackPanel>

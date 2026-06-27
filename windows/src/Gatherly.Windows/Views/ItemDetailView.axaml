@@ -64,6 +64,14 @@
                                             CommandParameter="{Binding}">
                                         <Border MaxWidth="300" MaxHeight="400" CornerRadius="6"
                                                 ClipToBounds="True" Background="#F0F0F0">
+                                            <Border.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Header="复制" Click="ImageCopy_Click"
+                                                              Tag="{Binding FullPath}" />
+                                                    <MenuItem Header="另存为..." Click="ImageSaveAs_Click"
+                                                              Tag="{Binding FullPath}" />
+                                                </ContextMenu>
+                                            </Border.ContextMenu>
                                             <Image Source="{Binding FullPath, Converter={x:Static conv:FilePathToBitmapConverter.Instance}}"
                                                    Stretch="Uniform" />
                                         </Border>
