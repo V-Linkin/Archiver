@@ -165,6 +165,11 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly CustomPlatformRepository _customPlatformRepo;
     private readonly SystemPlatformDisplayNames _systemPlatformDisplayNames;
     private readonly SqliteConnection _connection;
+
+    /// <summary>
+    /// App 主连接 — 供 EditItemWindow 等外部组件使用同一数据库
+    /// </summary>
+    public SqliteConnection MainConnection => _connection;
     private readonly Task _migrationTask;
 
     public MainWindowViewModel(SqliteConnection connection, string? dataDirectory = null)
