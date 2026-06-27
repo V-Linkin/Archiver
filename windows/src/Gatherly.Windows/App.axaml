@@ -4,5 +4,58 @@
              RequestedThemeVariant="Default">
     <Application.Styles>
         <FluentTheme />
+        <StyleInclude Source="avares://Gatherly.Windows/Styles/ButtonStyles.axaml" />
     </Application.Styles>
+    <Application.Resources>
+        <!-- Spacing -->
+        <x:Double x:Key="SpacingXs">4</x:Double>
+        <x:Double x:Key="SpacingSm">8</x:Double>
+        <x:Double x:Key="SpacingMd">12</x:Double>
+        <x:Double x:Key="SpacingLg">16</x:Double>
+        <x:Double x:Key="SpacingXl">20</x:Double>
+        <x:Double x:Key="SpacingXxl">24</x:Double>
+        <!-- Radius -->
+        <x:Double x:Key="RadiusSm">4</x:Double>
+        <x:Double x:Key="RadiusMd">6</x:Double>
+        <x:Double x:Key="RadiusLg">8</x:Double>
+        <x:Double x:Key="RadiusXl">12</x:Double>
+        <!-- Typography -->
+        <x:Double x:Key="FontSizeTitle">16</x:Double>
+        <x:Double x:Key="FontSizeSection">14</x:Double>
+        <x:Double x:Key="FontSizeBody">14</x:Double>
+        <x:Double x:Key="FontSizeSubhead">13</x:Double>
+        <x:Double x:Key="FontSizeCaption">11</x:Double>
+        <x:Double x:Key="FontSizeButton">12</x:Double>
+        <!-- Colors — Background -->
+        <SolidColorBrush x:Key="BackgroundPrimary" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="BackgroundSecondary" Color="#FAFAFA" />
+        <SolidColorBrush x:Key="BackgroundTertiary" Color="#F0F0F0" />
+        <SolidColorBrush x:Key="BackgroundCard" Color="#F8F8F8" />
+        <SolidColorBrush x:Key="BackgroundSidebar" Color="#2C2C2C" />
+        <!-- Colors — Text -->
+        <SolidColorBrush x:Key="TextPrimary" Color="#1A1A1A" />
+        <SolidColorBrush x:Key="TextSecondary" Color="#666666" />
+        <SolidColorBrush x:Key="TextTertiary" Color="#999999" />
+        <SolidColorBrush x:Key="TextLink" Color="#1A73E8" />
+        <!-- Colors — Semantic -->
+        <SolidColorBrush x:Key="DangerRed" Color="#D32F2F" />
+        <SolidColorBrush x:Key="BrandBlue" Color="#1A73E8" />
+        <SolidColorBrush x:Key="WarningOrange" Color="#F57C00" />
+        <!-- Colors — Border / Separator -->
+        <SolidColorBrush x:Key="BorderLight" Color="#E0E0E0" />
+        <SolidColorBrush x:Key="SeparatorColor" Color="#E0E0E0" />
+        <SolidColorBrush x:Key="PlatformBadgeBg" Color="#E8F0FE" />
+        <!-- Size — Toolbar -->
+        <x:Double x:Key="ToolbarHeight">40</x:Double>
+        <!-- Size — Icon -->
+        <x:Double x:Key="InfoRowIconWidth">24</x:Double>
+        <!-- Size — Card -->
+        <x:Double x:Key="CardWidth">200</x:Double>
+        <x:Double x:Key="CardCoverHeight">160</x:Double>
+        <x:Double x:Key="CardCoverCornerRadius">8</x:Double>
+        <x:Double x:Key="EditThumbnailSize">100</x:Double>
+        <x:Double x:Key="EditThumbnailCornerRadius">6</x:Double>
+        <!-- Size — Detail -->
+        <x:Double x:Key="DetailContentSpacing">20</x:Double>
+    </Application.Resources>
 </Application>

@@ -1,0 +1,93 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- PrimaryButton: main action (save, confirm, export) -->
+    <Style Selector="Button.PrimaryButton">
+        <Setter Property="Background" Value="#1A73E8" />
+        <Setter Property="Foreground" Value="#FFFFFF" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Padding" Value="16,6" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="MinHeight" Value="28" />
+    </Style>
+    <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="#1557B0" />
+    </Style>
+    <Style Selector="Button.PrimaryButton:pressed /template/ ContentPresenter">
+        <Setter Property="Background" Value="#0D47A1" />
+    </Style>
+    <Style Selector="Button.PrimaryButton:disabled /template/ ContentPresenter">
+        <Setter Property="Background" Value="#BDBDBD" />
+        <Setter Property="Foreground" Value="#9E9E9E" />
+    </Style>
+
+    <!-- SecondaryButton: cancel, neutral action -->
+    <Style Selector="Button.SecondaryButton">
+        <Setter Property="Background" Value="#F5F5F5" />
+        <Setter Property="Foreground" Value="#333333" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Padding" Value="16,6" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="#E0E0E0" />
+        <Setter Property="MinHeight" Value="28" />
+    </Style>
+    <Style Selector="Button.SecondaryButton:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="#EEEEEE" />
+    </Style>
+    <Style Selector="Button.SecondaryButton:pressed /template/ ContentPresenter">
+        <Setter Property="Background" Value="#E0E0E0" />
+    </Style>
+    <Style Selector="Button.SecondaryButton:disabled /template/ ContentPresenter">
+        <Setter Property="Background" Value="#F5F5F5" />
+        <Setter Property="Foreground" Value="#BDBDBD" />
+        <Setter Property="BorderBrush" Value="#EEEEEE" />
+    </Style>
+
+    <!-- ToolbarButton: detail page toolbar (edit, move, etc.) -->
+    <Style Selector="Button.ToolbarButton">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="#333333" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Padding" Value="10,5" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="#E0E0E0" />
+        <Setter Property="MinHeight" Value="26" />
+    </Style>
+    <Style Selector="Button.ToolbarButton:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="#F0F0F0" />
+    </Style>
+    <Style Selector="Button.ToolbarButton:pressed /template/ ContentPresenter">
+        <Setter Property="Background" Value="#E0E0E0" />
+    </Style>
+    <Style Selector="Button.ToolbarButton:disabled /template/ ContentPresenter">
+        <Setter Property="Foreground" Value="#BDBDBD" />
+        <Setter Property="BorderBrush" Value="#EEEEEE" />
+    </Style>
+
+    <!-- DangerButton: destructive action (delete, permanent delete, clear) -->
+    <Style Selector="Button.DangerButton">
+        <Setter Property="Background" Value="#FFF5F5" />
+        <Setter Property="Foreground" Value="#D32F2F" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Padding" Value="10,5" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="#FFCDD2" />
+        <Setter Property="MinHeight" Value="26" />
+    </Style>
+    <Style Selector="Button.DangerButton:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="#FFEBEE" />
+    </Style>
+    <Style Selector="Button.DangerButton:pressed /template/ ContentPresenter">
+        <Setter Property="Background" Value="#FFCDD2" />
+    </Style>
+    <Style Selector="Button.DangerButton:disabled /template/ ContentPresenter">
+        <Setter Property="Foreground" Value="#EF9A9A" />
+        <Setter Property="BorderBrush" Value="#FFEBEE" />
+        <Setter Property="Background" Value="#FFF5F5" />
+    </Style>
+
+</Styles>
