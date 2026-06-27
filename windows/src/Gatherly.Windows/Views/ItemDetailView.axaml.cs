@@ -94,6 +94,58 @@ public partial class ItemDetailView : UserControl
         }
     }
 
+    private async void EditItem_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm || vm.SelectedItem == null) return;
+
+        var window = new EditItemWindow(vm.SelectedItem);
+        if (TopLevel.GetTopLevel(this) is Window owner)
+            await window.ShowDialog(owner);
+
+        if (window.Result?.Success == true)
+        {
+            try
+            {
+                var itemRepo = new Gatherly.Windows.Database.ItemRepository(vm.MainConnection);
+                var fresh = await itemRepo.GetByIdAsync(vm.SelectedItem.Id);
+                if (fresh != null)
+                {
+                    fresh.Title = window.Result.Title;
+                    fresh.Body = window.Result.Body;
+                    fresh.Author = window.Result.Author;
+                    fresh.Remark = window.Result.Remark;
+                    fresh.ModifyDate = DateTimeOffset.UtcNow;
+                    await itemRepo.UpdateAsync(fresh);
+
+                    var reloaded = await itemRepo.GetByIdAsync(vm.SelectedItem.Id);
+                    if (reloaded != null)
+                    {
+                        vm.SelectedItem = null;
+                        vm.SelectedItem = reloaded;
+
+                        if (vm.PreviousSection == "Home")
+                        {
+                            await vm.Home.LoadCommand.ExecuteAsync(null);
+                        }
+                        else if (vm.PreviousSection == "Search")
+                        {
+                            if (!string.IsNullOrWhiteSpace(vm.Search.Query))
+                                await vm.Search.SearchCommand.ExecuteAsync(null);
+                        }
+                        else
+                        {
+                            await vm.ContentList.ReloadCurrentContentAsync();
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[EditSave] Error: {ex.Message}");
+            }
+        }
+    }
+
     private async void TrashConfirm_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not MainWindowViewModel vm || vm.SelectedItem == null) return;
