@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Gatherly.Windows.ViewModels"
              xmlns:conv="using:Gatherly.Windows.Views.Converters"
+             xmlns:comp="using:Gatherly.Windows.Views.Components"
              x:Class="Gatherly.Windows.Views.ItemDetailView"
              x:DataType="vm:MainWindowViewModel">
 
@@ -29,11 +30,10 @@
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
                     <Button Content="编辑"
                             Click="EditItem_Click"
-                            FontSize="12" Padding="10,5" />
+                            Classes="ToolbarButton" />
                     <Button Content="移入回收站"
                             Click="TrashConfirm_Click"
-                            FontSize="12" Padding="10,5"
-                            Foreground="#D32F2F" />
+                            Classes="DangerButton" />
                 </StackPanel>
             </Grid>
         </Border>
@@ -131,15 +131,11 @@
                     </ItemsControl>
                 </StackPanel>
 
-                <!-- Platform / Author / Time -->
-                <StackPanel Orientation="Horizontal" Spacing="16">
-                    <Border Background="#E8F0FE" CornerRadius="4" Padding="10,5">
-                        <TextBlock Text="{Binding DisplayPlatform}" FontSize="13" />
-                    </Border>
-                    <TextBlock Text="{Binding DisplayAuthor}"
-                               VerticalAlignment="Center" Foreground="Gray" FontSize="14" />
-                    <TextBlock Text="{Binding DisplayImportDate}"
-                               VerticalAlignment="Center" Foreground="Gray" FontSize="13" />
+                <!-- Metadata — InfoRow -->
+                <StackPanel Spacing="0">
+                    <comp:InfoRow Label="平台" Value="{Binding DisplayPlatform}" />
+                    <comp:InfoRow Label="作者" Value="{Binding DisplayAuthor}" />
+                    <comp:InfoRow Label="导入时间" Value="{Binding DisplayImportDate}" />
                 </StackPanel>
 
                 <!-- Original URL -->
