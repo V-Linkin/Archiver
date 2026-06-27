@@ -102,6 +102,8 @@ public partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(DisplayRemark));
         OnPropertyChanged(nameof(DisplayOriginalUrl));
         OnPropertyChanged(nameof(DisplayNormalizedUrl));
+        OnPropertyChanged(nameof(HasPublishDate));
+        _ = LoadFolderNameAsync(value?.FolderId);
 
         // Sync editable remark
         EditableRemark = value?.Remark ?? string.Empty;
@@ -137,11 +139,42 @@ public partial class MainWindowViewModel : ObservableObject
     public string DisplayAuthor => SelectedItem?.Author ?? "未知作者";
     public string DisplayBody => SelectedItem?.Body ?? "";
     public string DisplayPlatform => SelectedItem?.DisplayPlatform ?? "";
-    public string DisplayPublishDate => SelectedItem?.PublishDate?.ToString("yyyy-MM-dd HH:mm") ?? "未知";
+    public string DisplayPublishDate => SelectedItem?.PublishDate?.ToString("yyyy-MM-dd HH:mm") ?? "";
     public string DisplayImportDate => SelectedItem?.ImportDate.ToString("yyyy-MM-dd HH:mm") ?? "";
     public string DisplayRemark => SelectedItem?.Remark ?? "";
     public string DisplayOriginalUrl => SelectedItem?.OriginalUrl ?? "";
     public string DisplayNormalizedUrl => SelectedItem?.NormalizedUrl ?? "";
+    public bool HasPublishDate => SelectedItem?.PublishDate != null;
+
+    private string _displayFolderName = "";
+    public string DisplayFolderName
+    {
+        get => _displayFolderName;
+        private set { _displayFolderName = value; OnPropertyChanged(); }
+    }
+
+    private async Task LoadFolderNameAsync(Guid? folderId)
+    {
+        if (folderId == null)
+        {
+            DisplayFolderName = "";
+            OnPropertyChanged(nameof(HasFolder));
+            return;
+        }
+        try
+        {
+            var folderRepo = new FolderRepository(_connection);
+            var folder = await folderRepo.GetByIdAsync(folderId.Value);
+            DisplayFolderName = folder?.Name ?? "";
+        }
+        catch
+        {
+            DisplayFolderName = "";
+        }
+        OnPropertyChanged(nameof(HasFolder));
+    }
+
+    public bool HasFolder => !string.IsNullOrEmpty(DisplayFolderName);
 
     public HomeViewModel Home { get; }
     public ContentListViewModel ContentList { get; }
@@ -254,6 +287,11 @@ public partial class MainWindowViewModel : ObservableObject
         ContentList.OnFolderRenameRequested = folder => HandleFolderRename(folder);
         ContentList.OnFolderDeleteRequested = folder => HandleFolderDelete(folder);
         ContentList.OnNavigateBackRequested = () => HandleNavigateBack();
+        ContentList.OnItemSelected = item =>
+        {
+            var section = CurrentSection == "PlatformContent" ? "PlatformContent" : "Home";
+            NavigateToDetail(item, section);
+        };
         ContentList.OnMoveToFolderRequested = item => HandleMoveToFolder(item);
         ContentList.OnDeleteItemRequested = item => HandleDeleteItem(item);
     }
@@ -833,7 +871,7 @@ public partial class MainWindowViewModel : ObservableObject
         await ContentList.ReloadCurrentContentAsync();
     }
 
-    private async void HandleMoveToFolder(Item item)
+    public async void HandleMoveToFolder(Item item)
     {
         if (App.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
             && desktop.MainWindow is Avalonia.Controls.Window mainWindow)

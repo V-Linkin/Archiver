@@ -395,4 +395,9 @@ public partial class ContentListViewModel : ViewModelBase
     /// 返回平台页请求回调
     /// </summary>
     public Action? OnNavigateBackRequested { get; set; }
+
+    /// <summary>
+    /// 卡片点击回调（直接导航，不依赖 SelectedItem 变更）
+    /// </summary>
+    public Action<Item>? OnItemSelected { get; set; }
 }

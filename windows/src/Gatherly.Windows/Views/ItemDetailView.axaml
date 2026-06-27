@@ -10,32 +10,32 @@
         <!-- Top bar with back button and actions -->
         <Border DockPanel.Dock="Top" Background="#FAFAFA"
                 BorderBrush="#E0E0E0" BorderThickness="0,0,0,1"
-                Padding="16,10">
-            <Grid ColumnDefinitions="Auto,*,Auto">
+                Padding="16,8">
+            <StackPanel Orientation="Horizontal" Spacing="8">
                 <!-- Back button -->
-                <Button Grid.Column="0" Content="← 返回"
+                <Button Content="← 返回"
                         Command="{Binding NavigateBackCommand}"
-                        FontSize="14" Padding="12,6"
-                        Background="Transparent" BorderThickness="0"
+                        Classes="ToolbarButton" />
+
+                <!-- Divider -->
+                <Border Width="1" Height="20"
+                        Background="#E0E0E0"
                         VerticalAlignment="Center" />
 
-                <!-- Title -->
-                <TextBlock Grid.Column="1" Text="{Binding DisplayTitle}"
-                           FontSize="16" FontWeight="SemiBold"
-                           TextTrimming="CharacterEllipsis"
-                           VerticalAlignment="Center"
-                           Margin="16,0" />
-
                 <!-- Action buttons -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
-                    <Button Content="编辑"
-                            Click="EditItem_Click"
-                            Classes="ToolbarButton" />
-                    <Button Content="移入回收站"
-                            Click="TrashConfirm_Click"
-                            Classes="DangerButton" />
-                </StackPanel>
-            </Grid>
+                <Button Content="编辑"
+                        Click="EditItem_Click"
+                        Classes="ToolbarButton" />
+                <Button Content="移动"
+                        Click="MoveItem_Click"
+                        Classes="ToolbarButton" />
+                <Button Content="导出"
+                        Click="ExportItem_Click"
+                        Classes="ToolbarButton" />
+                <Button Content="删除"
+                        Click="TrashConfirm_Click"
+                        Classes="DangerButton" />
+            </StackPanel>
         </Border>
 
         <!-- Content area -->
@@ -131,20 +131,35 @@
                     </ItemsControl>
                 </StackPanel>
 
-                <!-- Metadata — InfoRow -->
+                <!-- Metadata — InfoRow (aligned to macOS metadataSection) -->
                 <StackPanel Spacing="0">
                     <comp:InfoRow Label="平台" Value="{Binding DisplayPlatform}" />
                     <comp:InfoRow Label="作者" Value="{Binding DisplayAuthor}" />
+                    <comp:InfoRow Label="发布时间" Value="{Binding DisplayPublishDate}"
+                                  IsVisible="{Binding HasPublishDate}" />
                     <comp:InfoRow Label="导入时间" Value="{Binding DisplayImportDate}" />
+                    <comp:InfoRow Label="文件夹" Value="{Binding DisplayFolderName}"
+                                  IsVisible="{Binding HasFolder}" />
                 </StackPanel>
 
-                <!-- Original URL -->
-                <StackPanel Spacing="4">
-                    <TextBlock Text="原始链接" FontSize="12" Foreground="Gray" />
-                    <TextBlock Text="{Binding DisplayOriginalUrl}" FontSize="13"
-                               TextDecorations="Underline" Foreground="#1A73E8"
-                               TextWrapping="Wrap" Cursor="Hand"
-                               PointerPressed="OriginalUrl_PointerPressed" />
+                <!-- Original URL — clickable link -->
+                <StackPanel Spacing="4"
+                            IsVisible="{Binding DisplayOriginalUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                    <Border Padding="0,6" BorderBrush="{StaticResource SeparatorColor}"
+                            BorderThickness="0,0,0,1">
+                        <Grid ColumnDefinitions="24,Auto,*">
+                            <TextBlock Grid.Column="0" Text="🔗" FontSize="14"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="原始链接" FontSize="12"
+                                       Foreground="{StaticResource TextSecondary}"
+                                       VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <TextBlock Grid.Column="2" Text="{Binding DisplayOriginalUrl}"
+                                       FontSize="12" Foreground="{StaticResource TextLink}"
+                                       TextDecorations="Underline" TextWrapping="Wrap"
+                                       Cursor="Hand" VerticalAlignment="Center"
+                                       PointerPressed="OriginalUrl_PointerPressed" />
+                        </Grid>
+                    </Border>
                 </StackPanel>
 
                 <!-- Body -->

@@ -98,6 +98,52 @@ public partial class ItemDetailView : UserControl
         }
     }
 
+    private async void MoveItem_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm || vm.SelectedItem == null) return;
+        vm.HandleMoveToFolder(vm.SelectedItem);
+    }
+
+    private async void ExportItem_Click(object? sender, RoutedEventArgs e)
+    {
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null) return;
+
+        Window? info = null;
+        var okBtn = new Button
+        {
+            Content = "确定",
+            Padding = new Avalonia.Thickness(16, 6),
+            Command = new CommunityToolkit.Mvvm.Input.RelayCommand(() => info?.Close())
+        };
+        okBtn.Classes.Add("PrimaryButton");
+
+        info = new Window
+        {
+            Title = "提示",
+            Width = 320,
+            Height = 140,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            CanResize = false,
+            Content = new StackPanel
+            {
+                Margin = new Avalonia.Thickness(20),
+                Spacing = 16,
+                Children =
+                {
+                    new TextBlock { Text = "导出功能将在后续阶段实现", FontSize = 14, TextWrapping = TextWrapping.Wrap },
+                    new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        Children = { okBtn }
+                    }
+                }
+            }
+        };
+        await info.ShowDialog(topLevel as Window);
+    }
+
     private async void EditItem_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not MainWindowViewModel vm || vm.SelectedItem == null) return;
@@ -257,62 +303,17 @@ public partial class ItemDetailView : UserControl
     {
         if (DataContext is not MainWindowViewModel vm || vm.SelectedItem == null) return;
 
-        var title = vm.SelectedItem.Title ?? "未命名内容";
-
-        Window? dialog = null;
-
-        var cancelBtn = new Button
-        {
-            Content = "取消",
-            Padding = new Avalonia.Thickness(16, 6),
-            Command = new RelayCommand(() => dialog?.Close())
-        };
-
-        var confirmBtn = new Button
-        {
-            Content = "移入回收站",
-            Padding = new Avalonia.Thickness(16, 6),
-            Foreground = new SolidColorBrush(Color.Parse("#D32F2F")),
-            Command = new RelayCommand(async () =>
-            {
-                dialog?.Close();
-                await vm.TrashSelectedItemCommand.ExecuteAsync(null);
-            })
-        };
-
-        dialog = new Window
-        {
-            Title = "确认删除",
-            Width = 360,
-            Height = 160,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            CanResize = false,
-            Content = new StackPanel
-            {
-                Margin = new Avalonia.Thickness(20),
-                Spacing = 16,
-                Children =
-                {
-                    new TextBlock
-                    {
-                        Text = $"确定将「{title}」移入回收站？",
-                        TextWrapping = TextWrapping.Wrap,
-                        FontSize = 14
-                    },
-                    new StackPanel
-                    {
-                        Orientation = Orientation.Horizontal,
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        Spacing = 10,
-                        Children = { cancelBtn, confirmBtn }
-                    }
-                }
-            }
-        };
+        var dialog = new ConfirmDialogWindow(
+            "移入回收站",
+            "确定将此内容移入回收站？",
+            "取消", "删除", isDangerConfirm: true);
 
         if (TopLevel.GetTopLevel(this) is Window owner)
-        {
             await dialog.ShowDialog(owner);
+
+        if (dialog.Result == true)
+        {
+            await vm.TrashSelectedItemCommand.ExecuteAsync(null);
         }
     }
 
