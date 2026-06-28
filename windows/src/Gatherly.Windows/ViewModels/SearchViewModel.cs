@@ -26,9 +26,30 @@ public partial class SearchViewModel : ViewModelBase
     [ObservableProperty]
     private Item? _selectedItem;
 
+    /// <summary>
+    /// 是否至少执行过一次搜索
+    /// </summary>
+    private bool _hasSearched;
+
     public ObservableCollection<Item> Results { get; } = new();
 
     public bool HasResults => Results.Count > 0;
+    public int ResultCount => Results.Count;
+
+    /// <summary>
+    /// 是否显示无结果提示（有搜索词 + 已搜索 + 无结果）
+    /// </summary>
+    public bool ShowNoResults => _hasSearched && !string.IsNullOrWhiteSpace(Query) && Results.Count == 0 && !IsBusy;
+
+    /// <summary>
+    /// 是否显示结果计数（有搜索词 + 已搜索 + 有结果）
+    /// </summary>
+    public bool ShowResultCount => _hasSearched && !string.IsNullOrWhiteSpace(Query) && Results.Count > 0;
+
+    public Action<Item>? OnItemSelected { get; set; }
+    public Action<Item>? OnMoveToPlatformRequested { get; set; }
+    public Action<Item>? OnMoveToFolderRequested { get; set; }
+    public Action<Item>? OnDeleteItemRequested { get; set; }
 
     public SearchViewModel(SearchService searchService, MediaRepository mediaRepo, CustomPlatformRepository customPlatformRepo)
     {
@@ -37,9 +58,16 @@ public partial class SearchViewModel : ViewModelBase
         _customPlatformRepo = customPlatformRepo;
     }
 
-    /// <summary>
-    /// 重置搜索状态（离开搜索页时调用）
-    /// </summary>
+    partial void OnQueryChanged(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            _hasSearched = false;
+            Results.Clear();
+            NotifySearchState();
+        }
+    }
+
     public void Reset()
     {
         _searchGeneration++;
@@ -48,9 +76,10 @@ public partial class SearchViewModel : ViewModelBase
         Query = string.Empty;
         Results.Clear();
         SelectedItem = null;
+        _hasSearched = false;
         ClearError();
         IsBusy = false;
-        OnPropertyChanged(nameof(HasResults));
+        NotifySearchState();
     }
 
     [RelayCommand]
@@ -62,27 +91,27 @@ public partial class SearchViewModel : ViewModelBase
         if (string.IsNullOrEmpty(trimmed))
         {
             Results.Clear();
-            OnPropertyChanged(nameof(HasResults));
+            _hasSearched = false;
+            NotifySearchState();
             return;
         }
 
-        // Cancel any previous search
         _searchCts?.Cancel();
         _searchCts = new CancellationTokenSource();
         var currentGeneration = ++_searchGeneration;
 
         IsBusy = true;
+        _hasSearched = true;
         ClearError();
+        NotifySearchState();
 
         try
         {
             var items = await _searchService.SearchAsync(trimmed);
 
-            // Check if this search is still current
             if (currentGeneration != _searchGeneration)
                 return;
 
-            // Fill custom platform names
             var customPlatforms = await _customPlatformRepo.GetAllAsync();
             var platformDict = customPlatforms.ToDictionary(cp => cp.Id, cp => cp.Name);
             foreach (var item in items)
@@ -94,7 +123,6 @@ public partial class SearchViewModel : ViewModelBase
                 }
             }
 
-            // Load first image paths
             var imagePaths = new Dictionary<Guid, string>();
             foreach (var item in items)
             {
@@ -115,12 +143,9 @@ public partial class SearchViewModel : ViewModelBase
                     item.FirstImagePath = path;
                 Results.Add(item);
             }
-            OnPropertyChanged(nameof(HasResults));
+            NotifySearchState();
         }
-        catch (OperationCanceledException)
-        {
-            // Search was cancelled, don't update results
-        }
+        catch (OperationCanceledException) { }
         catch (Exception ex)
         {
             SetError(ex.Message);
@@ -128,6 +153,15 @@ public partial class SearchViewModel : ViewModelBase
         finally
         {
             IsBusy = false;
+            NotifySearchState();
         }
+    }
+
+    private void NotifySearchState()
+    {
+        OnPropertyChanged(nameof(HasResults));
+        OnPropertyChanged(nameof(ResultCount));
+        OnPropertyChanged(nameof(ShowNoResults));
+        OnPropertyChanged(nameof(ShowResultCount));
     }
 }

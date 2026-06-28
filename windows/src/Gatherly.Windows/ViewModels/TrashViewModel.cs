@@ -20,6 +20,7 @@ public partial class TrashViewModel : ViewModelBase
     private Item? _selectedItem;
 
     public bool HasSelectedTrashItem => SelectedItem != null;
+    public bool HasItems => TrashedItems.Count > 0;
 
     /// <summary>
     /// 回收站操作成功后的回调（由 MainWindowViewModel 订阅以刷新 Sidebar）
@@ -53,6 +54,7 @@ public partial class TrashViewModel : ViewModelBase
             {
                 TrashedItems.Add(item);
             }
+            OnPropertyChanged(nameof(HasItems));
 
             // Load trash records for remaining days
             TrashRecords.Clear();
