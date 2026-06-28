@@ -452,14 +452,25 @@ public partial class ItemDetailView : UserControl
             var topLevel = TopLevel.GetTopLevel(this);
             if (topLevel == null) return;
 
+            var ext = Path.GetExtension(fullPath).ToLowerInvariant();
+            var isVideo = ext is ".mp4" or ".mov" or ".avi" or ".mkv" or ".webm" or ".flv" or ".wmv" or ".m4v";
+
+            var fileTypeChoices = isVideo
+                ? new[]
+                {
+                    new FilePickerFileType("视频") { Patterns = new[] { $"*{ext}" } },
+                    new FilePickerFileType("所有文件") { Patterns = new[] { "*.*" } }
+                }
+                : new[]
+                {
+                    new FilePickerFileType("图片") { Patterns = new[] { "*.jpg", "*.jpeg", "*.png", "*.gif", "*.webp", "*.bmp" } }
+                };
+
             var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
             {
                 Title = "另存为",
                 SuggestedFileName = Path.GetFileName(fullPath),
-                FileTypeChoices = new[]
-                {
-                    new FilePickerFileType("图片") { Patterns = new[] { "*.jpg", "*.jpeg", "*.png", "*.gif", "*.webp", "*.bmp" } }
-                }
+                FileTypeChoices = fileTypeChoices
             });
 
             if (file != null)
