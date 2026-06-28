@@ -238,7 +238,7 @@ public partial class MainWindowViewModel : ObservableObject
         var migrationService = new Services.SystemPlatformItemMigrationService(connection, customPlatformRepo, customMap, _systemPlatformDisplayNames);
         _migrationTask = MigrateAsync(migrationService);
 
-        Home = new HomeViewModel(new HomeDataService(itemRepo, mediaRepo, customPlatformRepo, connection), new ImportService(itemRepo, importTaskRepo, new Services.Media.MediaDownloadService(mediaRepo), TimeProvider.System, customMap));
+        Home = new HomeViewModel(new HomeDataService(itemRepo, mediaRepo, customPlatformRepo, connection), new ImportService(itemRepo, importTaskRepo, new Services.Media.MediaDownloadService(mediaRepo), TimeProvider.System, customMap), searchRepo, mediaRepo, customPlatformRepo);
         ContentList = new ContentListViewModel(new ContentListService(itemRepo, folderRepo), mediaRepo, customPlatformRepo);
         Search = new SearchViewModel(new SearchService(searchRepo), mediaRepo, customPlatformRepo);
         Trash = new TrashViewModel(new TrashDataService(itemRepo, trashRepo), _itemService);
@@ -333,12 +333,15 @@ public partial class MainWindowViewModel : ObservableObject
             try
             {
                 await _itemService.TrashItemAsync(item);
-                // 先从集合移除（乐观移除），避免闪烁
                 Home.RecentItems.Remove(item);
+                Home.SearchResults.Remove(item);
                 await LoadSidebarPlatformsAsync();
             }
             catch { }
         };
+
+        Home.OnMoveToPlatformRequested = item => HandleMoveToPlatform(item);
+        Home.OnMoveToFolderRequested = item => HandleMoveToFolder(item);
 
         // 订阅回收站操作成功回调，刷新 Sidebar
         Trash.OnTrashOperationSuccess = LoadSidebarPlatformsAsync;
