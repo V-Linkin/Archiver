@@ -35,8 +35,18 @@ public partial class HomeViewModel : ViewModelBase
     /// </summary>
     public Func<Task>? OnImportSuccess { get; set; }
 
+    /// <summary>
+    /// 首页平台入口点击回调
+    /// </summary>
+    public Action<PlatformEntryDisplay>? OnPlatformEntryClicked { get; set; }
+
     public bool HasItems => RecentItems.Count > 0;
     public bool HasPlatforms => PlatformEntries.Count > 0;
+
+    public void NotifyPlatformEntryClicked(PlatformEntryDisplay entry)
+    {
+        OnPlatformEntryClicked?.Invoke(entry);
+    }
 
     public HomeViewModel(HomeDataService homeService, ImportService importService)
     {

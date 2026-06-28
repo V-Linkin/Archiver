@@ -56,6 +56,11 @@ public partial class MainWindowViewModel : ObservableObject
     public ObservableCollection<MediaAssetDisplay> VideoAssets { get; } = new();
 
     /// <summary>
+    /// 合并的媒体资产（图片 + 视频），用于横向画廊展示
+    /// </summary>
+    public ObservableCollection<MediaAssetDisplay> AllMediaAssets { get; } = new();
+
+    /// <summary>
     /// 正文中的链接列表
     /// </summary>
     public ObservableCollection<ContentLinkDisplay> DisplayBodyLinks { get; } = new();
@@ -96,6 +101,7 @@ public partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(DisplayTitle));
         OnPropertyChanged(nameof(DisplayAuthor));
         OnPropertyChanged(nameof(DisplayBody));
+        OnPropertyChanged(nameof(HasDisplayBody));
         OnPropertyChanged(nameof(DisplayPlatform));
         OnPropertyChanged(nameof(DisplayPublishDate));
         OnPropertyChanged(nameof(DisplayImportDate));
@@ -138,6 +144,9 @@ public partial class MainWindowViewModel : ObservableObject
     public string DisplayTitle => SelectedItem?.Title ?? "未命名内容";
     public string DisplayAuthor => SelectedItem?.Author ?? "未知作者";
     public string DisplayBody => SelectedItem?.Body ?? "";
+    public bool HasDisplayBody => !string.IsNullOrWhiteSpace(SelectedItem?.Body);
+
+    public bool HasMedia => HasImages || HasVideos;
     public string DisplayPlatform => SelectedItem?.DisplayPlatform ?? "";
     public string DisplayPublishDate => SelectedItem?.PublishDate?.ToString("yyyy-MM-dd HH:mm") ?? "";
     public string DisplayImportDate => SelectedItem?.ImportDate.ToString("yyyy-MM-dd HH:mm") ?? "";
@@ -265,6 +274,20 @@ public partial class MainWindowViewModel : ObservableObject
             await LoadSidebarPlatformsAsync();
             if (CurrentSection == "PlatformContent")
                 await ContentList.ReloadCurrentContentAsync();
+        };
+
+        Home.OnPlatformEntryClicked = entry =>
+        {
+            if (entry.IsUncategorized)
+                _ = ShowUncategorizedCommand.ExecuteAsync(null);
+            else if (entry.IsStandardPlatform && entry.StandardPlatform.HasValue && entry.CustomPlatformIds.Count > 0)
+                _ = ShowMergedPlatformCommand.ExecuteAsync(entry);
+            else if (entry.IsStandardPlatform && entry.StandardPlatform.HasValue && entry.CustomPlatformIds.Count == 0)
+                _ = ShowStandardPlatformCommand.ExecuteAsync(entry.StandardPlatform.Value);
+            else if (entry.CustomPlatformIds.Count == 1)
+                _ = ShowCustomPlatformCommand.ExecuteAsync(entry.CustomPlatformIds[0]);
+            else
+                _ = ShowCustomPlatformCommand.ExecuteAsync(entry.Id);
         };
 
         // 订阅回收站操作成功回调，刷新 Sidebar
@@ -572,9 +595,11 @@ public partial class MainWindowViewModel : ObservableObject
     {
         ImageAssets.Clear();
         VideoAssets.Clear();
+        AllMediaAssets.Clear();
         VideoCoverImagePath = null;
         OnPropertyChanged(nameof(HasImages));
         OnPropertyChanged(nameof(HasVideos));
+        OnPropertyChanged(nameof(HasMedia));
         OnPropertyChanged(nameof(VideoCoverImagePath));
 
         if (itemId == null) return;
@@ -620,10 +645,35 @@ public partial class MainWindowViewModel : ObservableObject
 
             OnPropertyChanged(nameof(HasImages));
             OnPropertyChanged(nameof(HasVideos));
+            OnPropertyChanged(nameof(HasMedia));
+
+            // Build combined gallery: images first, then videos
+            AllMediaAssets.Clear();
+            foreach (var img in ImageAssets) AllMediaAssets.Add(img);
+            foreach (var vid in VideoAssets) AllMediaAssets.Add(vid);
+            OnPropertyChanged(nameof(AllMediaAssets));
         }
         catch
         {
             // 媒体加载失败不影响主流程
+        }
+    }
+
+    /// <summary>
+    /// 打开图片/视频 — 统一画廊点击处理
+    /// </summary>
+    [RelayCommand]
+    private void OpenMedia(MediaAssetDisplay? media)
+    {
+        if (media == null) return;
+
+        if (media.IsVideo)
+        {
+            OpenVideoFile(media);
+        }
+        else
+        {
+            OpenImageViewer(media);
         }
     }
 
@@ -947,6 +997,8 @@ public class MediaAssetDisplay
     public string? FullPath { get; set; }
     public bool FileExists { get; set; }
     public long FileSize { get; set; }
+    public bool IsVideo { get; set; }
+    public bool IsImage => !IsVideo;
     public string FileSizeDisplay => FileSize > 1024 * 1024
         ? $"{FileSize / 1024 / 1024:F1} MB"
         : $"{FileSize / 1024:F0} KB";
@@ -963,7 +1015,8 @@ public class MediaAssetDisplay
             FileName = asset.FileName,
             FullPath = exists ? fullPath : null,
             FileExists = exists,
-            FileSize = asset.FileSize
+            FileSize = asset.FileSize,
+            IsVideo = asset.Type == MediaType.video
         };
     }
 }

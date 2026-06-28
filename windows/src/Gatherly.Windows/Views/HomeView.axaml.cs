@@ -13,9 +13,10 @@ public partial class HomeView : UserControl
 
     private void PlatformEntry_Click(object? sender, RoutedEventArgs e)
     {
-        if (sender is Button button && button.DataContext is PlatformEntryDisplay entry)
+        if (sender is Button button && button.DataContext is PlatformEntryDisplay entry
+            && DataContext is HomeViewModel vm)
         {
-            // 暂不实现平台导航，后续 Phase 补齐
+            vm.NotifyPlatformEntryClicked(entry);
         }
     }
 }

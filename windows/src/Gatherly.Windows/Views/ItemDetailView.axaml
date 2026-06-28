@@ -40,98 +40,109 @@
 
         <!-- Content area -->
         <ScrollViewer x:Name="DetailScrollViewer">
-            <StackPanel Spacing="20" Margin="24,16,24,24"
+            <StackPanel Spacing="0" Margin="24,16,24,24"
                         MaxWidth="800">
 
-                <!-- Image gallery - horizontal scroll -->
-                <StackPanel Spacing="8"
-                            IsVisible="{Binding HasImages}">
-                    <TextBlock Text="图片" FontSize="14" Foreground="Gray" />
-                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
-                                  VerticalScrollBarVisibility="Disabled">
-                        <ItemsControl ItemsSource="{Binding ImageAssets}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Orientation="Horizontal" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:MediaAssetDisplay">
-                                    <Button Padding="0" Background="Transparent"
-                                            BorderThickness="0" Cursor="Hand"
-                                            Margin="0,0,8,0"
-                                            Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).OpenImageViewerCommand}"
-                                            CommandParameter="{Binding}">
-                                        <Border MaxWidth="300" MaxHeight="400" CornerRadius="6"
-                                                ClipToBounds="True" Background="#F0F0F0">
-                                            <Border.ContextMenu>
-                                                <ContextMenu>
-                                                    <MenuItem Header="复制" Click="ImageCopy_Click"
-                                                              Tag="{Binding FullPath}" />
-                                                    <MenuItem Header="另存为..." Click="ImageSaveAs_Click"
-                                                              Tag="{Binding FullPath}" />
-                                                </ContextMenu>
-                                            </Border.ContextMenu>
-                                            <Image Source="{Binding FullPath, Converter={x:Static conv:FilePathToBitmapConverter.Instance}}"
-                                                   Stretch="Uniform" />
-                                        </Border>
-                                    </Button>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
-                </StackPanel>
+                <!-- ===== Media Section — unified horizontal gallery ===== -->
+                <StackPanel Spacing="0">
+                    <!-- Horizontal gallery: images first, then videos -->
+                    <Border IsVisible="{Binding HasMedia}"
+                            CornerRadius="12" ClipToBounds="True"
+                            Background="#F0F0F0" MinHeight="280">
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                      VerticalScrollBarVisibility="Disabled">
+                            <StackPanel Orientation="Horizontal" Spacing="12" Margin="8">
+                                <!-- Image tiles -->
+                                <ItemsControl ItemsSource="{Binding ImageAssets}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" Spacing="12" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:MediaAssetDisplay">
+                                            <Button Padding="0" Background="Transparent"
+                                                    BorderThickness="0" Cursor="Hand"
+                                                    Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).OpenImageViewerCommand}"
+                                                    CommandParameter="{Binding}">
+                                                <Border Height="280" CornerRadius="8"
+                                                        ClipToBounds="True" Background="#F0F0F0">
+                                                    <Border.ContextMenu>
+                                                        <ContextMenu>
+                                                            <MenuItem Header="复制" Click="ImageCopy_Click"
+                                                                      Tag="{Binding FullPath}" />
+                                                            <MenuItem Header="另存为..." Click="ImageSaveAs_Click"
+                                                                      Tag="{Binding FullPath}" />
+                                                        </ContextMenu>
+                                                    </Border.ContextMenu>
+                                                    <Image Source="{Binding FullPath, Converter={x:Static conv:FilePathToBitmapConverter.Instance}}"
+                                                           Stretch="UniformToFill" />
+                                                </Border>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
 
-                <!-- Video preview card -->
-                <StackPanel Spacing="8"
-                            IsVisible="{Binding HasVideos}">
-                    <TextBlock Text="视频" FontSize="14" Foreground="Gray" />
-                    <!-- Preview card with cover + play button -->
-                    <Border CornerRadius="10" ClipToBounds="True"
-                            Background="#1A1A1A"
-                            MaxWidth="480" MaxHeight="320"
-                            HorizontalAlignment="Left"
-                            Cursor="Hand"
-                            PointerPressed="VideoCard_PointerPressed">
-                        <Panel>
-                            <Image Source="{Binding VideoCoverImagePath, Converter={x:Static conv:FilePathToBitmapConverter.Instance}}"
-                                   Stretch="Uniform" Opacity="0.9" />
-                            <Border HorizontalAlignment="Center" VerticalAlignment="Center"
-                                    Width="64" Height="64" CornerRadius="32"
-                                    Background="#80000000" BorderBrush="#40FFFFFF" BorderThickness="2">
-                                <TextBlock Text="▶" FontSize="28" Foreground="White"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center"
-                                           Margin="3,0,0,0" />
-                            </Border>
-                        </Panel>
+                                <!-- Video tiles -->
+                                <ItemsControl ItemsSource="{Binding VideoAssets}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" Spacing="12" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:MediaAssetDisplay">
+                                            <Button Padding="0" Background="Transparent"
+                                                    BorderThickness="0" Cursor="Hand"
+                                                    Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).OpenMediaCommand}"
+                                                    CommandParameter="{Binding}">
+                                                <Border Height="280" Width="400" CornerRadius="8"
+                                                        ClipToBounds="True" Background="#1A1A1A">
+                                                    <Border.ContextMenu>
+                                                        <ContextMenu>
+                                                            <MenuItem Header="另存为..." Click="ImageSaveAs_Click"
+                                                                      Tag="{Binding FullPath}" />
+                                                        </ContextMenu>
+                                                    </Border.ContextMenu>
+                                                    <Panel>
+                                                        <!-- Video thumbnail via Shell (or black fallback) -->
+                                                        <Image Source="{Binding FullPath, Converter={x:Static conv:VideoThumbnailConverter.Instance}}"
+                                                               Stretch="UniformToFill" />
+                                                        <!-- Play icon overlay — macOS play.circle.fill 48pt -->
+                                                        <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                Width="48" Height="48" CornerRadius="24"
+                                                                Background="#80000000">
+                                                            <TextBlock Text="▶" FontSize="22" Foreground="White"
+                                                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                       Margin="2,0,0,0" />
+                                                        </Border>
+                                                    </Panel>
+                                                </Border>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ScrollViewer>
                     </Border>
-                    <!-- Video file info + action buttons -->
-                    <ItemsControl ItemsSource="{Binding VideoAssets}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="vm:MediaAssetDisplay">
-                                <StackPanel Spacing="4" Margin="0,4,0,0">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <TextBlock Text="🎬" FontSize="14" />
-                                        <TextBlock Text="{Binding FileName}" FontSize="13" />
-                                        <TextBlock Text="{Binding FileSizeDisplay}" FontSize="12" Foreground="Gray"
-                                                   VerticalAlignment="Center" />
-                                    </StackPanel>
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <Button Content="打开视频" FontSize="12" Padding="10,4"
-                                                Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).OpenVideoFileCommand}"
-                                                CommandParameter="{Binding}"
-                                                IsVisible="{Binding FileExists}" />
-                                        <Button Content="打开所在文件夹" FontSize="12" Padding="10,4"
-                                                Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).OpenVideoFolderCommand}"
-                                                CommandParameter="{Binding}" />
-                                    </StackPanel>
-                                </StackPanel>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+
+                    <!-- Media empty state -->
+                    <Border IsVisible="{Binding !HasMedia}"
+                            Background="#F0F0F0" CornerRadius="12" MinHeight="200"
+                            HorizontalAlignment="Stretch">
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                                    Spacing="8">
+                            <TextBlock Text="无媒体内容" FontSize="12"
+                                       Foreground="{StaticResource TextTertiary}"
+                                       HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
 
-                <!-- Metadata — InfoRow (aligned to macOS metadataSection) -->
+                <!-- Divider -->
+                <Border Height="1" Background="{StaticResource SeparatorColor}" Margin="0,16" />
+
+                <!-- Metadata InfoRow -->
                 <StackPanel Spacing="0">
                     <comp:InfoRow Label="平台" Value="{Binding DisplayPlatform}" />
                     <comp:InfoRow Label="作者" Value="{Binding DisplayAuthor}" />
@@ -142,7 +153,7 @@
                                   IsVisible="{Binding HasFolder}" />
                 </StackPanel>
 
-                <!-- Original URL — clickable link -->
+                <!-- Original URL -->
                 <StackPanel Spacing="4"
                             IsVisible="{Binding DisplayOriginalUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                     <Border Padding="0,6" BorderBrush="{StaticResource SeparatorColor}"
@@ -162,42 +173,48 @@
                     </Border>
                 </StackPanel>
 
+                <!-- Remark -->
+                <StackPanel Spacing="8">
+                    <TextBlock Text="备注" FontSize="16" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding DisplayRemark, FallbackValue='暂无备注'}"
+                               FontSize="14" Foreground="{StaticResource TextPrimary}"
+                               TextWrapping="Wrap"
+                               IsVisible="{Binding !IsEditingRemark}" />
+                    <TextBox Text="{Binding EditableRemark}"
+                             AcceptsReturn="True"
+                             MinHeight="80"
+                             Watermark="输入备注..."
+                             IsVisible="{Binding IsEditingRemark}" />
+                </StackPanel>
+
+                <!-- Divider -->
+                <Border Height="1" Background="{StaticResource SeparatorColor}" Margin="0,4" />
+
                 <!-- Body -->
-                <StackPanel Spacing="4">
-                    <TextBlock Text="正文" FontSize="12" Foreground="Gray" />
-                    <Border Background="#F8F8F8" CornerRadius="8" Padding="16">
-                        <SelectableTextBlock Text="{Binding DisplayBody}"
-                                   TextWrapping="Wrap" FontSize="14" LineHeight="24" />
-                    </Border>
+                <StackPanel Spacing="8">
+                    <TextBlock Text="正文" FontSize="16" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding DisplayBody}"
+                               FontSize="14" LineHeight="24"
+                               Foreground="{StaticResource TextPrimary}"
+                               TextWrapping="Wrap"
+                               IsVisible="{Binding HasDisplayBody}" />
+                    <TextBlock Text="暂无正文内容"
+                               FontSize="14"
+                               Foreground="{StaticResource TextTertiary}"
+                               IsVisible="{Binding !HasDisplayBody}" />
                     <!-- Body links -->
                     <ItemsControl ItemsSource="{Binding DisplayBodyLinks}"
                                   IsVisible="{Binding HasDisplayBodyLinks}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:ContentLinkDisplay">
                                 <TextBlock Text="{Binding Url}" FontSize="12"
-                                           TextDecorations="Underline" Foreground="#1A73E8"
+                                           TextDecorations="Underline" Foreground="{StaticResource TextLink}"
                                            Cursor="Hand" Margin="0,2"
                                            PointerPressed="BodyLink_PointerPressed"
                                            Tag="{Binding Url}" />
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                </StackPanel>
-
-                <!-- Remark -->
-                <StackPanel Spacing="4">
-                    <TextBlock Text="备注" FontSize="12" Foreground="Gray" />
-                    <StackPanel IsVisible="{Binding !IsEditingRemark}">
-                        <TextBlock Text="{Binding DisplayRemark, FallbackValue='暂无备注'}"
-                                   FontSize="13" FontStyle="Italic"
-                                   TextWrapping="Wrap" />
-                    </StackPanel>
-                    <StackPanel IsVisible="{Binding IsEditingRemark}" Spacing="8">
-                        <TextBox Text="{Binding EditableRemark}"
-                                 AcceptsReturn="True"
-                                 MinHeight="80"
-                                 Watermark="输入备注..." />
-                    </StackPanel>
                 </StackPanel>
 
             </StackPanel>
