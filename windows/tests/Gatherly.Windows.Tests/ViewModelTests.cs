@@ -90,7 +90,7 @@ public class ViewModelTests : IDisposable
         InsertItem("00000000-0000-0000-0000-000000000001", importDate: 1700001000);
         InsertItem("00000000-0000-0000-0000-000000000002", importDate: 1700000000);
 
-        var vm = new HomeViewModel(new HomeDataService(new ItemRepository(_connection), new MediaRepository(_connection), new CustomPlatformRepository(_connection), _connection), new ImportService(new ItemRepository(_connection), new ImportTaskRepository(_connection), new MediaDownloadService(new MediaRepository(_connection))));
+        var vm = new HomeViewModel(new HomeDataService(new ItemRepository(_connection), new MediaRepository(_connection), new CustomPlatformRepository(_connection), _connection), new ImportService(new ItemRepository(_connection), new ImportTaskRepository(_connection), new MediaDownloadService(new MediaRepository(_connection))), new SearchRepository(_connection), new MediaRepository(_connection), new CustomPlatformRepository(_connection));
         await vm.LoadCommand.ExecuteAsync(null);
 
         Assert.Equal(2, vm.RecentItems.Count);
@@ -101,7 +101,7 @@ public class ViewModelTests : IDisposable
     [Fact]
     public async Task HomeViewModel_LoadAsync_SetsIsBusyDuringLoad()
     {
-        var vm = new HomeViewModel(new HomeDataService(new ItemRepository(_connection), new MediaRepository(_connection), new CustomPlatformRepository(_connection), _connection), new ImportService(new ItemRepository(_connection), new ImportTaskRepository(_connection), new MediaDownloadService(new MediaRepository(_connection))));
+        var vm = new HomeViewModel(new HomeDataService(new ItemRepository(_connection), new MediaRepository(_connection), new CustomPlatformRepository(_connection), _connection), new ImportService(new ItemRepository(_connection), new ImportTaskRepository(_connection), new MediaDownloadService(new MediaRepository(_connection))), new SearchRepository(_connection), new MediaRepository(_connection), new CustomPlatformRepository(_connection));
 
         // Before load
         Assert.False(vm.IsBusy);
