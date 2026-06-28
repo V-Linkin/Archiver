@@ -240,6 +240,7 @@ public class BackupPackageViewModelTests : IDisposable
         var dest = Path.Combine(_testDir, "test.zip");
 
         await vm.CreateBackupCommand.ExecuteAsync(dest);
+        await Task.Delay(100);
 
         Assert.Contains("3", vm.BackupCurrentFileText);
         Assert.Contains("5", vm.BackupCurrentFileText);
