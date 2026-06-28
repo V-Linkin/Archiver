@@ -134,4 +134,25 @@ public partial class TrashViewModel : ViewModelBase
             SetError(ex.Message);
         }
     }
+
+    [RelayCommand]
+    private async Task ClearAllAsync()
+    {
+        try
+        {
+            var items = TrashedItems.ToList();
+            foreach (var item in items)
+            {
+                await _itemService.PermanentlyDeleteItemAsync(item);
+            }
+            await LoadAsync();
+
+            if (OnTrashOperationSuccess != null)
+                await OnTrashOperationSuccess();
+        }
+        catch (Exception ex)
+        {
+            SetError(ex.Message);
+        }
+    }
 }
