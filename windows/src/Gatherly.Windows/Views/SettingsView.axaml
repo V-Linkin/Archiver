@@ -4,129 +4,141 @@
          x:Class="Gatherly.Windows.Views.SettingsView"
          x:DataType="vm:SettingsViewModel">
 
-    <ScrollViewer Padding="0,0,0,24">
-        <StackPanel Spacing="16" MaxWidth="640" HorizontalAlignment="Center" Margin="24,16,24,0">
+    <Grid>
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="16" MaxWidth="640" HorizontalAlignment="Center" Margin="24,16,24,48">
 
-            <!-- 存储管理 -->
-            <TextBlock Text="存储管理" FontSize="14" FontWeight="SemiBold" Foreground="#555" Margin="4,0" />
-            <Border Background="White" CornerRadius="8" Padding="16" BorderBrush="#E0E0E0" BorderThickness="1">
-                <StackPanel Spacing="10">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Grid.Column="0" Text="总内容数" FontSize="13" />
-                        <TextBlock Grid.Column="1" Text="{Binding TotalItems, StringFormat='{}{0} 条'}" FontSize="13" Foreground="#888" />
-                    </Grid>
-                    <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Grid.Column="0" Text="数据库大小" FontSize="13" />
-                        <TextBlock Grid.Column="1" Text="{Binding DbSizeText}" FontSize="13" Foreground="#888" />
-                    </Grid>
-                    <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Grid.Column="0" Text="媒体文件" FontSize="13" />
-                        <TextBlock Grid.Column="1" Text="{Binding MediaSizeText}" FontSize="13" Foreground="#888" />
-                    </Grid>
-                    <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Grid.Column="0" Text="总存储空间" FontSize="13" FontWeight="SemiBold" />
-                        <TextBlock Grid.Column="1" Text="{Binding TotalStorageText}" FontSize="13" Foreground="#333" FontWeight="SemiBold" />
-                    </Grid>
+                <!-- 存储管理 -->
+                <TextBlock Text="存储管理" FontSize="14" FontWeight="SemiBold" Foreground="#555" Margin="4,0" />
+                <Border Background="White" CornerRadius="8" Padding="16" BorderBrush="#E0E0E0" BorderThickness="1">
+                    <StackPanel Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0" Text="总内容数" FontSize="13" />
+                            <TextBlock Grid.Column="1" Text="{Binding TotalItems, StringFormat='{}{0} 条'}" FontSize="13" Foreground="#888" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0" Text="数据库大小" FontSize="13" />
+                            <TextBlock Grid.Column="1" Text="{Binding DbSizeText}" FontSize="13" Foreground="#888" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0" Text="媒体文件" FontSize="13" />
+                            <TextBlock Grid.Column="1" Text="{Binding MediaSizeText}" FontSize="13" Foreground="#888" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0" Text="总存储空间" FontSize="13" FontWeight="SemiBold" />
+                            <TextBlock Grid.Column="1" Text="{Binding TotalStorageText}" FontSize="13" Foreground="#333" FontWeight="SemiBold" />
+                        </Grid>
+                        <Border BorderBrush="#F0F0F0" BorderThickness="0,1,0,0" Margin="0,4" />
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto Auto Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="数据目录" FontSize="13" />
+                            <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <Button Content="修改" Click="ModifyDataDirectory_Click" Padding="8,4" FontSize="12" />
+                                <Button Content="打开" Click="OpenDataDirectory_Click" Padding="8,4" FontSize="12" />
+                            </StackPanel>
+                            <TextBlock Grid.Row="1" Grid.ColumnSpan="2"
+                                       Text="{Binding DataDirectoryPath}" FontSize="11" Foreground="#888"
+                                       TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
+                            <TextBlock Grid.Row="2" Grid.ColumnSpan="2"
+                                       Text="{Binding DataDirStatus}" FontSize="11" Foreground="#888"
+                                       TextWrapping="Wrap" IsVisible="{Binding HasDataDirStatus}" Margin="0,4,0,0" />
+                        </Grid>
+                        <Border Background="#F9F9F9" CornerRadius="6" Padding="12" BorderBrush="#E0E0E0" BorderThickness="1"
+                                IsVisible="{Binding HasMigrationPlan}">
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="迁移计划预览" FontSize="13" FontWeight="SemiBold" />
+                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto Auto Auto Auto Auto Auto Auto">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="当前目录：" FontSize="11" Foreground="#666" />
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding PlanCurrentDir}" FontSize="11" Foreground="#333" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="目标目录：" FontSize="11" Foreground="#666" />
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding PlanTargetDir}" FontSize="11" Foreground="#333" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="数据库大小：" FontSize="11" Foreground="#666" />
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding PlanDbSize}" FontSize="11" Foreground="#333" />
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="媒体文件：" FontSize="11" Foreground="#666" />
+                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding PlanMediaInfo}" FontSize="11" Foreground="#333" />
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="预计操作：" FontSize="11" Foreground="#666" />
+                                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding PlanEstimate}" FontSize="11" Foreground="#333" />
+                                    <TextBlock Grid.Row="5" Grid.ColumnSpan="2" Text="{Binding PlanConclusion}" FontSize="12" FontWeight="SemiBold" Foreground="#C44" Margin="0,4,0,0" />
+                                    <TextBlock Grid.Row="6" Grid.ColumnSpan="2" Text="{Binding PlanWarning}" FontSize="11" Foreground="#888" TextWrapping="Wrap" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
 
-                    <Border BorderBrush="#F0F0F0" BorderThickness="0,1,0,0" Margin="0,4" />
-
-                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto Auto Auto">
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="数据目录" FontSize="13" />
-                        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                            <Button Content="修改" Click="ModifyDataDirectory_Click" Padding="8,4" FontSize="12" />
-                            <Button Content="打开" Click="OpenDataDirectory_Click" Padding="8,4" FontSize="12" />
-                        </StackPanel>
-                        <TextBlock Grid.Row="1" Grid.ColumnSpan="2"
-                                   Text="{Binding DataDirectoryPath}" FontSize="11" Foreground="#888"
-                                   TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
-                        <TextBlock Grid.Row="2" Grid.ColumnSpan="2"
-                                   Text="{Binding DataDirStatus}" FontSize="11" Foreground="#888"
-                                   TextWrapping="Wrap" IsVisible="{Binding HasDataDirStatus}" Margin="0,4,0,0" />
-                    </Grid>
-
-                    <!-- dry-run 迁移计划预览 -->
-                    <Border Background="#F9F9F9" CornerRadius="6" Padding="12" BorderBrush="#E0E0E0" BorderThickness="1"
-                            IsVisible="{Binding HasMigrationPlan}">
+                <!-- 备份与还原 -->
+                <TextBlock Text="备份与还原" FontSize="14" FontWeight="SemiBold" Foreground="#555" Margin="4,0" />
+                <Border Background="White" CornerRadius="8" Padding="16" BorderBrush="#E0E0E0" BorderThickness="1">
+                    <StackPanel Spacing="12">
                         <StackPanel Spacing="6">
-                            <TextBlock Text="迁移计划预览" FontSize="13" FontWeight="SemiBold" />
-                            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto Auto Auto Auto Auto Auto Auto">
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="当前目录：" FontSize="11" Foreground="#666" />
-                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding PlanCurrentDir}" FontSize="11" Foreground="#333" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="目标目录：" FontSize="11" Foreground="#666" />
-                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding PlanTargetDir}" FontSize="11" Foreground="#333" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="数据库大小：" FontSize="11" Foreground="#666" />
-                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding PlanDbSize}" FontSize="11" Foreground="#333" />
-                                <TextBlock Grid.Row="3" Grid.Column="0" Text="媒体文件：" FontSize="11" Foreground="#666" />
-                                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding PlanMediaInfo}" FontSize="11" Foreground="#333" />
-                                <TextBlock Grid.Row="4" Grid.Column="0" Text="预计操作：" FontSize="11" Foreground="#666" />
-                                <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding PlanEstimate}" FontSize="11" Foreground="#333" />
-                                <TextBlock Grid.Row="5" Grid.ColumnSpan="2" Text="{Binding PlanConclusion}" FontSize="12" FontWeight="SemiBold" Foreground="#C44" Margin="0,4,0,0" />
-                                <TextBlock Grid.Row="6" Grid.ColumnSpan="2" Text="{Binding PlanWarning}" FontSize="11" Foreground="#888" TextWrapping="Wrap" />
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Grid.Column="0" Text="导出备份" FontSize="13" FontWeight="SemiBold" />
+                                <Button Grid.Column="1" Content="创建备份" Click="CreateBackup_Click"
+                                        IsEnabled="{Binding BackupVM.CanCreateBackup}"
+                                        Padding="10,4" FontSize="12" VerticalAlignment="Center" />
                             </Grid>
+                            <TextBlock Text="将数据库、媒体文件和平台设置打包为 zip 文件" FontSize="11" Foreground="#888" TextWrapping="Wrap" />
+                            <StackPanel Spacing="4" IsVisible="{Binding BackupVM.IsBackupRunning}">
+                                <ProgressBar Value="{Binding BackupVM.BackupProgressValue}" Maximum="100" Height="4" />
+                                <TextBlock Text="{Binding BackupVM.BackupProgressText}" FontSize="11" Foreground="#888" />
+                            </StackPanel>
                         </StackPanel>
-                    </Border>
-                </StackPanel>
-            </Border>
-
-            <!-- 备份与还原 -->
-            <TextBlock Text="备份与还原" FontSize="14" FontWeight="SemiBold" Foreground="#555" Margin="4,0" />
-            <Border Background="White" CornerRadius="8" Padding="16" BorderBrush="#E0E0E0" BorderThickness="1">
-                <StackPanel Spacing="12">
-                    <StackPanel Spacing="6">
-                        <Grid ColumnDefinitions="*,Auto">
-                            <TextBlock Grid.Column="0" Text="导出备份" FontSize="13" FontWeight="SemiBold" />
-                            <Button Grid.Column="1" Content="创建备份" Click="CreateBackup_Click"
-                                    IsEnabled="{Binding BackupVM.CanCreateBackup}"
-                                    Padding="10,4" FontSize="12" VerticalAlignment="Center" />
-                        </Grid>
-                        <TextBlock Text="将数据库、媒体文件和平台设置打包为 zip 文件" FontSize="11" Foreground="#888" TextWrapping="Wrap" />
-                        <StackPanel Spacing="4" IsVisible="{Binding BackupVM.IsBackupRunning}">
-                            <ProgressBar Value="{Binding BackupVM.BackupProgressValue}" Maximum="100" Height="4" />
-                            <TextBlock Text="{Binding BackupVM.BackupProgressText}" FontSize="11" Foreground="#888" />
+                        <Border BorderBrush="#F0F0F0" BorderThickness="0,1,0,0" />
+                        <StackPanel Spacing="6">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Grid.Column="0" Text="还原备份" FontSize="13" FontWeight="SemiBold" />
+                                <Button Grid.Column="1" Content="选择备份文件" Click="RestoreBackup_Click"
+                                        Padding="10,4" FontSize="12" VerticalAlignment="Center" />
+                            </Grid>
+                            <TextBlock Text="从备份 zip 文件还原数据到当前数据库" FontSize="11" Foreground="#888" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding RestoreStatus}" FontSize="11" Foreground="#2D6A2D"
+                                       IsVisible="{Binding HasRestoreStatus}" />
                         </StackPanel>
                     </StackPanel>
+                </Border>
 
-                    <Border BorderBrush="#F0F0F0" BorderThickness="0,1,0,0" />
-
-                    <StackPanel Spacing="6">
+                <!-- 浏览器设置 -->
+                <TextBlock Text="浏览器设置" FontSize="14" FontWeight="SemiBold" Foreground="#555" Margin="4,0" />
+                <Border Background="White" CornerRadius="8" Padding="16" BorderBrush="#E0E0E0" BorderThickness="1">
+                    <StackPanel Spacing="8">
                         <Grid ColumnDefinitions="*,Auto">
-                            <TextBlock Grid.Column="0" Text="还原备份" FontSize="13" FontWeight="SemiBold" />
-                            <Button Grid.Column="1" Content="选择备份文件" Click="RestoreBackup_Click"
-                                    Padding="10,4" FontSize="12" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="0" Text="默认浏览器" FontSize="13" />
+                            <ComboBox Grid.Column="1" x:Name="BrowserComboBox"
+                                      Width="200"
+                                      SelectionChanged="BrowserComboBox_SelectionChanged" />
                         </Grid>
-                        <TextBlock Text="从备份 zip 文件还原数据到当前数据库" FontSize="11" Foreground="#888" TextWrapping="Wrap" />
-                        <TextBlock Text="{Binding RestoreStatus}" FontSize="11" Foreground="#2D6A2D"
-                                   IsVisible="{Binding HasRestoreStatus}" />
+                        <TextBlock Text="选择用于打开内容原始链接的浏览器" FontSize="11" Foreground="#888" />
                     </StackPanel>
-                </StackPanel>
-            </Border>
+                </Border>
 
-            <!-- 关于 -->
-            <TextBlock Text="关于" FontSize="14" FontWeight="SemiBold" Foreground="#555" Margin="4,0" />
-            <Border Background="White" CornerRadius="8" Padding="16" BorderBrush="#E0E0E0" BorderThickness="1">
-                <StackPanel Spacing="10">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Grid.Column="0" Text="应用名称" FontSize="13" />
-                        <TextBlock Grid.Column="1" Text="拾屿 (Archiver)" FontSize="13" Foreground="#888" />
-                    </Grid>
-                    <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Grid.Column="0" Text="版本" FontSize="13" />
-                        <TextBlock Grid.Column="1" Text="{Binding AppVersion}" FontSize="13" Foreground="#888" />
-                    </Grid>
-                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
-                        <Button Content="使用帮助" Click="ShowHelp_Click" Padding="10,4" FontSize="12" />
-                        <Button Content="GitHub" Click="OpenGitHub_Click" Padding="10,4" FontSize="12" />
+                <!-- 关于 -->
+                <TextBlock Text="关于" FontSize="14" FontWeight="SemiBold" Foreground="#555" Margin="4,0" />
+                <Border Background="White" CornerRadius="8" Padding="16" BorderBrush="#E0E0E0" BorderThickness="1">
+                    <StackPanel Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0" Text="应用名称" FontSize="13" />
+                            <TextBlock Grid.Column="1" Text="拾屿 (Archiver)" FontSize="13" Foreground="#888" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0" Text="版本" FontSize="13" />
+                            <TextBlock Grid.Column="1" Text="{Binding AppVersion}" FontSize="13" Foreground="#888" />
+                        </Grid>
+                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                            <Button Content="使用帮助" Click="ShowHelp_Click" Padding="10,4" FontSize="12" />
+                            <Button Content="GitHub" Click="OpenGitHub_Click" Padding="10,4" FontSize="12" />
+                        </StackPanel>
                     </StackPanel>
-                </StackPanel>
-            </Border>
+                </Border>
 
-            <!-- 免责声明 -->
-            <TextBlock Text="免责声明" FontSize="14" FontWeight="SemiBold" Foreground="#555" Margin="4,0" />
-            <Border Background="White" CornerRadius="8" Padding="16" BorderBrush="#E0E0E0" BorderThickness="1">
-                <TextBlock Text="本应用仅供个人学习和研究使用。保存的内容版权归原作者或平台所有，请遵守各平台的服务条款和相关法律法规。请勿将保存的内容用于商业用途或未经授权的重新分发。"
-                           FontSize="12" Foreground="#666" TextWrapping="Wrap" LineHeight="20" />
-            </Border>
+                <!-- 免责声明 -->
+                <TextBlock Text="免责声明" FontSize="14" FontWeight="SemiBold" Foreground="#555" Margin="4,0" />
+                <Border Background="White" CornerRadius="8" Padding="16" BorderBrush="#E0E0E0" BorderThickness="1">
+                    <TextBlock Text="本应用仅供个人学习和研究使用。保存的内容版权归原作者或平台所有，请遵守各平台的服务条款和相关法律法规。请勿将保存的内容用于商业用途或未经授权的重新分发。"
+                               FontSize="12" Foreground="#666" TextWrapping="Wrap" LineHeight="20" />
+                </Border>
 
-        </StackPanel>
-    </ScrollViewer>
+                <!-- Bottom safe space -->
+                <Border Height="48" />
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
 </UserControl>
