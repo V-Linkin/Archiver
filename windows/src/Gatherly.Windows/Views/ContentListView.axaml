@@ -14,12 +14,12 @@
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8"
                             IsVisible="{Binding IsInFolder}">
                     <Button Content="← 返回" Click="BackButton_Click"
-                            Padding="10,4" FontSize="12" />
-                    <TextBlock Text="{Binding FolderTitle}" FontSize="18" FontWeight="Bold"
+                            Classes="ToolbarButton" />
+                    <TextBlock Text="{Binding PageTitle}" FontSize="18" FontWeight="Bold"
                                VerticalAlignment="Center" />
                 </StackPanel>
                 <!-- Platform mode: title + new folder button -->
-                <TextBlock Grid.Column="0" Text="内容列表"
+                <TextBlock Grid.Column="0" Text="{Binding PageTitle}"
                            FontSize="18" FontWeight="Bold"
                            IsVisible="{Binding !IsInFolder}" />
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"

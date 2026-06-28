@@ -47,6 +47,16 @@ public partial class ContentListViewModel : ViewModelBase
     public bool IsInFolder => _currentFolderId.HasValue;
     public Guid? CurrentFolderId => _currentFolderId;
     public string FolderTitle { get; private set; } = "";
+    public string PageTitle { get; private set; } = "";
+
+    /// <summary>
+    /// 由 MainWindowViewModel 调用设置页面标题
+    /// </summary>
+    public void SetPageTitle(string title)
+    {
+        PageTitle = title;
+        OnPropertyChanged(nameof(PageTitle));
+    }
 
     public bool HasItems => Items.Count > 0;
     public bool HasFolders => Folders.Count > 0;
@@ -110,7 +120,9 @@ public partial class ContentListViewModel : ViewModelBase
             var subfolders = await _contentService.GetChildFoldersAsync(folderId);
 
             FolderTitle = await _contentService.GetFolderNameAsync(folderId) ?? "文件夹";
+            PageTitle = FolderTitle;
             OnPropertyChanged(nameof(FolderTitle));
+            OnPropertyChanged(nameof(PageTitle));
 
             // Fill custom platform names (same as platform pages)
             await FillCustomPlatformNamesAsync(items);
@@ -185,7 +197,7 @@ public partial class ContentListViewModel : ViewModelBase
         }
     }
 
-    public async Task LoadCustomPlatformAsync(Guid customPlatformId)
+    public async Task LoadCustomPlatformAsync(Guid customPlatformId, string? pageTitle = null)
     {
         if (IsBusy) return;
 
@@ -199,6 +211,7 @@ public partial class ContentListViewModel : ViewModelBase
             _currentCustomPlatformIds = null;
             _currentCustomPlatformId = customPlatformId;
             _currentFolderId = null;
+            if (pageTitle != null) SetPageTitle(pageTitle);
             var items = await _contentService.GetCustomPlatformItemsAsync(customPlatformId);
             var folders = await _contentService.GetCustomPlatformFoldersAsync(customPlatformId);
 

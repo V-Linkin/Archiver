@@ -262,6 +262,22 @@ public partial class MainWindowViewModel : ObservableObject
             if (e.PropertyName == nameof(SearchViewModel.SelectedItem) && Search.SelectedItem != null)
                 NavigateToDetail(Search.SelectedItem, "Search");
         };
+
+        Search.OnItemSelected = item =>
+        {
+            NavigateToDetail(item, "Search");
+        };
+        Search.OnMoveToPlatformRequested = item => HandleMoveToPlatform(item);
+        Search.OnMoveToFolderRequested = item => HandleMoveToFolder(item);
+        Search.OnDeleteItemRequested = async item =>
+        {
+            try
+            {
+                await _itemService.TrashItemAsync(item);
+                await Search.SearchCommand.ExecuteAsync(null);
+            }
+            catch { }
+        };
         // Trash selection stays in trash view — no navigation to detail
 
         // Load home data and sidebar platforms on startup
@@ -493,6 +509,7 @@ public partial class MainWindowViewModel : ObservableObject
     {
         var platform = SidebarPlatforms.FirstOrDefault(p => p.Id == platformId);
         PlatformTitle = platform?.Name ?? "平台内容";
+        ContentList.SetPageTitle(platform?.Name ?? "平台内容");
         PreviousSection = CurrentSection;
         CurrentSection = "PlatformContent";
         await ContentList.LoadCustomPlatformAsync(platformId);
@@ -505,6 +522,7 @@ public partial class MainWindowViewModel : ObservableObject
     private async Task ShowStandardPlatformAsync(Platform platform)
     {
         PlatformTitle = platform.GetDisplayName();
+        ContentList.SetPageTitle(platform.GetDisplayName());
         PreviousSection = CurrentSection;
         CurrentSection = "PlatformContent";
         await ContentList.LoadPlatformAsync(platform);
@@ -517,6 +535,7 @@ public partial class MainWindowViewModel : ObservableObject
     private async Task ShowMergedPlatformAsync(PlatformEntryDisplay entry)
     {
         PlatformTitle = entry.Name;
+        ContentList.SetPageTitle(entry.Name);
         PreviousSection = CurrentSection;
         CurrentSection = "PlatformContent";
         await ContentList.LoadMergedPlatformAsync(entry.StandardPlatform!.Value, entry.CustomPlatformIds);
@@ -529,6 +548,7 @@ public partial class MainWindowViewModel : ObservableObject
     private async Task ShowUncategorizedAsync()
     {
         PlatformTitle = "未分类内容";
+        ContentList.SetPageTitle("未分类内容");
         PreviousSection = CurrentSection;
         CurrentSection = "PlatformContent";
         await ContentList.LoadUncategorizedAsync();
