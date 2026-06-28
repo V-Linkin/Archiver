@@ -10,6 +10,16 @@ public partial class SettingsView : UserControl
     public SettingsView()
     {
         InitializeComponent();
+        Loaded += OnLoaded;
+    }
+
+    private void OnLoaded(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is SettingsViewModel vm)
+        {
+            BrowserComboBox.ItemsSource = vm.AvailableBrowsers;
+            BrowserComboBox.SelectedIndex = vm.SelectedBrowserIndex;
+        }
     }
 
     private async void CreateBackup_Click(object? sender, RoutedEventArgs e)
@@ -152,6 +162,15 @@ public partial class SettingsView : UserControl
     {
         if (DataContext is SettingsViewModel vm)
             vm.OpenGitHubCommand.Execute(null);
+    }
+
+    private void BrowserComboBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (DataContext is SettingsViewModel vm && BrowserComboBox.SelectedIndex >= 0)
+        {
+            vm.SelectedBrowserIndex = BrowserComboBox.SelectedIndex;
+            vm.SaveBrowserSettings();
+        }
     }
 
     private async void RestoreBackup_Click(object? sender, RoutedEventArgs e)

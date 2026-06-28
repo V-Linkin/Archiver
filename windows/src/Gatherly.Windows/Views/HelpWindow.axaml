@@ -1,0 +1,274 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Gatherly.Windows.Views.HelpWindow"
+        Title="使用帮助"
+        Width="600" Height="500"
+        MinWidth="400" MinHeight="300"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True"
+        FontFamily="Microsoft YaHei UI, Microsoft YaHei, SimHei, sans-serif">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header bar -->
+        <Border Grid.Row="0" Padding="16,12">
+            <Grid ColumnDefinitions="Auto,*">
+                <TextBlock Grid.Column="0" Text="使用帮助" FontSize="15" FontWeight="Bold"
+                           VerticalAlignment="Center" />
+                <Button Grid.Column="1" Content="完成" Click="Close_Click"
+                        HorizontalAlignment="Right" Padding="12,4" />
+            </Grid>
+        </Border>
+
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1">
+            <StackPanel Spacing="16" Margin="20,8,20,28">
+
+                <!-- 快速入门 -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="快速入门" FontSize="14" FontWeight="Bold" />
+                    <StackPanel Spacing="2">
+                        <Button Click="FaqToggle_Click" Tag="faq1"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Background="Transparent" BorderThickness="0" Padding="0,6" Cursor="Hand">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Foreground="#888" VerticalAlignment="Center" />
+                                <TextBlock Text="归档第一个链接" FontSize="13" VerticalAlignment="Center" />
+                                <TextBlock x:Name="Faq1Arrow" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="10" Foreground="#888" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock x:Name="Faq1Content" FontSize="12" Foreground="#888"
+                                   TextWrapping="Wrap" IsVisible="False" Margin="30,2,0,6" />
+                    </StackPanel>
+                    <StackPanel Spacing="2">
+                        <Button Click="FaqToggle_Click" Tag="faq1b"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Background="Transparent" BorderThickness="0" Padding="0,6" Cursor="Hand">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Foreground="#888" VerticalAlignment="Center" />
+                                <TextBlock Text="批量归档" FontSize="13" VerticalAlignment="Center" />
+                                <TextBlock x:Name="Faq1bArrow" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="10" Foreground="#888" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock x:Name="Faq1bContent" FontSize="12" Foreground="#888"
+                                   TextWrapping="Wrap" IsVisible="False" Margin="30,2,0,6" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- 支持平台 -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="支持平台" FontSize="14" FontWeight="Bold" />
+                    <StackPanel Spacing="2">
+                        <Button Click="FaqToggle_Click" Tag="faq2"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Background="Transparent" BorderThickness="0" Padding="0,6" Cursor="Hand">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Foreground="#888" VerticalAlignment="Center" />
+                                <TextBlock Text="短视频平台" FontSize="13" VerticalAlignment="Center" />
+                                <TextBlock x:Name="Faq2Arrow" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Text="&#xE70D;" Foreground="#888" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock x:Name="Faq2Content" FontSize="12" Foreground="#888"
+                                   TextWrapping="Wrap" IsVisible="False" Margin="30,2,0,6" />
+                    </StackPanel>
+                    <StackPanel Spacing="2">
+                        <Button Click="FaqToggle_Click" Tag="faq2b"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Background="Transparent" BorderThickness="0" Padding="0,6" Cursor="Hand">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Foreground="#888" VerticalAlignment="Center" />
+                                <TextBlock Text="社交媒体" FontSize="13" VerticalAlignment="Center" />
+                                <TextBlock x:Name="Faq2bArrow" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Text="&#xE70D;" Foreground="#888" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock x:Name="Faq2bContent" FontSize="12" Foreground="#888"
+                                   TextWrapping="Wrap" IsVisible="False" Margin="30,2,0,6" />
+                    </StackPanel>
+                    <StackPanel Spacing="2">
+                        <Button Click="FaqToggle_Click" Tag="faq2c"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Background="Transparent" BorderThickness="0" Padding="0,6" Cursor="Hand">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Foreground="#888" VerticalAlignment="Center" />
+                                <TextBlock Text="内容社区" FontSize="13" VerticalAlignment="Center" />
+                                <TextBlock x:Name="Faq2cArrow" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Text="&#xE70D;" Foreground="#888" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock x:Name="Faq2cContent" FontSize="12" Foreground="#888"
+                                   TextWrapping="Wrap" IsVisible="False" Margin="30,2,0,6" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- 内容整理 -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="内容整理" FontSize="14" FontWeight="Bold" />
+                    <StackPanel Spacing="2">
+                        <Button Click="FaqToggle_Click" Tag="faq3"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Background="Transparent" BorderThickness="0" Padding="0,6" Cursor="Hand">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Foreground="#888" VerticalAlignment="Center" />
+                                <TextBlock Text="编辑内容" FontSize="13" VerticalAlignment="Center" />
+                                <TextBlock x:Name="Faq3Arrow" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Text="&#xE70D;" Foreground="#888" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock x:Name="Faq3Content" FontSize="12" Foreground="#888"
+                                   TextWrapping="Wrap" IsVisible="False" Margin="30,2,0,6" />
+                    </StackPanel>
+                    <StackPanel Spacing="2">
+                        <Button Click="FaqToggle_Click" Tag="faq3b"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Background="Transparent" BorderThickness="0" Padding="0,6" Cursor="Hand">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Foreground="#888" VerticalAlignment="Center" />
+                                <TextBlock Text="文件夹分类" FontSize="13" VerticalAlignment="Center" />
+                                <TextBlock x:Name="Faq3bArrow" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Text="&#xE70D;" Foreground="#888" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock x:Name="Faq3bContent" FontSize="12" Foreground="#888"
+                                   TextWrapping="Wrap" IsVisible="False" Margin="30,2,0,6" />
+                    </StackPanel>
+                    <StackPanel Spacing="2">
+                        <Button Click="FaqToggle_Click" Tag="faq3c"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Background="Transparent" BorderThickness="0" Padding="0,6" Cursor="Hand">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Foreground="#888" VerticalAlignment="Center" />
+                                <TextBlock Text="搜索" FontSize="13" VerticalAlignment="Center" />
+                                <TextBlock x:Name="Faq3cArrow" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Text="&#xE70D;" Foreground="#888" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock x:Name="Faq3cContent" FontSize="12" Foreground="#888"
+                                   TextWrapping="Wrap" IsVisible="False" Margin="30,2,0,6" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- 媒体导出 -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="媒体导出" FontSize="14" FontWeight="Bold" />
+                    <StackPanel Spacing="2">
+                        <Button Click="FaqToggle_Click" Tag="faq4"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Background="Transparent" BorderThickness="0" Padding="0,6" Cursor="Hand">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Foreground="#888" VerticalAlignment="Center" />
+                                <TextBlock Text="查看媒体" FontSize="13" VerticalAlignment="Center" />
+                                <TextBlock x:Name="Faq4Arrow" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Text="&#xE70D;" Foreground="#888" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock x:Name="Faq4Content" FontSize="12" Foreground="#888"
+                                   TextWrapping="Wrap" IsVisible="False" Margin="30,2,0,6" />
+                    </StackPanel>
+                    <StackPanel Spacing="2">
+                        <Button Click="FaqToggle_Click" Tag="faq4b"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Background="Transparent" BorderThickness="0" Padding="0,6" Cursor="Hand">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Foreground="#888" VerticalAlignment="Center" />
+                                <TextBlock Text="导出文件" FontSize="13" VerticalAlignment="Center" />
+                                <TextBlock x:Name="Faq4bArrow" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Text="&#xE70D;" Foreground="#888" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock x:Name="Faq4bContent" FontSize="12" Foreground="#888"
+                                   TextWrapping="Wrap" IsVisible="False" Margin="30,2,0,6" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- 备份还原 -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="备份还原" FontSize="14" FontWeight="Bold" />
+                    <StackPanel Spacing="2">
+                        <Button Click="FaqToggle_Click" Tag="faq5"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Background="Transparent" BorderThickness="0" Padding="0,6" Cursor="Hand">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Foreground="#888" VerticalAlignment="Center" />
+                                <TextBlock Text="备份数据" FontSize="13" VerticalAlignment="Center" />
+                                <TextBlock x:Name="Faq5Arrow" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Text="&#xE70D;" Foreground="#888" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock x:Name="Faq5Content" FontSize="12" Foreground="#888"
+                                   TextWrapping="Wrap" IsVisible="False" Margin="30,2,0,6" />
+                    </StackPanel>
+                    <StackPanel Spacing="2">
+                        <Button Click="FaqToggle_Click" Tag="faq5b"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Background="Transparent" BorderThickness="0" Padding="0,6" Cursor="Hand">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Foreground="#888" VerticalAlignment="Center" />
+                                <TextBlock Text="还原数据" FontSize="13" VerticalAlignment="Center" />
+                                <TextBlock x:Name="Faq5bArrow" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Text="&#xE70D;" Foreground="#888" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock x:Name="Faq5bContent" FontSize="12" Foreground="#888"
+                                   TextWrapping="Wrap" IsVisible="False" Margin="30,2,0,6" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- 常见问题 -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="常见问题" FontSize="14" FontWeight="Bold" />
+                    <StackPanel Spacing="2">
+                        <Button Click="FaqToggle_Click" Tag="faq6"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Background="Transparent" BorderThickness="0" Padding="0,6" Cursor="Hand">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Foreground="#888" VerticalAlignment="Center" />
+                                <TextBlock Text="为什么有些链接无法解析？" FontSize="13" VerticalAlignment="Center" />
+                                <TextBlock x:Name="Faq6Arrow" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Text="&#xE70D;" Foreground="#888" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock x:Name="Faq6Content" FontSize="12" Foreground="#888"
+                                   TextWrapping="Wrap" IsVisible="False" Margin="30,2,0,6" />
+                    </StackPanel>
+                    <StackPanel Spacing="2">
+                        <Button Click="FaqToggle_Click" Tag="faq6b"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Background="Transparent" BorderThickness="0" Padding="0,6" Cursor="Hand">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Foreground="#888" VerticalAlignment="Center" />
+                                <TextBlock Text="数据存储在哪里？" FontSize="13" VerticalAlignment="Center" />
+                                <TextBlock x:Name="Faq6bArrow" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Text="&#xE70D;" Foreground="#888" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock x:Name="Faq6bContent" FontSize="12" Foreground="#888"
+                                   TextWrapping="Wrap" IsVisible="False" Margin="30,2,0,6" />
+                    </StackPanel>
+                </StackPanel>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Window>
