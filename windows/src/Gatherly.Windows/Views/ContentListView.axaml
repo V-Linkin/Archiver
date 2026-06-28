@@ -55,8 +55,9 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="m:Folder">
-                            <Border Padding="12,6" CornerRadius="6"
-                                    Background="#E8F0FE" BorderBrush="#C5D8F0" BorderThickness="1"
+                            <Border Padding="12,6" CornerRadius="20"
+                                    Background="{StaticResource PlatformBadgeBg}"
+                                    BorderBrush="{StaticResource BorderLight}" BorderThickness="1"
                                     Cursor="Hand" Tag="{Binding}"
                                     PointerPressed="FolderTag_PointerPressed">
                                 <Border.ContextFlyout>
@@ -67,7 +68,11 @@
                                                   Tag="{Binding}" />
                                     </MenuFlyout>
                                 </Border.ContextFlyout>
-                                <TextBlock Text="{Binding Name}" FontSize="12" Foreground="#1A73E8" />
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Text="📁" FontSize="11" />
+                                    <TextBlock Text="{Binding Name}" FontSize="12"
+                                               Foreground="{StaticResource TextLink}" />
+                                </StackPanel>
                             </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -94,9 +99,10 @@
             </ListBox.ItemsPanel>
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="m:Item">
-                    <Border Width="200" Margin="0,0,12,12" CornerRadius="8"
-                            ClipToBounds="True" Background="#F8F8F8"
-                            BorderBrush="#E0E0E0" BorderThickness="1"
+                    <Border Width="200" Padding="8"
+                            CornerRadius="12"
+                            ClipToBounds="True" Background="{StaticResource BackgroundCard}"
+                            BorderBrush="{StaticResource BorderLight}" BorderThickness="1"
                             PointerPressed="CardBorder_PointerPressed">
                         <Border.ContextFlyout>
                             <MenuFlyout>
@@ -110,21 +116,22 @@
                         </Border.ContextFlyout>
                         <StackPanel>
                             <!-- 封面图 -->
-                            <Border Height="140" Background="#F0F0F0">
+                            <Border Height="160" Background="{StaticResource BackgroundTertiary}"
+                                    CornerRadius="8" ClipToBounds="True">
                                 <Image Source="{Binding FirstImagePath, Converter={x:Static conv:FilePathToBitmapConverter.Instance}}"
                                        Stretch="UniformToFill" />
                             </Border>
                             <!-- 文字区 -->
-                            <StackPanel Margin="8,6,8,8" Spacing="3">
+                            <StackPanel Spacing="4" Margin="0,6,0,0">
                                 <TextBlock Text="{Binding Title, FallbackValue='未命名内容'}"
-                                           FontWeight="SemiBold" FontSize="13"
+                                           FontWeight="Medium" FontSize="13"
                                            TextTrimming="CharacterEllipsis"
                                            MaxLines="2" />
-                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
                                     <TextBlock Text="{Binding DisplayPlatform}"
-                                               FontSize="11" Foreground="#666" />
+                                               FontSize="11" Foreground="{StaticResource TextSecondary}" />
                                     <TextBlock Text="{Binding Author, FallbackValue='未知作者'}"
-                                               FontSize="11" Foreground="#999"
+                                               FontSize="11" Foreground="{StaticResource TextTertiary}"
                                                TextTrimming="CharacterEllipsis" />
                                 </StackPanel>
                             </StackPanel>

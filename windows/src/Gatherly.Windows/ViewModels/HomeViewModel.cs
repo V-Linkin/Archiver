@@ -40,6 +40,21 @@ public partial class HomeViewModel : ViewModelBase
     /// </summary>
     public Action<PlatformEntryDisplay>? OnPlatformEntryClicked { get; set; }
 
+    /// <summary>
+    /// 首页不显示该内容回调
+    /// </summary>
+    public Action<Item>? OnHideItemRequested { get; set; }
+
+    /// <summary>
+    /// 首页删除内容回调
+    /// </summary>
+    public Action<Item>? OnDeleteItemRequested { get; set; }
+
+    /// <summary>
+    /// 首页卡片点击回调（直接导航，不依赖 SelectedItem 变更）
+    /// </summary>
+    public Action<Item>? OnItemSelected { get; set; }
+
     public bool HasItems => RecentItems.Count > 0;
     public bool HasPlatforms => PlatformEntries.Count > 0;
 
@@ -108,6 +123,19 @@ public partial class HomeViewModel : ViewModelBase
         try
         {
             var items = await _homeService.GetRecentItemsAsync();
+
+            // 过滤已隐藏的 item
+            var hiddenFile = Path.Combine(
+                Gatherly.Windows.Database.DatabasePaths.DataDirectory, "hidden_items.txt");
+            HashSet<string> hiddenIds = new();
+            try
+            {
+                if (File.Exists(hiddenFile))
+                    hiddenIds = new HashSet<string>(File.ReadAllLines(hiddenFile));
+            }
+            catch { }
+
+            items = items.Where(i => !hiddenIds.Contains(i.Id.ToString("D"))).ToList();
 
             // 批量填充自定义平台名称
             await _homeService.FillCustomPlatformNamesAsync(items);
