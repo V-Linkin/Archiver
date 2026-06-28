@@ -1,0 +1,85 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Gatherly.Windows.Views.ExportPickerWindow"
+        Title="选择导出内容"
+        Width="320" Height="260"
+        MinWidth="320" MinHeight="260"
+        MaxWidth="320" MaxHeight="260"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        FontFamily="Microsoft YaHei UI, Microsoft YaHei, SimHei, sans-serif">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="1" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="1" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Title -->
+        <TextBlock Grid.Row="0" Text="选择导出内容" FontSize="14" FontWeight="SemiBold"
+                   HorizontalAlignment="Center" Margin="0,16,0,12" />
+
+        <Border Grid.Row="1" Background="#E0E0E0" Height="1" />
+
+        <!-- Options -->
+        <StackPanel Grid.Row="2" Spacing="12" Margin="16,16,16,16">
+            <!-- Media area -->
+            <Button x:Name="MediaOption" Tag="mediaOnly"
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                    Background="Transparent" BorderThickness="0" Padding="8"
+                    Click="Option_Click">
+                <Grid ColumnDefinitions="Auto,*,Auto" HorizontalAlignment="Stretch">
+                    <TextBlock Grid.Column="0" x:Name="MediaCheckIcon" Text="○" FontSize="16"
+                               Foreground="#888" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Left">
+                        <TextBlock Text="媒体区域" FontSize="13" />
+                        <TextBlock x:Name="MediaDetail" FontSize="11" Foreground="#888" />
+                    </StackPanel>
+                </Grid>
+            </Button>
+
+            <!-- Body images -->
+            <Button x:Name="BodyOption" Tag="bodyImagesOnly"
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                    Background="Transparent" BorderThickness="0" Padding="8"
+                    Click="Option_Click" IsVisible="False">
+                <Grid ColumnDefinitions="Auto,*,Auto" HorizontalAlignment="Stretch">
+                    <TextBlock Grid.Column="0" x:Name="BodyCheckIcon" Text="○" FontSize="16"
+                               Foreground="#888" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Left">
+                        <TextBlock Text="正文图片" FontSize="13" />
+                        <TextBlock x:Name="BodyDetail" FontSize="11" Foreground="#888" />
+                    </StackPanel>
+                </Grid>
+            </Button>
+
+            <!-- All -->
+            <Button x:Name="AllOption" Tag="all"
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                    Background="Transparent" BorderThickness="0" Padding="8"
+                    Click="Option_Click" IsVisible="False">
+                <Grid ColumnDefinitions="Auto,*,Auto" HorizontalAlignment="Stretch">
+                    <TextBlock Grid.Column="0" x:Name="AllCheckIcon" Text="○" FontSize="16"
+                               Foreground="#888" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Left">
+                        <TextBlock Text="全部导出" FontSize="13" />
+                        <TextBlock x:Name="AllDetail" FontSize="11" Foreground="#888" />
+                    </StackPanel>
+                </Grid>
+            </Button>
+        </StackPanel>
+
+        <Border Grid.Row="3" Background="#E0E0E0" Height="1" />
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right"
+                    Spacing="8" Margin="16,12">
+            <Button Content="取消" Click="Cancel_Click" Padding="16,6" FontSize="12" />
+            <Button x:Name="ExportButton" Content="导出" Click="Export_Click"
+                    Padding="16,6" FontSize="12" Classes="PrimaryButton" />
+        </StackPanel>
+    </Grid>
+</Window>

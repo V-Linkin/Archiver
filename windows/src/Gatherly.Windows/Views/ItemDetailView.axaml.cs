@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -106,42 +107,52 @@ public partial class ItemDetailView : UserControl
 
     private async void ExportItem_Click(object? sender, RoutedEventArgs e)
     {
+        if (DataContext is not MainWindowViewModel vm || vm.SelectedItem == null) return;
+
         var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel == null) return;
+        if (topLevel is not Window mainWindow) return;
 
-        Window? info = null;
-        var okBtn = new Button
+        var mediaAssets = vm.AllMediaAssets.Where(a => a.FileExists).ToList();
+        if (mediaAssets.Count == 0)
         {
-            Content = "确定",
-            Padding = new Avalonia.Thickness(16, 6),
-            Command = new CommunityToolkit.Mvvm.Input.RelayCommand(() => info?.Close())
-        };
-        okBtn.Classes.Add("PrimaryButton");
+            await ShowInfoDialog(mainWindow, "无可导出的媒体文件");
+            return;
+        }
 
-        info = new Window
+        var picker = new ExportPickerWindow
         {
-            Title = "提示",
-            Width = 320,
-            Height = 140,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            CanResize = false,
-            Content = new StackPanel
-            {
-                Margin = new Avalonia.Thickness(20),
-                Spacing = 16,
-                Children =
-                {
-                    new TextBlock { Text = "导出功能将在后续阶段实现", FontSize = 14, TextWrapping = TextWrapping.Wrap },
-                    new StackPanel
-                    {
-                        Orientation = Orientation.Horizontal,
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        Children = { okBtn }
-                    }
-                }
-            }
+            MediaAssetCount = mediaAssets.Count,
+            BodyImageCount = 0,
+            HasBodyImages = false
         };
-        await info.ShowDialog(topLevel as Window);
+        picker.SetupOptions();
+
+        var result = await picker.ShowDialog<string?>(mainWindow);
+        if (string.IsNullOrEmpty(result)) return;
+
+        var folder = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = "选择导出目录",
+            AllowMultiple = false
+        });
+
+        if (folder.Count == 0) return;
+
+        var destDir = folder[0].TryGetLocalPath();
+        if (string.IsNullOrEmpty(destDir)) return;
+
+        var platformName = MediaExporter.GetPlatformName(vm.SelectedItem);
+        var author = vm.SelectedItem.Author;
+
+        var exportAssets = result switch
+        {
+            "mediaOnly" => mediaAssets,
+            "all" => mediaAssets,
+            _ => mediaAssets
+        };
+
+        var exportResult = MediaExporter.ExportBatch(exportAssets, platformName, null, author, destDir);
+        await ShowInfoDialog(mainWindow, exportResult.Message);
     }
 
     private async void EditItem_Click(object? sender, RoutedEventArgs e)
@@ -459,5 +470,48 @@ public partial class ItemDetailView : UserControl
             }
         }
         catch { }
+    }
+
+    private static async Task ShowInfoDialog(Window owner, string message)
+    {
+        var dialog = new Window
+        {
+            Title = "提示",
+            Width = 320,
+            Height = 140,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            CanResize = false,
+            FontFamily = "Microsoft YaHei UI, Microsoft YaHei, SimHei, sans-serif",
+            Content = new StackPanel
+            {
+                Margin = new Avalonia.Thickness(20),
+                Spacing = 16,
+                Children =
+                {
+                    new TextBlock { Text = message, FontSize = 14, TextWrapping = TextWrapping.Wrap },
+                    new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        Children =
+                        {
+                            new Button
+                            {
+                                Content = "确定",
+                                Padding = new Avalonia.Thickness(16, 6),
+                                Classes = { "PrimaryButton" }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        var okBtn = (dialog.Content as StackPanel)?.Children[1] as StackPanel;
+        var btn = okBtn?.Children[0] as Button;
+        if (btn != null)
+            btn.Click += (_, _) => dialog.Close();
+
+        await dialog.ShowDialog(owner);
     }
 }
