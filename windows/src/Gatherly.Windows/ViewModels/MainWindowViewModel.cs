@@ -290,6 +290,40 @@ public partial class MainWindowViewModel : ObservableObject
                 _ = ShowCustomPlatformCommand.ExecuteAsync(entry.Id);
         };
 
+        Home.OnItemSelected = item =>
+        {
+            NavigateToDetail(item, "Home");
+        };
+
+        Home.OnHideItemRequested = item =>
+        {
+            var hiddenFile = Path.Combine(
+                Gatherly.Windows.Database.DatabasePaths.DataDirectory, "hidden_items.txt");
+            try
+            {
+                var ids = File.Exists(hiddenFile)
+                    ? new HashSet<string>(File.ReadAllLines(hiddenFile))
+                    : new HashSet<string>();
+                ids.Add(item.Id.ToString("D"));
+                File.WriteAllLines(hiddenFile, ids);
+            }
+            catch { }
+            // 立即从集合移除，不刷新整个首页
+            Home.RecentItems.Remove(item);
+        };
+
+        Home.OnDeleteItemRequested = async item =>
+        {
+            try
+            {
+                await _itemService.TrashItemAsync(item);
+                // 先从集合移除（乐观移除），避免闪烁
+                Home.RecentItems.Remove(item);
+                await LoadSidebarPlatformsAsync();
+            }
+            catch { }
+        };
+
         // 订阅回收站操作成功回调，刷新 Sidebar
         Trash.OnTrashOperationSuccess = LoadSidebarPlatformsAsync;
 
