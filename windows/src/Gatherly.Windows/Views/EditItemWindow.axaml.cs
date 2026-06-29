@@ -412,6 +412,79 @@ public partial class EditItemWindow : Window
         _newImages.Clear();
         _newVideos.Clear();
     }
+
+    // === Markdown toolbar ===
+
+    private void Bold_Click(object? sender, RoutedEventArgs e) => InsertMarkdownWrap("**", "**");
+    private void Italic_Click(object? sender, RoutedEventArgs e) => InsertMarkdownWrap("*", "*");
+    private void Code_Click(object? sender, RoutedEventArgs e) => InsertMarkdownWrap("`", "`");
+
+    private void Link_Click(object? sender, RoutedEventArgs e)
+    {
+        var sel = BodyBox.SelectionStart;
+        var len = BodyBox.SelectionEnd - BodyBox.SelectionStart;
+        var text = BodyBox.Text ?? "";
+
+        if (len > 0)
+        {
+            var selected = text.Substring(sel, len);
+            var replacement = $"[{selected}](https://)";
+            BodyBox.Text = text.Substring(0, sel) + replacement + text.Substring(sel + len);
+            BodyBox.CaretIndex = sel + replacement.Length;
+        }
+        else
+        {
+            var template = "[文本](https://)";
+            BodyBox.Text = text.Substring(0, sel) + template + text.Substring(sel);
+            BodyBox.CaretIndex = sel + 1;
+            BodyBox.SelectionStart = sel + 1;
+            BodyBox.SelectionEnd = sel + 3;
+        }
+        BodyBox.Focus();
+    }
+
+    private void InsertMarkdownWrap(string prefix, string suffix)
+    {
+        var sel = BodyBox.SelectionStart;
+        var len = BodyBox.SelectionEnd - BodyBox.SelectionStart;
+        var text = BodyBox.Text ?? "";
+
+        if (len > 0)
+        {
+            var selected = text.Substring(sel, len);
+            var replacement = $"{prefix}{selected}{suffix}";
+            BodyBox.Text = text.Substring(0, sel) + replacement + text.Substring(sel + len);
+            BodyBox.CaretIndex = sel + replacement.Length;
+        }
+        else
+        {
+            var placeholder = "文本";
+            var template = $"{prefix}{placeholder}{suffix}";
+            BodyBox.Text = text.Substring(0, sel) + template + text.Substring(sel);
+            BodyBox.CaretIndex = sel + prefix.Length;
+            BodyBox.SelectionStart = sel + prefix.Length;
+            BodyBox.SelectionEnd = sel + prefix.Length + placeholder.Length;
+        }
+        BodyBox.Focus();
+    }
+
+    private void EditToggle_Click(object? sender, RoutedEventArgs e)
+    {
+        BodyBox.IsVisible = true;
+        PreviewBorder.IsVisible = false;
+        EditToggleBtn.FontWeight = Avalonia.Media.FontWeight.SemiBold;
+        PreviewToggleBtn.FontWeight = Avalonia.Media.FontWeight.Normal;
+        BodyBox.Focus();
+    }
+
+    private void PreviewToggle_Click(object? sender, RoutedEventArgs e)
+    {
+        BodyPreviewRenderer.RenderMarkdown(BodyBox.Text);
+        BodyBox.IsVisible = false;
+        PreviewBorder.IsVisible = true;
+        EditToggleBtn.FontWeight = Avalonia.Media.FontWeight.Normal;
+        PreviewToggleBtn.FontWeight = Avalonia.Media.FontWeight.SemiBold;
+    }
 }
 
 public class EditItemResult
