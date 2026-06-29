@@ -193,11 +193,8 @@
                 <!-- Body -->
                 <StackPanel Spacing="8">
                     <TextBlock Text="正文" FontSize="16" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding DisplayBody}"
-                               FontSize="14" LineHeight="24"
-                               Foreground="{StaticResource TextPrimary}"
-                               TextWrapping="Wrap"
-                               IsVisible="{Binding HasDisplayBody}" />
+                    <comp:MarkdownTextBlock x:Name="BodyMarkdownRenderer"
+                                            IsVisible="{Binding HasDisplayBody}" />
                     <TextBlock Text="暂无正文内容"
                                FontSize="14"
                                Foreground="{StaticResource TextTertiary}"
