@@ -41,7 +41,16 @@ public partial class ItemDetailView : UserControl
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(MainWindowViewModel.SelectedItem))
+        {
             ResetScrollToTop();
+            RenderBodyMarkdown();
+        }
+    }
+
+    private void RenderBodyMarkdown()
+    {
+        if (DataContext is MainWindowViewModel vm)
+            BodyMarkdownRenderer.RenderMarkdown(vm.DisplayBody);
     }
 
     private void ResetScrollToTop()
