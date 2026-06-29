@@ -128,12 +128,14 @@
 
                     <!-- Media empty state -->
                     <Border IsVisible="{Binding !HasMedia}"
-                            Background="#F0F0F0" CornerRadius="12" MinHeight="200"
+                            Background="#F5F5F5" CornerRadius="12" MinHeight="200"
                             HorizontalAlignment="Stretch">
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
                                     Spacing="8">
+                            <TextBlock Text="🖼️" FontSize="28"
+                                       HorizontalAlignment="Center" />
                             <TextBlock Text="无媒体内容" FontSize="12"
-                                       Foreground="{StaticResource TextTertiary}"
+                                       Foreground="#AAAAAA"
                                        HorizontalAlignment="Center" />
                         </StackPanel>
                     </Border>
@@ -184,6 +186,8 @@
                              AcceptsReturn="True"
                              MinHeight="80"
                              Watermark="输入备注..."
+                             CornerRadius="6"
+                             Padding="8"
                              IsVisible="{Binding IsEditingRemark}" />
                 </StackPanel>
 
