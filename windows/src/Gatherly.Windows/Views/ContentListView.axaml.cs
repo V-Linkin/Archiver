@@ -125,4 +125,16 @@ public partial class ContentListView : UserControl
 
         vm.OnFolderDeleteRequested?.Invoke(folder);
     }
+
+    private void SortToggle_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is ContentListViewModel vm)
+            vm.ToggleSort();
+    }
+
+    private void ViewToggle_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is ContentListViewModel vm)
+            vm.ToggleViewMode();
+    }
 }
