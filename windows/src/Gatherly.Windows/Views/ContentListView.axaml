@@ -8,24 +8,41 @@
 
     <DockPanel>
         <!-- Header -->
-        <StackPanel DockPanel.Dock="Top" Margin="16,16,16,8" Spacing="4">
+        <StackPanel DockPanel.Dock="Top" Margin="16,16,16,8" Spacing="6">
             <Grid ColumnDefinitions="Auto,*,Auto">
                 <!-- Folder mode: back + folder name -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8"
                             IsVisible="{Binding IsInFolder}">
                     <Button Content="← 返回" Click="BackButton_Click"
-                            Classes="ToolbarButton" />
-                    <TextBlock Text="{Binding PageTitle}" FontSize="18" FontWeight="Bold"
+                            Classes="ToolbarButton" Padding="8,4" FontSize="12" />
+                    <TextBlock Text="{Binding PageTitle}" FontSize="16" FontWeight="Bold"
                                VerticalAlignment="Center" />
                 </StackPanel>
                 <!-- Platform mode: title + new folder button -->
-                <TextBlock Grid.Column="0" Text="{Binding PageTitle}"
-                           FontSize="18" FontWeight="Bold"
-                           IsVisible="{Binding !IsInFolder}" />
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8"
                             IsVisible="{Binding !IsInFolder}">
+                    <TextBlock Text="{Binding PageTitle}" FontSize="16" FontWeight="Bold"
+                               VerticalAlignment="Center" />
                     <Button Content="+ 新建文件夹" Click="NewFolder_Click"
-                            Padding="10,4" FontSize="12" />
+                            Classes="SecondaryButton" Padding="8,4" FontSize="12" />
+                </StackPanel>
+                <!-- Sort + View toggle (right side) -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
+                    <Button Click="SortToggle_Click" Padding="8,4" FontSize="12"
+                            Classes="SecondaryButton"
+                            ToolTip.Tip="切换排序">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Text="↕" FontSize="13" VerticalAlignment="Center" />
+                            <TextBlock FontSize="11" VerticalAlignment="Center"
+                                       Text="{Binding SortNewestFirst, Converter={x:Static conv:SortLabelConverter.Instance}}" />
+                        </StackPanel>
+                    </Button>
+                    <Button Click="ViewToggle_Click" Padding="8,4" FontSize="12"
+                            Classes="SecondaryButton"
+                            ToolTip.Tip="切换视图">
+                        <TextBlock FontSize="13" VerticalAlignment="Center"
+                                   Text="{Binding IsGridView, Converter={x:Static conv:ViewModeIconConverter.Instance}}" />
+                    </Button>
                 </StackPanel>
             </Grid>
         </StackPanel>
@@ -86,10 +103,10 @@
                    IsVisible="{Binding !HasItems}"
                    Foreground="Gray" FontSize="14" Margin="16,8" />
 
-        <!-- Card grid -->
+        <!-- Grid mode -->
         <ListBox x:Name="ItemListBox"
-                 ItemsSource="{Binding Items}"
-                 IsVisible="{Binding HasItems}"
+                 ItemsSource="{Binding SortedItems}"
+                 IsVisible="{Binding IsGridView}"
                  Background="Transparent" BorderThickness="0"
                  Padding="0" Margin="12,0">
             <ListBox.ItemsPanel>
@@ -136,6 +153,58 @@
                                 </StackPanel>
                             </StackPanel>
                         </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- List mode -->
+        <ListBox x:Name="ItemListMode"
+                 ItemsSource="{Binding SortedItems}"
+                 IsVisible="{Binding IsListView}"
+                 Background="Transparent" BorderThickness="0"
+                 Padding="0" Margin="12,0">
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="m:Item">
+                    <Border Padding="12,8" CornerRadius="8"
+                            Background="{StaticResource BackgroundCard}"
+                            BorderBrush="{StaticResource BorderLight}" BorderThickness="0,0,0,1"
+                            PointerPressed="CardBorder_PointerPressed">
+                        <Border.ContextFlyout>
+                            <MenuFlyout>
+                                <MenuItem Header="移动到平台" Click="MoveToPlatform_Click"
+                                          Tag="{Binding}" />
+                                <MenuItem Header="移动到文件夹" Click="MoveToFolder_Click"
+                                          Tag="{Binding}" />
+                                <MenuItem Header="删除" Click="DeleteItem_Click"
+                                          Tag="{Binding}" />
+                            </MenuFlyout>
+                        </Border.ContextFlyout>
+                        <Grid ColumnDefinitions="40,*,Auto">
+                            <!-- Thumbnail -->
+                            <Border Grid.Column="0" Width="40" Height="40" CornerRadius="6"
+                                    ClipToBounds="True" Background="{StaticResource BackgroundTertiary}">
+                                <Image Source="{Binding FirstImagePath, Converter={x:Static conv:FilePathToBitmapConverter.Instance}}"
+                                       Stretch="UniformToFill" />
+                            </Border>
+                            <!-- Title + info -->
+                            <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Title, FallbackValue='未命名内容'}"
+                                           FontSize="13" FontWeight="Medium"
+                                           TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,0,0">
+                                    <TextBlock Text="{Binding DisplayPlatform}" FontSize="11"
+                                               Foreground="{StaticResource TextSecondary}" />
+                                    <TextBlock Text="{Binding Author, FallbackValue='未知作者'}" FontSize="11"
+                                               Foreground="{StaticResource TextTertiary}"
+                                               TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </StackPanel>
+                            <!-- Date -->
+                            <TextBlock Grid.Column="2" Text="{Binding ImportDate, StringFormat='{}{0:MM/dd}'}"
+                                       FontSize="11" Foreground="{StaticResource TextTertiary}"
+                                       VerticalAlignment="Center" />
+                        </Grid>
                     </Border>
                 </DataTemplate>
             </ListBox.ItemTemplate>

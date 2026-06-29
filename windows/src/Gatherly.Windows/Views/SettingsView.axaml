@@ -6,11 +6,11 @@
 
     <Grid>
         <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <StackPanel Spacing="16" MaxWidth="640" HorizontalAlignment="Center" Margin="24,16,24,48">
+            <StackPanel Spacing="20" MaxWidth="640" HorizontalAlignment="Center" Margin="24,16,24,48">
 
                 <!-- 存储管理 -->
-                <TextBlock Text="存储管理" FontSize="14" FontWeight="SemiBold" Foreground="#555" Margin="4,0" />
-                <Border Background="White" CornerRadius="8" Padding="16" BorderBrush="#E0E0E0" BorderThickness="1">
+                <TextBlock Text="存储管理" FontSize="13" FontWeight="SemiBold" Foreground="#666" Margin="4,0" />
+                <Border Background="White" CornerRadius="10" Padding="16" BorderBrush="#E0E0E0" BorderThickness="1">
                     <StackPanel Spacing="10">
                         <Grid ColumnDefinitions="*,Auto">
                             <TextBlock Grid.Column="0" Text="总内容数" FontSize="13" />
@@ -66,8 +66,8 @@
                 </Border>
 
                 <!-- 备份与还原 -->
-                <TextBlock Text="备份与还原" FontSize="14" FontWeight="SemiBold" Foreground="#555" Margin="4,0" />
-                <Border Background="White" CornerRadius="8" Padding="16" BorderBrush="#E0E0E0" BorderThickness="1">
+                <TextBlock Text="备份与还原" FontSize="13" FontWeight="SemiBold" Foreground="#666" Margin="4,0" />
+                <Border Background="White" CornerRadius="10" Padding="16" BorderBrush="#E0E0E0" BorderThickness="1">
                     <StackPanel Spacing="12">
                         <StackPanel Spacing="6">
                             <Grid ColumnDefinitions="*,Auto">
@@ -97,8 +97,8 @@
                 </Border>
 
                 <!-- 浏览器设置 -->
-                <TextBlock Text="浏览器设置" FontSize="14" FontWeight="SemiBold" Foreground="#555" Margin="4,0" />
-                <Border Background="White" CornerRadius="8" Padding="16" BorderBrush="#E0E0E0" BorderThickness="1">
+                <TextBlock Text="浏览器设置" FontSize="13" FontWeight="SemiBold" Foreground="#666" Margin="4,0" />
+                <Border Background="White" CornerRadius="10" Padding="16" BorderBrush="#E0E0E0" BorderThickness="1">
                     <StackPanel Spacing="8">
                         <Grid ColumnDefinitions="*,Auto">
                             <TextBlock Grid.Column="0" Text="默认浏览器" FontSize="13" />
@@ -111,8 +111,8 @@
                 </Border>
 
                 <!-- 关于 -->
-                <TextBlock Text="关于" FontSize="14" FontWeight="SemiBold" Foreground="#555" Margin="4,0" />
-                <Border Background="White" CornerRadius="8" Padding="16" BorderBrush="#E0E0E0" BorderThickness="1">
+                <TextBlock Text="关于" FontSize="13" FontWeight="SemiBold" Foreground="#666" Margin="4,0" />
+                <Border Background="White" CornerRadius="10" Padding="16" BorderBrush="#E0E0E0" BorderThickness="1">
                     <StackPanel Spacing="10">
                         <Grid ColumnDefinitions="*,Auto">
                             <TextBlock Grid.Column="0" Text="应用名称" FontSize="13" />
@@ -130,8 +130,8 @@
                 </Border>
 
                 <!-- 免责声明 -->
-                <TextBlock Text="免责声明" FontSize="14" FontWeight="SemiBold" Foreground="#555" Margin="4,0" />
-                <Border Background="White" CornerRadius="8" Padding="16" BorderBrush="#E0E0E0" BorderThickness="1">
+                <TextBlock Text="免责声明" FontSize="13" FontWeight="SemiBold" Foreground="#666" Margin="4,0" />
+                <Border Background="White" CornerRadius="10" Padding="16" BorderBrush="#E0E0E0" BorderThickness="1">
                     <TextBlock Text="本应用仅供个人学习和研究使用。保存的内容版权归原作者或平台所有，请遵守各平台的服务条款和相关法律法规。请勿将保存的内容用于商业用途或未经授权的重新分发。"
                                FontSize="12" Foreground="#666" TextWrapping="Wrap" LineHeight="20" />
                 </Border>

@@ -18,10 +18,17 @@ public partial class ContentListViewModel : ViewModelBase
     private readonly CustomPlatformRepository _customPlatformRepo;
 
     public ObservableCollection<Item> Items { get; } = new();
+    public ObservableCollection<Item> SortedItems { get; } = new();
     public ObservableCollection<Folder> Folders { get; } = new();
 
     [ObservableProperty]
     private Item? _selectedItem;
+
+    [ObservableProperty]
+    private bool _sortNewestFirst = true;
+
+    [ObservableProperty]
+    private bool _isGridView = true;
 
     /// <summary>
     /// 当前查看的平台类型
@@ -91,6 +98,9 @@ public partial class ContentListViewModel : ViewModelBase
 
             Folders.Clear();
             foreach (var folder in folders) Folders.Add(folder);
+
+            LoadViewMode();
+            ApplySort();
         }
         catch (Exception ex)
         {
@@ -141,6 +151,8 @@ public partial class ContentListViewModel : ViewModelBase
             foreach (var folder in subfolders) Folders.Add(folder);
 
             OnPropertyChanged(nameof(HasItems));
+            LoadViewMode();
+            ApplySort();
         }
         catch (Exception ex)
         {
@@ -186,6 +198,7 @@ public partial class ContentListViewModel : ViewModelBase
             foreach (var folder in folders) Folders.Add(folder);
 
             OnPropertyChanged(nameof(HasItems));
+            ApplySort();
         }
         catch (Exception ex)
         {
@@ -233,6 +246,7 @@ public partial class ContentListViewModel : ViewModelBase
             foreach (var folder in folders) Folders.Add(folder);
 
             OnPropertyChanged(nameof(HasItems));
+            ApplySort();
         }
         catch (Exception ex)
         {
@@ -279,6 +293,7 @@ public partial class ContentListViewModel : ViewModelBase
             foreach (var folder in folders) Folders.Add(folder);
 
             OnPropertyChanged(nameof(HasItems));
+            ApplySort();
         }
         catch (Exception ex)
         {
@@ -413,4 +428,96 @@ public partial class ContentListViewModel : ViewModelBase
     /// 卡片点击回调（直接导航，不依赖 SelectedItem 变更）
     /// </summary>
     public Action<Item>? OnItemSelected { get; set; }
+
+    partial void OnSortNewestFirstChanged(bool value) => ApplySort();
+
+    partial void OnIsGridViewChanged(bool value) => OnPropertyChanged(nameof(IsListView));
+
+    public bool IsListView => !IsGridView;
+
+    public void ToggleSort()
+    {
+        SortNewestFirst = !SortNewestFirst;
+    }
+
+    public void ToggleViewMode()
+    {
+        IsGridView = !IsGridView;
+        SaveViewMode();
+    }
+
+    private void ApplySort()
+    {
+        SortedItems.Clear();
+        var sorted = SortNewestFirst
+            ? Items.OrderByDescending(i => i.ImportDate).ToList()
+            : Items.OrderBy(i => i.ImportDate).ToList();
+        foreach (var item in sorted) SortedItems.Add(item);
+    }
+
+    private void RebuildSortedItems()
+    {
+        var sorted = SortNewestFirst
+            ? Items.OrderByDescending(i => i.ImportDate).ToList()
+            : Items.OrderBy(i => i.ImportDate).ToList();
+        SortedItems.Clear();
+        foreach (var item in sorted) SortedItems.Add(item);
+    }
+
+    private string GetViewModeKey()
+    {
+        return _currentViewType switch
+        {
+            PlatformViewType.Folder when _currentFolderId.HasValue => $"viewmode_folder_{_currentFolderId}",
+            PlatformViewType.Standard when _currentPlatform.HasValue => $"viewmode_{_currentPlatform}",
+            PlatformViewType.Custom when _currentCustomPlatformId.HasValue => $"viewmode_custom_{_currentCustomPlatformId}",
+            PlatformViewType.Uncategorized => "viewmode_uncategorized",
+            _ => "viewmode_default"
+        };
+    }
+
+    private void SaveViewMode()
+    {
+        try
+        {
+            var dir = DatabasePaths.DataDirectory;
+            Directory.CreateDirectory(dir);
+            var file = Path.Combine(dir, "view_mode.txt");
+            var lines = File.Exists(file) ? File.ReadAllLines(file).ToList() : new List<string>();
+            var key = GetViewModeKey();
+            var value = IsGridView ? "grid" : "list";
+            var found = false;
+            for (var i = 0; i < lines.Count; i++)
+            {
+                if (lines[i].StartsWith(key + "|"))
+                {
+                    lines[i] = $"{key}|{value}";
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) lines.Add($"{key}|{value}");
+            File.WriteAllLines(file, lines);
+        }
+        catch { }
+    }
+
+    private void LoadViewMode()
+    {
+        try
+        {
+            var file = Path.Combine(DatabasePaths.DataDirectory, "view_mode.txt");
+            if (!File.Exists(file)) return;
+            var key = GetViewModeKey();
+            foreach (var line in File.ReadAllLines(file))
+            {
+                if (line.StartsWith(key + "|"))
+                {
+                    IsGridView = line.EndsWith("|grid");
+                    return;
+                }
+            }
+        }
+        catch { }
+    }
 }
