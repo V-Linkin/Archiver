@@ -13,103 +13,102 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <Grid ColumnDefinitions="200,*">
+    <Grid ColumnDefinitions="220,*">
 
         <!-- Left Sidebar -->
-        <Border Grid.Column="0" Background="#2C2C2C" ClipToBounds="True">
+        <Border Grid.Column="0" Background="#F5F5F5" ClipToBounds="True"
+                BorderBrush="#E0E0E0" BorderThickness="0,0,1,0">
             <DockPanel>
-            <!-- Bottom: Import backup + Settings -->
+            <!-- Bottom: Settings + trash (macOS style) -->
             <StackPanel DockPanel.Dock="Bottom" Margin="12,0,12,12" Spacing="4">
-                <Border Background="#3A3A3A" Height="1" CornerRadius="2" Margin="4,4" />
+                <Border Background="#E0E0E0" Height="1" CornerRadius="1" Margin="8,4" />
+                <Button Content="🗑️ 回收站"
+                        Command="{Binding ShowTrashCommand}"
+                        HorizontalContentAlignment="Left"
+                        Padding="16,8" Background="Transparent"
+                        Foreground="#555" BorderThickness="0" FontSize="13" />
+                <Button Content="⚙️ 设置"
+                        Command="{Binding ShowSettingsCommand}"
+                        HorizontalContentAlignment="Left"
+                        Padding="16,8" Background="Transparent"
+                        Foreground="#555" BorderThickness="0" FontSize="13" />
+                <!-- Import backup (weakened, not visible in macOS) -->
+                <Border Background="#E0E0E0" Height="1" CornerRadius="1" Margin="8,4" />
                 <Button Content="📦 导入备份"
                         Click="ImportBackup_Click"
                         IsEnabled="{Binding !IsImportingBackup}"
                         HorizontalContentAlignment="Left"
-                        Padding="16,10" Background="Transparent"
-                        Foreground="White" BorderThickness="0" />
+                        Padding="16,4" Background="Transparent"
+                        Foreground="#CCC" BorderThickness="0" FontSize="11" />
                 <Border IsVisible="{Binding IsImportingBackup}"
-                        Background="#3A3A3A" CornerRadius="4" Padding="8,6">
-                    <TextBlock Text="正在导入..." Foreground="#AAAAAA" FontSize="12" />
+                        Background="#FFF8E1" CornerRadius="6" Padding="10,6">
+                    <TextBlock Text="正在导入..." Foreground="#888" FontSize="11" />
                 </Border>
                 <Border IsVisible="{Binding HasBackupImportStatus}"
-                        Background="#2D4A2D" CornerRadius="4" Padding="8,6">
-                    <TextBlock Text="{Binding BackupImportStatus}" Foreground="#8FD88F" FontSize="12" />
+                        Background="#E8F5E9" CornerRadius="6" Padding="10,6">
+                    <TextBlock Text="{Binding BackupImportStatus}" Foreground="#2E7D32" FontSize="11" />
                 </Border>
                 <Border IsVisible="{Binding HasBackupImportError}"
-                        Background="#4A2D2D" CornerRadius="4" Padding="8,6">
-                    <TextBlock Text="{Binding BackupImportError}" Foreground="#D88F8F" FontSize="12"
+                        Background="#FFEBEE" CornerRadius="6" Padding="10,6">
+                    <TextBlock Text="{Binding BackupImportError}" Foreground="#C62828" FontSize="11"
                                TextWrapping="Wrap" />
                 </Border>
-                <Border Background="#3A3A3A" Height="1" CornerRadius="2" Margin="4,4" />
-                <Button Content="⚙️ 设置"
-                        Command="{Binding ShowSettingsCommand}"
-                        HorizontalContentAlignment="Left"
-                        Padding="16,10" Background="Transparent"
-                        Foreground="White" BorderThickness="0" />
             </StackPanel>
 
             <!-- Middle: Scrollable nav -->
             <ScrollViewer>
-                <StackPanel Margin="0,16,0,0" Spacing="2">
-                    <TextBlock Text="拾屿"
-                               Foreground="White" FontSize="20" FontWeight="Bold"
-                               HorizontalAlignment="Center" Margin="0,0,0,16" />
+                <StackPanel Margin="0,20,0,8" Spacing="2">
+                    <!-- Home — light gray selected state like macOS -->
+                    <Border x:Name="HomeNavBorder" Background="#E4E4E4" CornerRadius="8"
+                            Margin="8,0" Padding="0,1">
+                        <Button Content="🏠 首页"
+                                Command="{Binding ShowHomeCommand}"
+                                HorizontalContentAlignment="Left"
+                                Padding="12,8" Background="Transparent"
+                                Foreground="#111" BorderThickness="0" FontSize="13" />
+                    </Border>
 
-                    <Button Content="🏠 首页"
-                            Command="{Binding ShowHomeCommand}"
-                            HorizontalContentAlignment="Left"
-                            Padding="16,10" Background="Transparent"
-                            Foreground="White" BorderThickness="0" />
-
-                    <Button Content="🔍 搜索"
-                            Command="{Binding ShowSearchCommand}"
-                            HorizontalContentAlignment="Left"
-                            Padding="16,10" Background="Transparent"
-                            Foreground="White" BorderThickness="0" />
-
-                    <Border Background="#3A3A3A" Height="1" CornerRadius="2" Margin="12,8" />
-                    <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Grid.Column="0" Text="平台" Foreground="#888" FontSize="11"
-                                   Margin="16,4,16,4" VerticalAlignment="Center" />
-                        <Button Grid.Column="1" Content="管理"
-                                Command="{Binding OpenPlatformManagementCommand}"
-                                FontSize="11" Padding="8,2"
-                                Background="Transparent" Foreground="#888"
-                                BorderThickness="0" Cursor="Hand"
-                                ToolTip.Tip="管理自定义平台" />
-                    </Grid>
+                    <!-- Platform section -->
+                    <TextBlock Text="平台" Foreground="#999" FontSize="11"
+                               Margin="20,12,16,4" />
 
                     <ItemsControl ItemsSource="{Binding SidebarPlatforms}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:PlatformEntryDisplay">
                                 <Button HorizontalContentAlignment="Left"
-                                        Padding="16,8" Background="Transparent"
-                                        Foreground="White" BorderThickness="0"
+                                        Padding="20,7" Background="Transparent"
+                                        Foreground="#444" BorderThickness="0" FontSize="13"
                                         Click="PlatformEntry_Click">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                        <TextBlock Text="★" FontSize="18" VerticalAlignment="Center"
+                                                   Foreground="#C026D3" FontWeight="Bold" />
                                         <TextBlock Text="{Binding Name}" FontSize="13"
                                                    VerticalAlignment="Center" />
-                                        <TextBlock Text="{Binding Count}" FontSize="11"
-                                                   Foreground="#888" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <Border Background="#3A3A3A" Height="1" CornerRadius="2" Margin="12,8" />
-                    <Button Content="🗑️ 回收站"
-                            Command="{Binding ShowTrashCommand}"
+                    <!-- Unclassified content -->
+                    <Button Content="📂 未分类内容"
                             HorizontalContentAlignment="Left"
-                            Padding="16,10" Background="Transparent"
-                            Foreground="White" BorderThickness="0" />
+                            Padding="20,7" Background="Transparent"
+                            Foreground="#555" BorderThickness="0" FontSize="13" />
+
+                    <!-- Add platform -->
+                    <Button Content="＋ 新增平台"
+                            Command="{Binding OpenPlatformManagementCommand}"
+                            HorizontalContentAlignment="Left"
+                            Padding="20,7" Background="Transparent"
+                            Foreground="#999" BorderThickness="0" FontSize="12" />
                 </StackPanel>
             </ScrollViewer>
             </DockPanel>
         </Border>
 
         <!-- Main Content Area -->
-        <Panel Grid.Column="1">
+        <Panel Grid.Column="1" Background="White">
             <views:HomeView x:Name="HomeViewControl" DataContext="{Binding Home}" />
             <views:SearchView x:Name="SearchViewControl" DataContext="{Binding Search}" IsVisible="False" />
             <views:TrashView x:Name="TrashViewControl" DataContext="{Binding Trash}" IsVisible="False" />

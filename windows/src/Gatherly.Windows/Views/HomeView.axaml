@@ -6,129 +6,170 @@
              x:DataType="vm:HomeViewModel"
              x:Class="Gatherly.Windows.Views.HomeView">
 
-    <DockPanel>
-        <!-- Header: title + search box -->
-        <Border DockPanel.Dock="Top" Padding="20,16,20,8">
-            <Grid ColumnDefinitions="Auto,*">
+    <DockPanel Background="White">
+        <!-- FIXED: Only title + search bar at top -->
+        <Border DockPanel.Dock="Top" Padding="28,20,28,8">
+            <Grid ColumnDefinitions="*,Auto">
                 <TextBlock Grid.Column="0" Text="拾屿 · 跨平台的私人内容岛"
-                           FontSize="20" FontWeight="Bold"
+                           FontSize="22" FontWeight="Bold" Foreground="#222"
                            VerticalAlignment="Center" />
-                <TextBox Grid.Column="1" x:Name="SearchBox"
-                         Text="{Binding SearchQuery}"
-                         Watermark="搜索内容..."
-                         Width="280"
-                         HorizontalAlignment="Right"
-                         VerticalAlignment="Center" />
+                <Border Grid.Column="1" CornerRadius="20" Background="#F0F0F0"
+                        BorderBrush="#E0E0E0" BorderThickness="1"
+                        Padding="0" MinWidth="260">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <TextBlock Grid.Column="0" Text="🔍" FontSize="13"
+                                   Foreground="#999" VerticalAlignment="Center"
+                                   Margin="14,0,0,0" />
+                        <TextBox Grid.Column="1" x:Name="SearchBox"
+                                 Text="{Binding SearchQuery}"
+                                 Watermark="搜索标题和正文..."
+                                 Background="Transparent" BorderThickness="0"
+                                 FontSize="13" Padding="8,8,14,8" />
+                    </Grid>
+                </Border>
             </Grid>
         </Border>
 
-        <!-- ====== Normal home content (visible when not searching) ====== -->
-        <!-- One-click import -->
-        <StackPanel DockPanel.Dock="Top" Margin="20,12,20,4" Spacing="12"
-                    IsVisible="{Binding ShowHomeContent}">
-            <TextBlock Text="一键归档" FontSize="16" FontWeight="SemiBold" />
-            <StackPanel Orientation="Horizontal" Spacing="8">
-                <TextBox Text="{Binding ImportUrl}" Watermark="粘贴链接..." Width="400" />
-                <Button Content="导入" Command="{Binding ImportLinkCommand}" Padding="16,6" />
-            </StackPanel>
-            <TextBlock Text="{Binding ImportStatusMessage}"
-                       IsVisible="{Binding ImportStatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                       FontSize="12" Foreground="#E8A020" />
-        </StackPanel>
-
-        <!-- Recent imports title -->
-        <TextBlock DockPanel.Dock="Top" Text="最近导入" FontSize="16" FontWeight="SemiBold"
-                   Margin="20,12,20,4" IsVisible="{Binding ShowHomeContent}" />
-
-        <!-- Loading / error -->
+        <!-- Loading / error (fixed at top below header) -->
         <TextBlock DockPanel.Dock="Top" Text="正在加载..." IsVisible="{Binding IsBusy}"
-                   Foreground="Gray" Margin="20,2,20,2" />
+                   Foreground="#AAA" Margin="28,2,28,2" />
         <TextBlock DockPanel.Dock="Top" Text="{Binding ErrorMessage}"
                    IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                   Foreground="Red" Margin="20,2,20,2" />
-        <TextBlock DockPanel.Dock="Top" Text="最近 7 日暂无内容导入"
-                   IsVisible="{Binding !HasItems}"
-                   Foreground="Gray" FontSize="14" Margin="20,8,20,8" />
+                   Foreground="#D32F2F" Margin="28,2,28,2" />
 
-        <!-- Scrollable content area (unfilled child of DockPanel → bounded height) -->
+        <!-- MAIN SCROLLABLE: all content scrolls together -->
         <ScrollViewer IsVisible="{Binding ShowHomeContent}"
-                      VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="20,0,20,20" Spacing="20">
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="28,0,28,28" Spacing="0">
 
-                <!-- Recent items: horizontal scroll, aligned to macOS LazyHStack -->
-                <ScrollViewer HorizontalScrollBarVisibility="Auto"
-                              VerticalScrollBarVisibility="Disabled"
-                              IsVisible="{Binding HasItems}">
-                    <ItemsControl ItemsSource="{Binding RecentItems}">
+                <!-- ===== 一键归档 (inside scroll, will scroll out) ===== -->
+                <StackPanel Spacing="10" Margin="0,0,0,20">
+                    <TextBlock Text="一键归档" FontSize="15" FontWeight="SemiBold" Foreground="#333" />
+                    <Border CornerRadius="10" BorderBrush="#E0E0E0" BorderThickness="1"
+                            Background="#FAFAFA" Padding="0">
+                        <Grid RowDefinitions="Auto,Auto">
+                            <TextBox Grid.Row="0" x:Name="PasteInputBox"
+                                     Text="{Binding ImportUrl}"
+                                     Watermark="粘贴到此处以完成导入"
+                                     AcceptsReturn="True" TextWrapping="Wrap"
+                                     MinHeight="80" MaxHeight="160"
+                                     Background="Transparent" BorderThickness="0"
+                                     FontSize="14" Padding="14,12" />
+                            <StackPanel Grid.Row="1" Orientation="Horizontal"
+                                        HorizontalAlignment="Right" Spacing="8" Margin="0,0,12,10">
+                                <TextBlock Text="{Binding ImportStatusMessage}"
+                                           IsVisible="{Binding ImportStatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                           FontSize="12" Foreground="#E8A020"
+                                           VerticalAlignment="Center" />
+                                <Button Content="导入" Command="{Binding ImportLinkCommand}"
+                                        Padding="14,5" FontSize="12"
+                                        Background="#F0F0F0" Foreground="#555"
+                                        BorderBrush="#DDD" BorderThickness="1" CornerRadius="6" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
+                <!-- Divider -->
+                <Border Height="1" Background="#F0F0F0" Margin="0,0,0,20" />
+
+                <!-- ===== 最近导入 (inside scroll) ===== -->
+                <StackPanel Spacing="10" IsVisible="{Binding HasItems}">
+                    <TextBlock Text="最近导入" FontSize="15" FontWeight="SemiBold"
+                               Foreground="#333" Margin="0,0,0,6" />
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding RecentItems}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="14" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="m:Item">
+                                    <Border Width="280" Padding="8" CornerRadius="10" ClipToBounds="True"
+                                            Background="White"
+                                            BorderBrush="#E8E8E8" BorderThickness="1"
+                                            PointerPressed="RecentItemCard_PointerPressed">
+                                        <Border.ContextFlyout>
+                                            <MenuFlyout>
+                                                <MenuItem Header="不显示该内容" Click="HideRecentItem_Click" Tag="{Binding}" />
+                                                <Separator />
+                                                <MenuItem Header="删除" Click="DeleteRecentItem_Click" Tag="{Binding}" Foreground="#D32F2F" />
+                                            </MenuFlyout>
+                                        </Border.ContextFlyout>
+                                        <StackPanel>
+                                            <Border Height="180" Background="#F0F0F0" CornerRadius="8" ClipToBounds="True">
+                                                <Image Source="{Binding FirstImagePath, Converter={x:Static conv:FilePathToBitmapConverter.Instance}}" Stretch="UniformToFill" />
+                                            </Border>
+                                            <StackPanel Spacing="2" Margin="0,8,0,0">
+                                                <TextBlock Text="{Binding Title, FallbackValue='未命名内容'}" FontWeight="Medium" FontSize="13"
+                                                           Foreground="#333" TextTrimming="CharacterEllipsis" MaxLines="2" />
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <TextBlock Text="{Binding DisplayPlatform}" FontSize="11" Foreground="#999" />
+                                                    <TextBlock Text="{Binding Author, FallbackValue='未知作者'}" FontSize="11" Foreground="#BBB"
+                                                               TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </StackPanel>
+
+                <!-- Divider -->
+                <Border Height="1" Background="#F0F0F0" Margin="0,20,0,20"
+                        IsVisible="{Binding HasPlatforms}" />
+
+                <!-- ===== 平台入口 (inside scroll) ===== -->
+                <StackPanel Spacing="10" IsVisible="{Binding HasPlatforms}">
+                    <TextBlock Text="平台入口" FontSize="15" FontWeight="SemiBold"
+                               Foreground="#333" Margin="0,0,0,6" />
+                    <ItemsControl ItemsSource="{Binding PlatformEntries}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <StackPanel Orientation="Horizontal" Spacing="12" />
+                                <WrapPanel Orientation="Horizontal" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="m:Item">
-                                <Border Width="200" Padding="8" CornerRadius="12" ClipToBounds="True"
-                                        Background="{StaticResource BackgroundCard}"
-                                        BorderBrush="{StaticResource BorderLight}" BorderThickness="1"
-                                        PointerPressed="RecentItemCard_PointerPressed">
-                                    <Border.ContextFlyout>
-                                        <MenuFlyout>
-                                            <MenuItem Header="不显示该内容" Click="HideRecentItem_Click" Tag="{Binding}" />
-                                            <Separator />
-                                            <MenuItem Header="删除" Click="DeleteRecentItem_Click" Tag="{Binding}" Foreground="{StaticResource DangerRed}" />
-                                        </MenuFlyout>
-                                    </Border.ContextFlyout>
-                                    <StackPanel>
-                                        <Border Height="180" Background="{StaticResource BackgroundTertiary}" CornerRadius="8" ClipToBounds="True">
-                                            <Image Source="{Binding FirstImagePath, Converter={x:Static conv:FilePathToBitmapConverter.Instance}}" Stretch="UniformToFill" />
-                                        </Border>
-                                        <StackPanel Spacing="4" Margin="0,8,0,0">
-                                            <TextBlock Text="{Binding Title, FallbackValue='未命名内容'}" FontWeight="Medium" FontSize="13" TextTrimming="CharacterEllipsis" MaxLines="2" />
-                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <TextBlock Text="{Binding DisplayPlatform}" FontSize="11" Foreground="{StaticResource TextSecondary}" />
-                                                <TextBlock Text="{Binding Author, FallbackValue='未知作者'}" FontSize="11" Foreground="{StaticResource TextTertiary}" TextTrimming="CharacterEllipsis" />
-                                            </StackPanel>
-                                        </StackPanel>
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
-
-                <!-- Platform entries -->
-                <StackPanel Spacing="10" IsVisible="{Binding HasPlatforms}">
-                    <TextBlock Text="平台入口" FontSize="16" FontWeight="SemiBold" />
-                    <ItemsControl ItemsSource="{Binding PlatformEntries}">
-                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:PlatformEntryDisplay">
-                                <Button Padding="0" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="PlatformEntry_Click">
-                                    <Border CornerRadius="10" Margin="0,0,10,10" Padding="12"
-                                            Background="{StaticResource BackgroundCard}" BorderBrush="{StaticResource BorderLight}" BorderThickness="1" MinWidth="150">
-                                        <StackPanel Orientation="Horizontal" Spacing="10">
-                                            <Border Width="36" Height="36" CornerRadius="8" Background="{StaticResource BackgroundTertiary}" ClipToBounds="True">
+                                <Button Padding="0" Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                        Click="PlatformEntry_Click">
+                                    <Border CornerRadius="10" Margin="0,0,12,10" Padding="14"
+                                            Background="White" BorderBrush="#E8E8E8" BorderThickness="1"
+                                            MinWidth="260">
+                                        <Grid ColumnDefinitions="40,*,Auto">
+                                            <Border Grid.Column="0" Width="40" Height="40" CornerRadius="10"
+                                                    Background="#F0F0F0" ClipToBounds="True">
                                                 <Image Source="{Binding LogoPath, Converter={x:Static conv:FilePathToBitmapConverter.Instance}}" Stretch="UniformToFill" />
                                             </Border>
-                                            <StackPanel VerticalAlignment="Center" Spacing="1">
-                                                <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="Medium" />
-                                                <TextBlock Text="{Binding CountDisplay}" FontSize="11" Foreground="{StaticResource TextSecondary}" />
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2" Margin="12,0,0,0">
+                                                <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="Medium" Foreground="#333" />
+                                                <TextBlock Text="{Binding CountDisplay}" FontSize="11" Foreground="#999" />
                                             </StackPanel>
-                                        </StackPanel>
+                                            <TextBlock Grid.Column="2" Text="›" FontSize="18" Foreground="#CCC"
+                                                       VerticalAlignment="Center" Margin="8,0,0,0" />
+                                        </Grid>
                                     </Border>
                                 </Button>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </StackPanel>
+
+                <!-- Bottom safe space -->
+                <Border Height="40" />
             </StackPanel>
         </ScrollViewer>
 
-        <!-- ====== Search results (visible when searching) ====== -->
+        <!-- ====== Search results ====== -->
         <DockPanel IsVisible="{Binding ShowSearchResults}">
-            <Border DockPanel.Dock="Top" Margin="20,4,20,4"
+            <Border DockPanel.Dock="Top" Margin="28,4,28,4"
                     IsVisible="{Binding HasSearchResults}">
-                <TextBlock Foreground="{StaticResource TextTertiary}" FontSize="12">
+                <TextBlock Foreground="#999" FontSize="12">
                     <TextBlock.Text>
                         <MultiBinding StringFormat="共 {0} 条结果">
                             <Binding Path="SearchResultCount" />
@@ -142,13 +183,13 @@
                             HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
                     <TextBlock Text="🔍" FontSize="32" HorizontalAlignment="Center" />
                     <TextBlock Text="没有找到相关内容" FontSize="14"
-                               Foreground="{StaticResource TextTertiary}" HorizontalAlignment="Center" />
+                               Foreground="#AAA" HorizontalAlignment="Center" />
                     <TextBlock Text="尝试修改搜索关键词" FontSize="12"
-                               Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Center" />
+                               Foreground="#CCC" HorizontalAlignment="Center" />
                 </StackPanel>
 
                 <ScrollViewer IsVisible="{Binding HasSearchResults}">
-                    <ItemsControl ItemsSource="{Binding SearchResults}" Margin="20,0,20,20">
+                    <ItemsControl ItemsSource="{Binding SearchResults}" Margin="28,0,28,28">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <WrapPanel Orientation="Horizontal" />
@@ -156,27 +197,29 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="m:Item">
-                                <Border Width="200" Padding="8" Margin="0,0,12,12"
-                                        CornerRadius="12" ClipToBounds="True"
-                                        Background="{StaticResource BackgroundCard}"
-                                        BorderBrush="{StaticResource BorderLight}" BorderThickness="1"
+                                <Border Width="200" Padding="8" Margin="0,0,14,14"
+                                        CornerRadius="10" ClipToBounds="True"
+                                        Background="White"
+                                        BorderBrush="#E8E8E8" BorderThickness="1"
                                         PointerPressed="SearchResultCard_PointerPressed">
                                     <Border.ContextFlyout>
                                         <MenuFlyout>
                                             <MenuItem Header="移动到平台" Click="SearchResultMoveToPlatform_Click" Tag="{Binding}" />
                                             <MenuItem Header="移动到文件夹" Click="SearchResultMoveToFolder_Click" Tag="{Binding}" />
-                                            <MenuItem Header="删除" Click="SearchResultDelete_Click" Tag="{Binding}" Foreground="{StaticResource DangerRed}" />
+                                            <MenuItem Header="删除" Click="SearchResultDelete_Click" Tag="{Binding}" Foreground="#D32F2F" />
                                         </MenuFlyout>
                                     </Border.ContextFlyout>
                                     <StackPanel>
-                                        <Border Height="160" Background="{StaticResource BackgroundTertiary}" CornerRadius="8" ClipToBounds="True">
+                                        <Border Height="160" Background="#F0F0F0" CornerRadius="8" ClipToBounds="True">
                                             <Image Source="{Binding FirstImagePath, Converter={x:Static conv:FilePathToBitmapConverter.Instance}}" Stretch="UniformToFill" />
                                         </Border>
-                                        <StackPanel Spacing="4" Margin="0,6,0,0">
-                                            <TextBlock Text="{Binding Title, FallbackValue='未命名内容'}" FontWeight="Medium" FontSize="13" TextTrimming="CharacterEllipsis" MaxLines="2" />
-                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <TextBlock Text="{Binding DisplayPlatform}" FontSize="11" Foreground="{StaticResource TextSecondary}" />
-                                                <TextBlock Text="{Binding Author, FallbackValue='未知作者'}" FontSize="11" Foreground="{StaticResource TextTertiary}" TextTrimming="CharacterEllipsis" />
+                                        <StackPanel Spacing="2" Margin="0,8,0,0">
+                                            <TextBlock Text="{Binding Title, FallbackValue='未命名内容'}" FontWeight="Medium" FontSize="13"
+                                                       Foreground="#333" TextTrimming="CharacterEllipsis" MaxLines="2" />
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <TextBlock Text="{Binding DisplayPlatform}" FontSize="11" Foreground="#999" />
+                                                <TextBlock Text="{Binding Author, FallbackValue='未知作者'}" FontSize="11" Foreground="#BBB"
+                                                           TextTrimming="CharacterEllipsis" />
                                             </StackPanel>
                                         </StackPanel>
                                     </StackPanel>
